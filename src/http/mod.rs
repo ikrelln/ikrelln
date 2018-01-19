@@ -1,9 +1,9 @@
 use actix_web::*;
 use engine;
 use futures::Future;
+use uuid;
 
-
-fn index(req: HttpRequest) -> String {
+fn index(_req: HttpRequest) -> String {
     String::from(engine::hello())
 }
 
@@ -39,7 +39,10 @@ fn ingest(req: HttpRequest) -> Box<Future<Item=HttpResponse, Error=Error>> {
 pub fn serve(port: u16) {
     HttpServer::new(
         || Application::new()
-            .middleware(middleware::Logger::default())
+            .middleware(middleware::DefaultHeaders::build()
+                    .header("X-Request-Id", uuid::Uuid::new_v4().hyphenated().to_string().as_str())
+                    .finish())
+            .middleware(middleware::Logger::new("%a %t \"%r\" %s %b \"%{Referer}i\" \"%{User-Agent}i\" %{X-Request-Id}o - %T"))
             .resource("/", |r| r.method(Method::GET).f(index))
             .resource("/ingest", |r| r.method(Method::POST).f(ingest)))
         .bind(format!("127.0.0.1:{}", port)).unwrap()

@@ -1,0 +1,25 @@
+[package]
+name = "ikrelln"
+version = "0.1.0"
+authors = ["François Mockers <mockersf@gmail.com>"]
+build = "build.rs"
+
+[dependencies]
+log = "0.3"
+fern = "0.4"
+chrono = "0.3"
+mime = "0.3"
+time = "*"
+
+clap = "*"
+
+uuid = { version = "0.5", features = ["serde", "v4"] }
+
+serde = "*"
+serde_derive = "*"
+lazy_static = "1.0"
+
+futures = "*"
+env_logger = "0.4"
+actix = "0.4"
+actix-web = "*"

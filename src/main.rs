@@ -1,4 +1,4 @@
-//#![deny(warnings)]
+#![deny(warnings)]
 
 extern crate chrono;
 extern crate fern;
@@ -40,6 +40,8 @@ fn main() {
                 .long("port")
                 .takes_value(true)
                 .value_name("PORT")
+                .default_value("8080")
+                .env("HTTP_PORT")
                 .help("Listen to the specified port"),
         )
         .get_matches();
@@ -65,7 +67,7 @@ fn main() {
     let port = matches
         .value_of("port")
         .and_then(|it| it.parse::<u16>().ok())
-        .unwrap_or(8080);
+        .unwrap();
 
     info!("Hello, world!");
 

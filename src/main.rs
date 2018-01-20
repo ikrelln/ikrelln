@@ -65,7 +65,7 @@ fn main() {
     let port = matches
         .value_of("port")
         .and_then(|it| it.parse::<u16>().ok())
-        .unwrap_or(9999);
+        .unwrap_or(8080);
 
     info!("Hello, world!");
 

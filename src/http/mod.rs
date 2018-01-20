@@ -27,12 +27,15 @@ impl error::ResponseError for IkError {
     fn error_response(&self) -> HttpResponse {
         match *self {
             IkError::InternalError => {
-                HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR, Body::Empty)
+                let error_uid = uuid::Uuid::new_v4();
+                error!("{:?} with id {}", self, error_uid);
+                httpcodes::HTTPInternalServerError
+                    .build()
+                    .header("X-Request-Id", error_uid.hyphenated().to_string().as_str())
+                    .finish()
+                    .unwrap()
             }
-            IkError::BadClientData(ref msg) => {
-                println!("building error with msg '{}'", msg);
-                httpcodes::HTTPBadRequest.build().json(self).unwrap()
-            }
+            IkError::BadClientData(_) => httpcodes::HTTPBadRequest.build().json(self).unwrap(),
         }
     }
 }
@@ -57,8 +60,7 @@ impl From<Error> for IkError {
 struct TestResult {
     test_name: String,
     result: Status,
-    #[serde(deserialize_with = "deserialize_duration")]
-    duration: std::time::Duration,
+    #[serde(deserialize_with = "deserialize_duration")] duration: std::time::Duration,
 }
 
 use serde::de::{self, Deserialize, MapAccess, Visitor};
@@ -96,8 +98,6 @@ where
 }
 
 fn ingest(req: HttpRequest) -> Box<Future<Item = HttpResponse, Error = IkError>> {
-    info!("request: {:?}", req);
-
     req.json()
         .from_err()
         .and_then(|val: Vec<TestResult>| {

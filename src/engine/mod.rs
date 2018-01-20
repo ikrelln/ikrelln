@@ -1,7 +1,6 @@
 use serde;
 use uuid;
 
-
 pub fn hello() -> &'static str {
     "I am Krelln"
 }
@@ -39,7 +38,9 @@ typed_id!(StepId);
 typed_id!(TagId);
 
 trait HasId<S> {
-    fn id(&self) -> &S where S: TypedId;
+    fn id(&self) -> &S
+    where
+        S: TypedId;
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -57,7 +58,7 @@ impl HasId<ApplicationId> for Application {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Test {
     pub id: TestId,
-    #[serde(serialize_with="serialize_with_id", rename="application_id")]
+    #[serde(serialize_with = "serialize_with_id", rename = "application_id")]
     pub application: Application,
     pub name: String,
     pub duration: u64,
@@ -68,7 +69,7 @@ pub struct Test {
 pub struct Step {
     pub id: StepId,
     pub test: Test,
-    #[serde(serialize_with="serialize_option_with_id", rename="application_id")]
+    #[serde(serialize_with = "serialize_option_with_id", rename = "application_id")]
     pub application: Option<Application>,
     pub name: String,
     pub duration: u64,
@@ -87,17 +88,22 @@ pub struct Tag {
 }
 
 fn serialize_with_id<S, T, U>(x: &T, serializer: S) -> ::std::result::Result<S::Ok, S::Error>
-    where S: serde::Serializer,
-          T: HasId<U>,
-          U: TypedId + serde::Serialize,
+where
+    S: serde::Serializer,
+    T: HasId<U>,
+    U: TypedId + serde::Serialize,
 {
     serde::Serialize::serialize(&x.id(), serializer)
 }
 
-fn serialize_option_with_id<S, T, U>(x: &Option<T>, serializer: S) -> ::std::result::Result<S::Ok, S::Error>
-    where S: serde::Serializer,
-          T: HasId<U>,
-          U: TypedId + serde::Serialize,
+fn serialize_option_with_id<S, T, U>(
+    x: &Option<T>,
+    serializer: S,
+) -> ::std::result::Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+    T: HasId<U>,
+    U: TypedId + serde::Serialize,
 {
     if let Some(ref y) = *x {
         serde::Serialize::serialize(&y.id(), serializer)

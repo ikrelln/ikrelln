@@ -2,19 +2,24 @@
 
 extern crate chrono;
 extern crate fern;
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 extern crate mime;
 extern crate time;
 
 extern crate clap;
 
-#[macro_use] extern crate lazy_static;
+#[macro_use]
+extern crate lazy_static;
 
 extern crate serde;
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate serde_derive;
 extern crate uuid;
 
 extern crate actix_web;
+#[macro_use]
+extern crate failure;
 extern crate futures;
 
 use clap::{App, Arg};
@@ -23,11 +28,8 @@ mod build_info;
 mod engine;
 mod http;
 
-
 fn main() {
-    let version: String = format!(
-        "v{}", build_info::BUILD_INFO.version
-    );
+    let version: String = format!("v{}", build_info::BUILD_INFO.version);
 
     let matches = App::new("Krelln")
         .version(version.as_str())

@@ -17,7 +17,9 @@ table! {
     test_result (id) {
         id -> Nullable<Text>,
         test_id -> Text,
+        result -> Text,
         duration -> BigInt,
+        ts -> BigInt,
     }
 }
 

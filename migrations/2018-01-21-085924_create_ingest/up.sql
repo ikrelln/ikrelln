@@ -12,5 +12,7 @@ CREATE TABLE test (
 CREATE TABLE test_result (
     id VARCHAR PRIMARY KEY,
     test_id VARCHAR NOT NULL,
-    duration UNSIGNED BIG INT NOT NULL
+    result VARCHAR NOT NULL,
+    duration BIGINT NOT NULL,
+    ts BIGINT NOT NULL
 );

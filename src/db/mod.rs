@@ -3,6 +3,7 @@ use actix::{Actor, SyncContext};
 
 pub mod schema;
 pub mod ingest_event;
+pub mod test_result;
 
 pub fn establish_connection(database_url: String) -> SqliteConnection {
     info!("opening connection to DB {}", database_url);

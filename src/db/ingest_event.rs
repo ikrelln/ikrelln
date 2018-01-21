@@ -57,7 +57,7 @@ impl Handler<StartIngestEventDb> for super::DbExecutor {
             .values(&msg)
             .execute(&self.0)
             .expect("Error inserting Ingest");
-        info!("done saving  ingest '{}'", ingest_id);
+        info!("starting ingest '{}'", ingest_id);
         Ok(())
     }
 }
@@ -73,7 +73,7 @@ impl Handler<FinishIngestEventDb> for super::DbExecutor {
             .set(processed_at.eq(msg.processed_at))
             .execute(&self.0)
             .expect("Error inserting Ingest");
-        info!("done saving  ingest '{}'", ingest_id);
+        info!("finished ingest '{}'", ingest_id);
         Ok(())
     }
 }

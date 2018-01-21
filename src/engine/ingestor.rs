@@ -2,10 +2,11 @@ use std;
 use serde;
 use actix::*;
 use chrono;
-
+use futures::future::*;
+use futures;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-enum Status {
+pub enum Status {
     SUCCESS,
     FAILURE,
     SKIPPED,
@@ -13,9 +14,10 @@ enum Status {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct TestResult {
-    test_name: String,
-    result: Status,
-    #[serde(deserialize_with = "deserialize_duration")] duration: std::time::Duration,
+    pub test_name: String,
+    pub result: Status,
+    #[serde(deserialize_with = "deserialize_duration")] pub duration: std::time::Duration,
+    pub ts: Option<u64>,
 }
 
 use serde::de::{self, Deserialize, MapAccess, Visitor};
@@ -80,7 +82,6 @@ impl ResponseType for IngestEvents {
     type Item = ();
     type Error = ();
 }
-
 pub struct Ingestor(pub SyncAddress<::db::DbExecutor>);
 
 impl Actor for Ingestor {
@@ -91,12 +92,41 @@ impl Handler<IngestEvents> for Ingestor {
     type Result = Result<(), ()>;
 
     fn handle(&mut self, msg: IngestEvents, _ctx: &mut Context<Self>) -> Self::Result {
-        info!("{:?}", msg);
         self.0
             .send(::db::ingest_event::StartIngestEventDb::from(&msg));
-        msg.events.iter().for_each(|event| info!("{:?}", event));
-        self.0
-            .send(::db::ingest_event::FinishIngestEventDb::from(&msg.done()));
+        let msg_futures = msg.events
+            .iter()
+            .map(|event| {
+                self.0
+                    .call_fut(::db::test_result::TestResultDb::from(event))
+            })
+            .collect::<Vec<_>>();
+        let finishing =
+            join_all(msg_futures).and_then(|_| futures::future::result(Ok(FinishedIngest(msg))));
+        _ctx.add_future(finishing);
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+struct FinishedIngest(IngestEvents);
+
+impl ResponseType for FinishedIngest {
+    type Item = ();
+    type Error = ();
+}
+
+impl Handler<Result<FinishedIngest, futures::Canceled>> for Ingestor {
+    type Result = Result<(), ()>;
+    fn handle(
+        &mut self,
+        msg: Result<FinishedIngest, futures::Canceled>,
+        _ctx: &mut Context<Self>,
+    ) -> Self::Result {
+        if let Ok(fi) = msg {
+            self.0
+                .send(::db::ingest_event::FinishIngestEventDb::from(&fi.0.done()));
+        }
         Ok(())
     }
 }

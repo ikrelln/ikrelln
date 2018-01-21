@@ -17,12 +17,15 @@ extern crate serde;
 extern crate serde_derive;
 extern crate uuid;
 
+extern crate actix;
 extern crate actix_web;
 #[macro_use]
 extern crate failure;
 extern crate futures;
 
 use clap::{App, Arg};
+
+use actix::Actor;
 
 mod build_info;
 mod engine;
@@ -31,6 +34,7 @@ mod http;
 fn main() {
     let version: String = format!("v{}", build_info::BUILD_INFO.version);
 
+    // configuration
     let matches = App::new("Krelln")
         .version(version.as_str())
         .about("Start Krelln server")
@@ -41,11 +45,12 @@ fn main() {
                 .takes_value(true)
                 .value_name("PORT")
                 .default_value("8080")
-                .env("HTTP_PORT")
+                .env("PORT")
                 .help("Listen to the specified port"),
         )
         .get_matches();
 
+    // log set up
     fern::Dispatch::new()
         .level(log::LogLevelFilter::Trace)
         .level_for("krelln", log::LogLevelFilter::Trace)
@@ -71,5 +76,8 @@ fn main() {
 
     info!("Hello, world!");
 
-    http::serve(port);
+    let system = actix::System::new("i'krelln");
+    let ingestor_actor: actix::SyncAddress<_> = engine::ingestor::Ingestor.start();
+    http::serve(port, ingestor_actor);
+    system.run();
 }

@@ -1,5 +1,8 @@
 use serde;
 use uuid;
+use std::fmt;
+
+pub mod ingestor;
 
 pub fn hello() -> &'static str {
     "I am Krelln"
@@ -7,18 +10,17 @@ pub fn hello() -> &'static str {
 
 macro_rules! typed_id {
     ($name:ident) => (
-        #[derive(Serialize, Deserialize, Debug)]
+        #[derive(Serialize, Deserialize, Debug, Clone)]
         pub struct $name (pub String);
         impl TypedId for $name {}
-        impl ToString for $name {
-            fn to_string(&self) -> String {
-                let $name(ref string) = *self;
-                return string.to_string();
-            }
-        }
         impl From<String> for $name {
             fn from(v: String) -> Self {
                 $name(v)
+            }
+        }
+        impl fmt::Display for $name {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "{}({})", stringify!($name), self.0)
             }
         }
         impl $name {
@@ -36,6 +38,8 @@ typed_id!(ApplicationId);
 typed_id!(TestId);
 typed_id!(StepId);
 typed_id!(TagId);
+
+typed_id!(IngestId);
 
 trait HasId<S> {
     fn id(&self) -> &S

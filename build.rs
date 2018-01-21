@@ -1,36 +1,64 @@
 use std::fs::File;
 use std::io::prelude::*;
 use std::process::Command;
+use std::error::Error;
+
+struct Ignore;
+
+impl<E> From<E> for Ignore
+where
+    E: Error,
+{
+    fn from(_: E) -> Ignore {
+        Ignore
+    }
+}
+
+fn commit_hash() -> Result<String, Ignore> {
+    Ok(try!(String::from_utf8(
+        try!(Command::new("git").args(&["rev-parse", "HEAD"]).output()).stdout
+    )))
+}
+
+fn commit_date() -> Result<String, Ignore> {
+    Ok(try!(String::from_utf8(
+        try!(
+            Command::new("git")
+                .args(&["log", "-1", "--pretty=format:%ci"])
+                .output()
+        ).stdout
+    )))
+}
 
 fn main() {
-    let output = Command::new("git")
-        .arg("rev-parse HEAD")
-        .output()
-        .expect("failed to execute process");
-    let gitref = match String::from_utf8(output.stdout)
-        .unwrap_or("N/A".to_string())
-        .as_ref()
-    {
-        "" => "N/A".to_string(),
-        v => v.to_string(),
+    let gitref = match commit_hash() {
+        Ok(v) => v.trim_right().to_string(),
+        Err(_) => "N/A".to_string(),
+    };
+    let gitdate = match commit_date() {
+        Ok(v) => v.trim_right().to_string(),
+        Err(_) => "N/A".to_string(),
     };
     let version = env!("CARGO_PKG_VERSION");
 
     let new_content = format!(
         "
+#[derive(Serialize, Debug, Clone)]
 pub struct BuildInfo {{
     pub version: &'static str,
-    pub git: &'static str,
+    pub commit_hash: &'static str,
+    pub commit_date: &'static str,
 }}
 
-lazy_static! {{
-    pub static ref BUILD_INFO: BuildInfo = BuildInfo {{
-        version: \"{}\",
-        git: \"{}\",
-    }};
-}}
+pub static BUILD_INFO: BuildInfo = BuildInfo {{
+    version: \"{}\",
+    commit_hash: \"{}\",
+    commit_date: \"{}\",
+}};
 ",
-        version, gitref
+        version,
+        gitref,
+        gitdate
     );
 
     let update = File::open("src/build_info.rs")

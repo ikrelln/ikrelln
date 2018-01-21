@@ -17,7 +17,6 @@ uuid = { version = "0.5", features = ["serde", "v4"] }
 
 serde = "*"
 serde_derive = "*"
-lazy_static = "1.0"
 
 futures = "*"
 env_logger = "0.4"

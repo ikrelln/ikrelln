@@ -6,6 +6,8 @@ use actix;
 
 use engine::ingestor::*;
 
+pub mod healthcheck;
+
 fn index(_req: HttpRequest<AppState>) -> String {
     String::from(engine::hello())
 }
@@ -83,7 +85,7 @@ fn ingest(req: HttpRequest<AppState>) -> Box<Future<Item = HttpResponse, Error =
 }
 
 use std::cell::RefCell;
-struct AppState {
+pub struct AppState {
     ingestor: RefCell<actix::SyncAddress<Ingestor>>,
 }
 
@@ -103,6 +105,9 @@ pub fn serve(port: u16, _ingestor: actix::SyncAddress<Ingestor>) {
                 "%a %t \"%r\" %s %b \"%{Referer}i\" \"%{User-Agent}i\" %{X-Request-Id}o - %T",
             ))
             .resource("/", |r| r.method(Method::GET).f(index))
+            .resource("/healthcheck", |r| {
+                r.method(Method::GET).f(healthcheck::healthcheck)
+            })
             .resource("/ingest", |r| r.method(Method::POST).f(ingest))
     }).bind(format!("127.0.0.1:{}", port))
         .unwrap()

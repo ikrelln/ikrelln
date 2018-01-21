@@ -4,8 +4,13 @@ CREATE TABLE ingest (
   processed_at TEXT
 );
 
-CREATE TABLE ingest_events (
+CREATE TABLE test (
     id VARCHAR PRIMARY KEY,
-    ingest_id VARCHAR NOT NULL,
-    event_type VARCHAR NOT NULL
+    name VARCHAR NOT NULL
+);
+
+CREATE TABLE test_result (
+    id VARCHAR PRIMARY KEY,
+    test_id VARCHAR NOT NULL,
+    duration UNSIGNED BIG INT NOT NULL
 );

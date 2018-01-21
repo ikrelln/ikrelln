@@ -52,30 +52,12 @@ where
     deserializer.deserialize_any(IntOrStruct(std::marker::PhantomData))
 }
 
-use db::schema::ingest;
-#[derive(Debug, Insertable)]
-#[table_name = "ingest"]
-pub struct IngestEventDb {
-    id: String,
-    created_at: String,
-    processed_at: Option<String>,
-}
-impl From<IngestEvents> for IngestEventDb {
-    fn from(ie: IngestEvents) -> IngestEventDb {
-        IngestEventDb {
-            id: ie.ingest_id.to_string(),
-            created_at: ie.created_at.to_rfc2822(),
-            processed_at: ie.processed_at.map(|date| date.to_rfc2822()),
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct IngestEvents {
     pub ingest_id: super::IngestId,
     events: Vec<TestResult>,
-    created_at: chrono::DateTime<chrono::UTC>,
-    processed_at: Option<chrono::DateTime<chrono::UTC>>,
+    pub created_at: chrono::DateTime<chrono::UTC>,
+    pub processed_at: Option<chrono::DateTime<chrono::UTC>>,
 }
 impl IngestEvents {
     pub fn new(events: Vec<TestResult>) -> IngestEvents {
@@ -84,6 +66,12 @@ impl IngestEvents {
             events: events,
             created_at: chrono::UTC::now(),
             processed_at: None,
+        }
+    }
+    fn done(self) -> IngestEvents {
+        IngestEvents {
+            processed_at: Some(chrono::UTC::now()),
+            ..self
         }
     }
 }
@@ -104,7 +92,11 @@ impl Handler<IngestEvents> for Ingestor {
 
     fn handle(&mut self, msg: IngestEvents, _ctx: &mut Context<Self>) -> Self::Result {
         info!("{:?}", msg);
-        self.0.send(msg);
+        self.0
+            .send(::db::ingest_event::StartIngestEventDb::from(&msg));
+        msg.events.iter().for_each(|event| info!("{:?}", event));
+        self.0
+            .send(::db::ingest_event::FinishIngestEventDb::from(&msg.done()));
         Ok(())
     }
 }

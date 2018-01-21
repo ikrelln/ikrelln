@@ -7,14 +7,22 @@ table! {
 }
 
 table! {
-    ingest_events (id) {
+    test (id) {
         id -> Nullable<Text>,
-        ingest_id -> Text,
-        event_type -> Text,
+        name -> Text,
+    }
+}
+
+table! {
+    test_result (id) {
+        id -> Nullable<Text>,
+        test_id -> Text,
+        duration -> BigInt,
     }
 }
 
 allow_tables_to_appear_in_same_query!(
     ingest,
-    ingest_events,
+    test,
+    test_result,
 );

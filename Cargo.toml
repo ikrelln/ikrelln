@@ -5,10 +5,10 @@ authors = ["François Mockers <mockersf@gmail.com>"]
 build = "build.rs"
 
 [dependencies]
-log = "0.3"
-fern = "0.4"
-chrono = "0.3"
-mime = "0.3"
+log = "*"
+fern = "*"
+chrono = "*"
+mime = "*"
 time = "*"
 
 clap = "*"
@@ -19,8 +19,10 @@ serde = "*"
 serde_derive = "*"
 
 futures = "*"
-env_logger = "0.4"
-actix = "0.4"
+env_logger = "*"
+actix = "*"
 actix-web = "*"
 
 failure = "*"
+
+diesel = { version = "1.1.0", features = ["sqlite"] }

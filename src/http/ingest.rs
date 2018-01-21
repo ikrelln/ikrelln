@@ -2,7 +2,7 @@ use actix_web::{httpcodes, AsyncResponder, HttpRequest, HttpResponse};
 use futures::Future;
 
 use super::{errors, AppState};
-use engine::ingestor::{NewEvents, TestResult};
+use engine::ingestor::{IngestEvents, TestResult};
 
 #[derive(Debug, Serialize)]
 struct IngestResponse {
@@ -17,7 +17,7 @@ pub fn ingest(
     req.json()
         .from_err()
         .and_then(move |val: Vec<TestResult>| {
-            let ingest = NewEvents::new(val.iter().cloned().collect());
+            let ingest = IngestEvents::new(val.iter().cloned().collect());
             let ingest_id = ingest.ingest_id.clone();
             debug!(
                 "ingesting {} event(s) as {}: {:?}",

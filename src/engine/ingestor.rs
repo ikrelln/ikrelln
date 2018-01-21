@@ -1,6 +1,7 @@
 use std;
 use serde;
 use actix::*;
+use chrono;
 
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -51,36 +52,59 @@ where
     deserializer.deserialize_any(IntOrStruct(std::marker::PhantomData))
 }
 
-#[derive(Debug)]
-pub struct NewEvents {
-    pub ingest_id: super::IngestId,
-    events: Vec<TestResult>,
+use db::schema::ingest;
+#[derive(Debug, Insertable)]
+#[table_name = "ingest"]
+pub struct IngestEventDb {
+    id: String,
+    created_at: String,
+    processed_at: Option<String>,
 }
-impl NewEvents {
-    pub fn new(events: Vec<TestResult>) -> NewEvents {
-        NewEvents {
-            ingest_id: super::IngestId::new(),
-            events: events,
+impl From<IngestEvents> for IngestEventDb {
+    fn from(ie: IngestEvents) -> IngestEventDb {
+        IngestEventDb {
+            id: ie.ingest_id.to_string(),
+            created_at: ie.created_at.to_rfc2822(),
+            processed_at: ie.processed_at.map(|date| date.to_rfc2822()),
         }
     }
 }
 
-impl ResponseType for NewEvents {
+#[derive(Debug)]
+pub struct IngestEvents {
+    pub ingest_id: super::IngestId,
+    events: Vec<TestResult>,
+    created_at: chrono::DateTime<chrono::UTC>,
+    processed_at: Option<chrono::DateTime<chrono::UTC>>,
+}
+impl IngestEvents {
+    pub fn new(events: Vec<TestResult>) -> IngestEvents {
+        IngestEvents {
+            ingest_id: super::IngestId::new(),
+            events: events,
+            created_at: chrono::UTC::now(),
+            processed_at: None,
+        }
+    }
+}
+
+impl ResponseType for IngestEvents {
     type Item = ();
     type Error = ();
 }
 
-pub struct Ingestor;
+pub struct Ingestor(pub SyncAddress<::db::DbExecutor>);
 
 impl Actor for Ingestor {
     type Context = Context<Self>;
 }
 
-impl Handler<NewEvents> for Ingestor {
-    type Result = Result<(), ()>; // <- Message response type
+impl Handler<IngestEvents> for Ingestor {
+    type Result = Result<(), ()>;
 
-    fn handle(&mut self, msg: NewEvents, _ctx: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: IngestEvents, _ctx: &mut Context<Self>) -> Self::Result {
         info!("{:?}", msg);
+        self.0.send(msg);
         Ok(())
     }
 }

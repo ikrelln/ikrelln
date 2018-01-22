@@ -18,7 +18,7 @@ pub struct AppState {
     ingestor: RefCell<actix::SyncAddress<Ingestor>>,
 }
 
-pub fn serve(port: u16, _ingestor: actix::SyncAddress<Ingestor>) {
+pub fn serve(host: String, port: u16, _ingestor: actix::SyncAddress<Ingestor>) {
     HttpServer::new(move || {
         Application::with_state(AppState {
             ingestor: RefCell::new(_ingestor.clone()),
@@ -38,7 +38,7 @@ pub fn serve(port: u16, _ingestor: actix::SyncAddress<Ingestor>) {
                 r.method(Method::GET).f(healthcheck::healthcheck)
             })
             .resource("/ingest", |r| r.method(Method::POST).f(ingest::ingest))
-    }).bind(format!("127.0.0.1:{}", port))
+    }).bind(format!("{}:{}", host, port))
         .unwrap()
         .start();
 }

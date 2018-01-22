@@ -2,6 +2,7 @@ use clap::{App, Arg};
 
 #[derive(Debug, Clone)]
 pub struct Config {
+    pub host: String,
     pub port: u16,
     pub db_nb_connection: usize,
     pub db_url: String,
@@ -14,6 +15,15 @@ impl Config {
         let matches = App::new("i'Krelln")
             .version(version.as_str())
             .about("Start i'Krelln server")
+            .arg(
+                Arg::with_name("host")
+                    .long("host")
+                    .takes_value(true)
+                    .value_name("HOST")
+                    .default_value("0.0.0.0")
+                    .env("HOST")
+                    .help("Listen on the specified host"),
+            )
             .arg(
                 Arg::with_name("port")
                     .short("p")
@@ -43,6 +53,8 @@ impl Config {
             )
             .get_matches();
 
+        let host = matches.value_of("host").unwrap().to_string();
+
         let port = matches
             .value_of("port")
             .and_then(|it| it.parse::<u16>().ok())
@@ -59,6 +71,7 @@ impl Config {
             .to_string();
 
         Config {
+            host: host,
             port: port,
             db_nb_connection: db_nb_connection,
             db_url: db_url,

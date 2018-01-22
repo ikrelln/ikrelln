@@ -63,6 +63,6 @@ fn main() {
         })
     };
     let ingestor_actor: actix::SyncAddress<_> = engine::ingestor::Ingestor(db_actor).start();
-    http::serve(config.port, ingestor_actor);
+    http::serve(config.host, config.port, ingestor_actor);
     system.run();
 }

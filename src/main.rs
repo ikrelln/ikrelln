@@ -34,15 +34,15 @@ mod db;
 fn main() {
     // log set up
     fern::Dispatch::new()
-        .level(log::LogLevelFilter::Info)
-        .level_for("krelln", log::LogLevelFilter::Trace)
-        .level_for("tokio_core", log::LogLevelFilter::Error)
-        .level_for("mio", log::LogLevelFilter::Error)
+        .level(log::LevelFilter::Info)
+        .level_for("krelln", log::LevelFilter::Trace)
+        .level_for("tokio_core", log::LevelFilter::Error)
+        .level_for("mio", log::LevelFilter::Error)
         .chain(std::io::stdout())
         .format(|out, message, record| {
             out.finish(format_args!(
                 "[{}] [{}] [{}] {}",
-                chrono::UTC::now().format("%Y-%m-%d %H:%M:%S%.9f"),
+                chrono::Utc::now().format("%Y-%m-%d %H:%M:%S%.9f"),
                 record.target(),
                 record.level(),
                 message

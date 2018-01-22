@@ -5,24 +5,24 @@ authors = ["François Mockers <mockersf@gmail.com>"]
 build = "build.rs"
 
 [dependencies]
-log = "*"
-fern = "*"
-chrono = "*"
-mime = "*"
-time = "*"
+log = "0.4"
+fern = "0.5"
+chrono = "0.4"
+mime = "0.3"
+time = "0.1"
 
-clap = "*"
+clap = "2.29"
 
 uuid = { version = "0.5", features = ["serde", "v4"] }
 
-serde = "*"
-serde_derive = "*"
+serde = "1.0"
+serde_derive = "1.0"
 
-futures = "*"
-env_logger = "*"
-actix = "*"
-actix-web = "*"
+futures = "0.1"
+env_logger = "0.5"
+actix = "0.4"
+actix-web = "0.3"
 
-failure = "*"
+failure = "0.1"
 
 diesel = { version = "1.1.0", features = ["sqlite"] }

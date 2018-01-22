@@ -58,21 +58,21 @@ where
 pub struct IngestEvents {
     pub ingest_id: super::IngestId,
     events: Vec<TestResult>,
-    pub created_at: chrono::DateTime<chrono::UTC>,
-    pub processed_at: Option<chrono::DateTime<chrono::UTC>>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub processed_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 impl IngestEvents {
     pub fn new(events: Vec<TestResult>) -> IngestEvents {
         IngestEvents {
             ingest_id: super::IngestId::new(),
             events: events,
-            created_at: chrono::UTC::now(),
+            created_at: chrono::Utc::now(),
             processed_at: None,
         }
     }
     fn done(self) -> IngestEvents {
         IngestEvents {
-            processed_at: Some(chrono::UTC::now()),
+            processed_at: Some(chrono::Utc::now()),
             ..self
         }
     }

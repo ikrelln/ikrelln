@@ -5,7 +5,7 @@ use std::fmt;
 pub mod ingestor;
 
 pub fn hello() -> &'static str {
-    "I am Krelln"
+    "I am i'Krelln"
 }
 
 macro_rules! typed_id {

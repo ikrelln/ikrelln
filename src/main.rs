@@ -35,7 +35,7 @@ fn main() {
     // log set up
     fern::Dispatch::new()
         .level(log::LevelFilter::Info)
-        .level_for("krelln", log::LevelFilter::Trace)
+        .level_for("ikrelln", log::LevelFilter::Trace)
         .level_for("tokio_core", log::LevelFilter::Error)
         .level_for("mio", log::LevelFilter::Error)
         .chain(std::io::stdout())
@@ -55,7 +55,7 @@ fn main() {
 
     info!("Starting i'Krelln with config: {:?}", config);
 
-    let system = actix::System::new("i'krelln");
+    let system = actix::System::new("i'Krelln");
     let db_actor = {
         let db_url = config.db_url;
         actix::SyncArbiter::start(config.db_nb_connection, move || {

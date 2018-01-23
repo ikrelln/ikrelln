@@ -12,6 +12,6 @@ services:
   - docker
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
-      docker build -t ikrelln/ikrelln:sqlite .
+      docker build -t ikrelln/ikrelln:sqlite .;
     fi
 

@@ -1,0 +1,29 @@
+# Our first FROM statement declares the build environment.
+FROM ekidd/rust-musl-builder AS builder
+
+# Add our source code.
+ADD . ./
+
+# Fix permissions on source code.
+RUN sudo chown -R rust:rust /home/rust
+
+# Build our application.
+ENV DATABASE_URL test.sqlite
+RUN cargo install diesel_cli --no-default-features --features sqlite --git https://github.com/mockersf/diesel/
+RUN diesel setup
+RUN cargo build --release --no-default-features --features sqlite
+
+# Now, we need to build our _real_ Docker container, copying in `using-diesel`.
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+COPY --from=builder \
+    /home/rust/src/target/x86_64-unknown-linux-musl/release/ikrelln \
+    /usr/local/bin/
+COPY --from=builder \
+    /home/rust/src/test.sqlite \
+    /
+EXPOSE 8080
+ENV NB_CONNECTION 1
+ENV DATABASE_URL /test.sqlite
+CMD /usr/local/bin/ikrelln
+

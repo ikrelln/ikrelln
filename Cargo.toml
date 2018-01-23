@@ -26,8 +26,14 @@ actix-web = "0.3"
 failure = "0.1"
 
 diesel = { version = "1.1.0" }
+libsqlite3-sys = { version = "*", features = ["bundled"], optional = true }
+openssl-sys = { version = "*", optional = true }
+
+[patch.crates-io]
+# Needed for Postgres. Patches the build script to support cross-compilation.
+pq-sys = { git = 'https://github.com/golddranks/pq-sys' }
 
 [features]
 default = [ "postgres" ]
-postgres = [ "diesel/postgres" ]
-sqlite = [ "diesel/sqlite" ]
+postgres = [ "diesel/postgres", "openssl-sys" ]
+sqlite = [ "diesel/sqlite", "libsqlite3-sys" ]

@@ -1,3 +1,4 @@
+sudo: required
 language: rust
 rust:
   - stable
@@ -7,3 +8,10 @@ matrix:
   allow_failures:
     - rust: nightly
 cache: cargo
+services:
+  - docker
+after_success:
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then
+      docker build -t ikrelln/ikrelln:sqlite .
+    fi
+

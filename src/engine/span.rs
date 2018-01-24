@@ -1,18 +1,55 @@
+use std;
 use actix::*;
 use futures::future::*;
 use futures;
+use std::collections::HashMap;
 
-use db::schema::span;
-#[derive(Debug, Deserialize, Insertable, Clone)]
-#[table_name = "span"]
+#[derive(Debug, Deserialize, Clone)]
+pub enum Kind {
+    CLIENT,
+    SERVER,
+    PRODUCER,
+    CONSUMER,
+}
+impl std::fmt::Display for Kind {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Span {
-    trace_id: String,
-    parent_id: Option<String>,
-    id: String,
-    name: Option<String>,
-    duration: i64,
-    #[column_name = "ts"]
+    pub trace_id: String,
+    pub id: String,
+    pub parent_id: Option<String>,
+    pub name: Option<String>,
+    pub kind: Option<Kind>,
+    pub duration: Option<i64>,
+    pub timestamp: Option<i64>,
+    #[serde(default)] pub debug: bool,
+    #[serde(default)] pub shared: bool,
+    pub local_endpoint: Option<Endpoint>,
+    pub remote_endpoint: Option<Endpoint>,
+    pub annotations: Option<Vec<Annotation>>,
+    pub tags: Option<HashMap<String, String>>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Endpoint {
+    pub service_name: Option<String>,
+    pub ipv4: Option<String>,
+    pub ipv6: Option<String>,
+    pub port: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Annotation {
+    value: String,
     timestamp: i64,
 }
 
@@ -30,8 +67,9 @@ impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor 
             .iter()
             .map(move |event: &Span| self.0.call_fut(event.clone()))
             .collect::<Vec<_>>();
-        let finishing = join_all(msg_futures)
-            .and_then(|_| futures::future::result(Ok(super::ingestor::FinishedIngest(msg))));
+        let finishing = join_all(msg_futures).and_then(|_| {
+            futures::future::result(Ok(super::ingestor::FinishedIngest(msg)))
+        });
         _ctx.add_future(finishing);
         Ok(())
     }
@@ -82,6 +120,7 @@ mod tests {
 ]"#;
 
         let span: std::result::Result<Vec<super::Span>, _> = serde_json::from_str(zipkin_query);
+        println!("{:?}", span);
         assert!(span.is_ok());
     }
 }

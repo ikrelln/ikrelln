@@ -56,9 +56,7 @@ pub static BUILD_INFO: BuildInfo = BuildInfo {{
     commit_date: \"{}\",
 }};
 ",
-        version,
-        gitref,
-        gitdate
+        version, gitref, gitdate
     );
 
     let update = File::open("src/build_info.rs")

@@ -14,8 +14,8 @@ impl ResponseType for StartIngestEventDb {
     type Error = ();
 }
 
-impl<'a> From<&'a ::engine::ingestor::IngestEvents> for StartIngestEventDb {
-    fn from(ie: &::engine::ingestor::IngestEvents) -> StartIngestEventDb {
+impl<'a, T> From<&'a ::engine::ingestor::IngestEvents<T>> for StartIngestEventDb {
+    fn from(ie: &::engine::ingestor::IngestEvents<T>) -> StartIngestEventDb {
         StartIngestEventDb {
             id: ie.ingest_id.to_string(),
             created_at: ie.created_at.to_rfc2822(),
@@ -34,8 +34,8 @@ impl ResponseType for FinishIngestEventDb {
     type Error = ();
 }
 
-impl<'a> From<&'a ::engine::ingestor::IngestEvents> for FinishIngestEventDb {
-    fn from(ie: &::engine::ingestor::IngestEvents) -> FinishIngestEventDb {
+impl<'a, T> From<&'a ::engine::ingestor::IngestEvents<T>> for FinishIngestEventDb {
+    fn from(ie: &::engine::ingestor::IngestEvents<T>) -> FinishIngestEventDb {
         FinishIngestEventDb {
             id: ie.ingest_id.to_string(),
             processed_at: ie.processed_at
@@ -44,7 +44,6 @@ impl<'a> From<&'a ::engine::ingestor::IngestEvents> for FinishIngestEventDb {
         }
     }
 }
-
 
 impl Handler<StartIngestEventDb> for super::DbExecutor {
     type Result = MessageResult<StartIngestEventDb>;

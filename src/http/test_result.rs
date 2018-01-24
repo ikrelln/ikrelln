@@ -2,7 +2,7 @@ use actix_web::{httpcodes, AsyncResponder, HttpRequest, HttpResponse};
 use futures::Future;
 
 use super::{errors, AppState};
-use engine::ingestor::{IngestEvents, TestResult};
+use engine::ingestor::IngestEvents;
 
 #[derive(Debug, Serialize)]
 struct IngestResponse {
@@ -16,19 +16,15 @@ pub fn ingest(
     let ingestor = req.state().ingestor.clone();
     req.json()
         .from_err()
-        .and_then(move |val: Vec<TestResult>| {
-            let ingest = IngestEvents::new(val.iter().cloned().collect());
+        .and_then(move |val: Vec<::engine::test_result::TestResult>| {
+            let nb_test_results = val.len();
+            let ingest = IngestEvents::new(val /*.iter().cloned().collect()*/);
             let ingest_id = ingest.ingest_id.clone();
-            debug!(
-                "ingesting {} event(s) as {}: {:?}",
-                val.len(),
-                ingest_id,
-                val
-            );
+            debug!("ingesting {} event(s) as {}", nb_test_results, ingest_id);
             ingestor.borrow().send(ingest);
             Ok(httpcodes::HTTPOk.build().json(IngestResponse {
                 ingest_id: ingest_id,
-                nb_events: val.len(),
+                nb_events: nb_test_results,
             })?)
         })
         .responder()

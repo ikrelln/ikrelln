@@ -4,6 +4,7 @@ use actix::{Actor, SyncContext};
 pub mod schema;
 pub mod ingest_event;
 pub mod test_result;
+pub mod span;
 
 #[cfg(feature = "sqlite")]
 pub fn establish_connection(database_url: String) -> SqliteConnection {
@@ -21,7 +22,6 @@ pub fn establish_connection(database_url: String) -> PgConnection {
 }
 #[cfg(feature = "postgres")]
 pub struct DbExecutor(pub PgConnection);
-
 
 impl Actor for DbExecutor {
     type Context = SyncContext<Self>;

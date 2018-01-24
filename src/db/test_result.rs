@@ -19,8 +19,8 @@ impl ResponseType for TestResultDb {
     type Error = ();
 }
 
-impl<'a> From<&'a ::engine::ingestor::TestResult> for TestResultDb {
-    fn from(tr: &::engine::ingestor::TestResult) -> TestResultDb {
+impl<'a> From<&'a ::engine::test_result::TestResult> for TestResultDb {
+    fn from(tr: &::engine::test_result::TestResult) -> TestResultDb {
         TestResultDb {
             id: uuid::Uuid::new_v4().hyphenated().to_string(),
             test_id: tr.test_name.clone(),

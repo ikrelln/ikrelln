@@ -7,6 +7,17 @@ table! {
 }
 
 table! {
+    span (id) {
+        trace_id -> Text,
+        parent_id -> Nullable<Text>,
+        id -> Text,
+        name -> Nullable<Text>,
+        duration -> BigInt,
+        ts -> BigInt,
+    }
+}
+
+table! {
     test (id) {
         id -> Nullable<Text>,
         name -> Text,
@@ -23,8 +34,4 @@ table! {
     }
 }
 
-allow_tables_to_appear_in_same_query!(
-    ingest,
-    test,
-    test_result,
-);
+allow_tables_to_appear_in_same_query!(ingest, span, test, test_result,);

@@ -55,6 +55,12 @@ fn main() {
 
     info!("Starting i'Krelln with config: {:?}", config);
 
+    info!(
+        "you can connect to the UI at http://{}:{}",
+        config.host,
+        config.port
+    );
+
     let system = actix::System::new("i'Krelln");
     let db_actor = {
         let db_url = config.db_url;

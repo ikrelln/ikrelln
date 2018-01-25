@@ -38,8 +38,10 @@ pub fn serve(host: String, port: u16, _ingestor: actix::SyncAddress<Ingestor>) {
             .resource("/healthcheck", |r| {
                 r.method(Method::GET).f(healthcheck::healthcheck)
             })
-            .resource("/tests", |r| r.method(Method::POST).f(test_result::ingest))
-            .resource("/spans", |r| r.method(Method::POST).f(span::ingest))
+            .resource("/api/tests", |r| {
+                r.method(Method::POST).f(test_result::ingest)
+            })
+            .resource("/api/spans", |r| r.method(Method::POST).f(span::ingest))
     }).bind(format!("{}:{}", host, port))
         .unwrap()
         .start();

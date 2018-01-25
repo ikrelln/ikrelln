@@ -31,16 +31,43 @@ pub struct EndpointDb {
     port: Option<i32>,
 }
 
+use db::schema::tag;
+#[derive(Debug, Insertable, Queryable)]
+#[table_name = "tag"]
+pub struct TagDb {
+    tag_id: String,
+    trace_id: String,
+    span_id: String,
+    name: String,
+    value: String,
+}
+
+use db::schema::annotation;
+#[derive(Debug, Insertable, Queryable)]
+#[table_name = "annotation"]
+pub struct AnnotationDb {
+    annotation_id: String,
+    trace_id: String,
+    span_id: String,
+    ts: i64,
+    value: String,
+}
+
 struct FromSpan {
     span_db: SpanDb,
     local_endpoint: Option<EndpointDb>,
     remote_endpoint: Option<EndpointDb>,
+    tags: Vec<TagDb>,
+    annotations: Vec<AnnotationDb>,
 }
 
 fn get_all_from_span(span: ::engine::span::Span) -> FromSpan {
+    let trace_id = span.trace_id;
+    let span_id = span.id;
+
     let span_db = SpanDb {
-        trace_id: span.trace_id,
-        id: span.id,
+        trace_id: trace_id.clone(),
+        id: span_id.clone(),
         parent_id: span.parent_id,
         name: span.name,
         kind: span.kind.map(|k| k.to_string()),
@@ -76,10 +103,38 @@ fn get_all_from_span(span: ::engine::span::Span) -> FromSpan {
         None
     };
 
+    let annotations = span.annotations
+        .iter()
+        .map(|annotation| {
+            AnnotationDb {
+                trace_id: trace_id.clone(),
+                span_id: span_id.clone(),
+                annotation_id: uuid::Uuid::new_v4().hyphenated().to_string(),
+                ts: annotation.timestamp,
+                value: annotation.value.clone(),
+            }
+        })
+        .collect();
+
+    let tags = span.tags
+        .iter()
+        .map(|(key, value)| {
+            TagDb {
+                trace_id: trace_id.clone(),
+                span_id: span_id.clone(),
+                tag_id: uuid::Uuid::new_v4().hyphenated().to_string(),
+                name: key.clone(),
+                value: value.clone(),
+            }
+        })
+        .collect();
+
     FromSpan {
         span_db: span_db,
         local_endpoint: local_endpoint,
         remote_endpoint: remote_endpoint,
+        annotations: annotations,
+        tags: tags,
     }
 }
 
@@ -124,18 +179,33 @@ impl Handler<::engine::span::Span> for super::DbExecutor {
     type Result = MessageResult<::engine::span::Span>;
 
     fn handle(&mut self, msg: ::engine::span::Span, _: &mut Self::Context) -> Self::Result {
-        use super::schema::span::dsl::*;
-
         let mut to_upsert = get_all_from_span(msg);
-
 
         to_upsert.span_db.local_endpoint_id = self.upsert_endpoint(to_upsert.local_endpoint);
         to_upsert.span_db.remote_endpoint_id = self.upsert_endpoint(to_upsert.remote_endpoint);
 
+        use super::schema::span::dsl::*;
         diesel::insert_into(span)
             .values(&to_upsert.span_db)
             .execute(&self.0)
             .expect("Error inserting Span");
+
+        use super::schema::annotation::dsl::*;
+        to_upsert.annotations.iter().for_each(|item| {
+            diesel::insert_into(annotation)
+                .values(item)
+                .execute(&self.0)
+                .expect("Error inserting annotation");
+        });
+
+        use super::schema::tag::dsl::*;
+        to_upsert.tags.iter().for_each(|item| {
+            diesel::insert_into(tag)
+                .values(item)
+                .execute(&self.0)
+                .expect("Error inserting tag");
+        });
+
         Ok(())
     }
 }

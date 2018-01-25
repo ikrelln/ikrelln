@@ -3,6 +3,8 @@ table! {
         annotation_id -> Text,
         trace_id -> Text,
         span_id -> Text,
+        ts -> Nullable<BigInt>,
+        value -> Text,
     }
 }
 
@@ -43,16 +45,9 @@ table! {
 table! {
     tag (tag_id) {
         tag_id -> Text,
-        name -> Text,
-    }
-}
-
-table! {
-    tag_value (tag_value_id) {
-        tag_value_id -> Text,
-        tag_id -> Text,
         trace_id -> Text,
         span_id -> Text,
+        name -> Text,
         value -> Text,
     }
 }
@@ -74,15 +69,12 @@ table! {
     }
 }
 
-joinable!(tag_value -> tag (tag_id));
-
 allow_tables_to_appear_in_same_query!(
     annotation,
     endpoint,
     ingest,
     span,
     tag,
-    tag_value,
     test,
     test_result,
 );

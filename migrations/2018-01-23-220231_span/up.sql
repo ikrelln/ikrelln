@@ -28,20 +28,16 @@ CREATE TABLE annotation
     annotation_id VARCHAR(36) NOT NULL PRIMARY KEY,
     trace_id VARCHAR(36) NOT NULL,
     span_id VARCHAR(36) NOT NULL,
+    ts BIGINT,
+    value VARCHAR(255) NOT NULL,
     FOREIGN KEY (trace_id, span_id) REFERENCES span (trace_id, id)
 );
 CREATE TABLE tag
 (
     tag_id VARCHAR(36) NOT NULL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL
-);
-CREATE TABLE tag_value
-(
-    tag_value_id VARCHAR(36) NOT NULL PRIMARY KEY,
-    tag_id VARCHAR(36) NOT NULL,
     trace_id VARCHAR(36) NOT NULL,
     span_id VARCHAR(36) NOT NULL,
+    name VARCHAR(255) NOT NULL,
     value VARCHAR(255) NOT NULL,
-    FOREIGN KEY (tag_id) REFERENCES tag (tag_id),
     FOREIGN KEY (trace_id, span_id) REFERENCES span (trace_id, id)
 );

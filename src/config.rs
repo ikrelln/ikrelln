@@ -12,7 +12,7 @@ impl Config {
         let version: String = format!("v{}", ::build_info::BUILD_INFO.version);
 
         // configuration
-        let matches = App::new("i'Krelln")
+        let mut cli = App::new("i'Krelln")
             .version(version.as_str())
             .about("Start i'Krelln server")
             .arg(
@@ -35,6 +35,16 @@ impl Config {
                     .help("Listen to the specified port"),
             )
             .arg(
+                Arg::with_name("database_url")
+                    .long("db-url")
+                    .takes_value(true)
+                    .value_name("DATABASE_URL")
+                    .env("DATABASE_URL")
+                    .help("Url to the DB"),
+            );
+
+        if cfg!(feature = "postgres") {
+            cli = cli.arg(
                 Arg::with_name("nb_connection")
                     .long("nb-connection")
                     .takes_value(true)
@@ -42,16 +52,10 @@ impl Config {
                     .default_value("5")
                     .env("NB_CONNECTION")
                     .help("Open this number of connections to the DB"),
-            )
-            .arg(
-                Arg::with_name("database_url")
-                    .long("db-url")
-                    .takes_value(true)
-                    .value_name("DATABASE_URL")
-                    .env("DATABASE_URL")
-                    .help("Url to the DB"),
-            )
-            .get_matches();
+            );
+        }
+
+        let matches = cli.get_matches();
 
         let host = matches.value_of("host").unwrap().to_string();
 
@@ -60,10 +64,14 @@ impl Config {
             .and_then(|it| it.parse::<u16>().ok())
             .unwrap();
 
-        let db_nb_connection = matches
-            .value_of("nb_connection")
-            .and_then(|it| it.parse::<usize>().ok())
-            .unwrap();
+        let db_nb_connection = if cfg!(feature = "postgres") {
+            matches
+                .value_of("nb_connection")
+                .and_then(|it| it.parse::<usize>().ok())
+                .unwrap()
+        } else {
+            1
+        };
 
         let db_url = matches
             .value_of("database_url")

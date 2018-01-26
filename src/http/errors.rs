@@ -1,5 +1,6 @@
 use uuid;
 use actix_web::{error, httpcodes, Error, HttpResponse};
+use futures;
 
 #[derive(Fail, Debug, Serialize)]
 #[serde(tag = "error", content = "msg")]
@@ -32,6 +33,11 @@ impl From<error::JsonPayloadError> for IkError {
             }
             _ => IkError::BadClientData(format!("{}", err)),
         }
+    }
+}
+impl From<futures::Canceled> for IkError {
+    fn from(_err: futures::Canceled) -> IkError {
+        IkError::InternalError
     }
 }
 impl From<Error> for IkError {

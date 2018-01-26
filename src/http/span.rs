@@ -22,11 +22,26 @@ pub fn ingest(
             let ingest = IngestEvents::new(val);
             let ingest_id = ingest.ingest_id.clone();
             debug!("ingesting {} event(s) as {}", nb_spans, ingest_id,);
-            ingestor.borrow().send(ingest);
+            ingestor.send(ingest);
             Ok(httpcodes::HTTPOk.build().json(IngestResponse {
                 ingest_id: ingest_id,
                 nb_events: nb_spans,
             })?)
+        })
+        .responder()
+}
+
+
+pub fn get_services(
+    req: HttpRequest<AppState>,
+) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+    req.state()
+        .db_actor
+        .call_fut(::db::span::GetServices(vec![]))
+        .from_err()
+        .and_then(|res| match res {
+            Ok(services) => Ok(httpcodes::HTTPOk.build().json(services)?),
+            Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
         })
         .responder()
 }

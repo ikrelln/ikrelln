@@ -2,7 +2,6 @@ use actix_web::{middleware, Application, HttpRequest, HttpServer, Method};
 use engine;
 use uuid;
 use actix;
-use std::cell::RefCell;
 
 use engine::ingestor::Ingestor;
 
@@ -16,13 +15,20 @@ fn index(_req: HttpRequest<AppState>) -> String {
 }
 
 pub struct AppState {
-    ingestor: RefCell<actix::SyncAddress<Ingestor>>,
+    ingestor: actix::SyncAddress<Ingestor>,
+    db_actor: actix::SyncAddress<::db::DbExecutor>,
 }
 
-pub fn serve(host: String, port: u16, _ingestor: actix::SyncAddress<Ingestor>) {
+pub fn serve(
+    host: String,
+    port: u16,
+    ingestor: actix::SyncAddress<Ingestor>,
+    db_actor: actix::SyncAddress<::db::DbExecutor>,
+) {
     HttpServer::new(move || {
         Application::with_state(AppState {
-            ingestor: RefCell::new(_ingestor.clone()),
+            ingestor: ingestor.clone(),
+            db_actor: db_actor.clone(),
         }).middleware(
             middleware::DefaultHeaders::build()
                 .header(
@@ -42,6 +48,9 @@ pub fn serve(host: String, port: u16, _ingestor: actix::SyncAddress<Ingestor>) {
                 r.method(Method::POST).f(test_result::ingest)
             })
             .resource("/api/spans", |r| r.method(Method::POST).f(span::ingest))
+            .resource("/api/services", |r| {
+                r.method(Method::GET).f(span::get_services)
+            })
     }).bind(format!("{}:{}", host, port))
         .unwrap()
         .start();

@@ -21,7 +21,7 @@ pub fn ingest(
             let ingest = IngestEvents::new(val /*.iter().cloned().collect()*/);
             let ingest_id = ingest.ingest_id.clone();
             debug!("ingesting {} event(s) as {}", nb_test_results, ingest_id);
-            ingestor.borrow().send(ingest);
+            ingestor.send(ingest);
             Ok(httpcodes::HTTPOk.build().json(IngestResponse {
                 ingest_id: ingest_id,
                 nb_events: nb_test_results,

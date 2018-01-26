@@ -209,3 +209,29 @@ impl Handler<::engine::span::Span> for super::DbExecutor {
         Ok(())
     }
 }
+
+
+pub struct GetServices(pub Vec<String>);
+impl ResponseType for GetServices {
+    type Item = Vec<String>;
+    type Error = ();
+}
+
+impl Handler<GetServices> for super::DbExecutor {
+    type Result = MessageResult<GetServices>;
+
+    fn handle(&mut self, _msg: GetServices, _: &mut Self::Context) -> Self::Result {
+        use super::schema::endpoint::dsl::*;
+
+        Ok(
+            endpoint
+                .limit(100)
+                .load::<EndpointDb>(&self.0)
+                .ok()
+                .unwrap_or(vec![])
+                .iter()
+                .map(|ep| ep.service_name.clone().unwrap_or("".to_string()))
+                .collect(),
+        )
+    }
+}

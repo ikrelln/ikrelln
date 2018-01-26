@@ -68,7 +68,8 @@ fn main() {
             db::DbExecutor(db::establish_connection(db_url.clone()))
         })
     };
-    let ingestor_actor: actix::SyncAddress<_> = engine::ingestor::Ingestor(db_actor).start();
-    http::serve(config.host, config.port, ingestor_actor);
+    let ingestor_actor: actix::SyncAddress<_> =
+        engine::ingestor::Ingestor(db_actor.clone()).start();
+    http::serve(config.host, config.port, ingestor_actor, db_actor);
     system.run();
 }

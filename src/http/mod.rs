@@ -51,6 +51,9 @@ pub fn serve(
             .resource("/api/services", |r| {
                 r.method(Method::GET).f(span::get_services)
             })
+            .resource("/api/spans2", |r| {
+                r.method(Method::GET).f(span::get_spans_by_service)
+            })
     }).bind(format!("{}:{}", host, port))
         .unwrap()
         .start();

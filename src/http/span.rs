@@ -1,5 +1,6 @@
 use actix_web::{httpcodes, AsyncResponder, HttpRequest, HttpResponse};
 use futures::Future;
+use futures::future::result;
 
 use super::{errors, AppState};
 use engine::ingestor::IngestEvents;
@@ -37,11 +38,33 @@ pub fn get_services(
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     req.state()
         .db_actor
-        .call_fut(::db::span::GetServices(vec![]))
+        .call_fut(::db::span::GetServices)
         .from_err()
         .and_then(|res| match res {
             Ok(services) => Ok(httpcodes::HTTPOk.build().json(services)?),
             Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
         })
         .responder()
+}
+
+pub fn get_spans_by_service(
+    req: HttpRequest<AppState>,
+) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+    match req.query().get("service") {
+        Some(service) => req.state()
+            .db_actor
+            .call_fut(::db::span::GetSpans(::db::span::SpanQuery {
+                service_name: Some(service.to_string()),
+            }))
+            .from_err()
+            .and_then(|res| match res {
+                Ok(spans) => Ok(httpcodes::HTTPOk.build().json(spans)?),
+                Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
+            })
+            .responder(),
+
+        _ => result(Err(
+            super::errors::IkError::BadClientData("aaa".to_string()),
+        )).responder(),
+    }
 }

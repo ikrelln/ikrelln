@@ -4,7 +4,7 @@ use futures::future::*;
 use futures;
 use std::collections::HashMap;
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub enum Kind {
     CLIENT,
     SERVER,
@@ -14,12 +14,21 @@ pub enum Kind {
 impl std::fmt::Display for Kind {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self)
-        // or, alternatively:
-        // fmt::Debug::fmt(self, f)
+    }
+}
+impl From<String> for Kind {
+    fn from(string: String) -> Self {
+        match string.as_str() {
+            "CLIENT" => Kind::CLIENT,
+            "SERVER" => Kind::SERVER,
+            "PRODUCER" => Kind::PRODUCER,
+            "CONSUMER" => Kind::CONSUMER,
+            _ => Kind::CLIENT,
+        }
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Span {
     pub trace_id: String,
@@ -37,7 +46,7 @@ pub struct Span {
     #[serde(default)] pub tags: HashMap<String, String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Endpoint {
     pub service_name: Option<String>,
@@ -46,7 +55,7 @@ pub struct Endpoint {
     pub port: Option<i32>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Annotation {
     pub value: String,

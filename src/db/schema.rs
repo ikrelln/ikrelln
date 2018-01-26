@@ -3,7 +3,7 @@ table! {
         annotation_id -> Text,
         trace_id -> Text,
         span_id -> Text,
-        ts -> Nullable<BigInt>,
+        ts -> BigInt,
         value -> Text,
     }
 }
@@ -35,8 +35,8 @@ table! {
         kind -> Nullable<Text>,
         duration -> Nullable<BigInt>,
         ts -> Nullable<BigInt>,
-        debug -> Nullable<Bool>,
-        shared -> Nullable<Bool>,
+        debug -> Bool,
+        shared -> Bool,
         local_endpoint_id -> Nullable<Text>,
         remote_endpoint_id -> Nullable<Text>,
     }

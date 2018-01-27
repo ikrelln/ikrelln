@@ -255,26 +255,37 @@ impl Handler<GetSpans> for super::DbExecutor {
         let target_ep: Option<EndpointDb> = {
             use super::schema::endpoint::dsl::*;
 
-            endpoint
-                .filter(service_name.eq(msg.0.service_name.unwrap().clone()))
-                .first::<EndpointDb>(&self.0)
-                .ok()
+            msg.0.service_name.and_then(|query_service_name| {
+                endpoint
+                    .filter(service_name.eq(query_service_name))
+                    .first::<EndpointDb>(&self.0)
+                    .ok()
+            })
         };
 
         let spans: Vec<SpanDb> = {
             use super::schema::span::dsl::*;
 
-            let target_endpoint_id = target_ep.unwrap().endpoint_id;
-            //TODO: filter incomplete spans
             //TODO: sort by timestamp
-            span.filter(
+            let mut query = span.filter(duration.is_not_null()).into_boxed();
+
+            if let Some(target_ep) = target_ep {
+                query = query.filter(
+                    remote_endpoint_id
+                        .eq(target_ep.endpoint_id.clone())
+                        .or(local_endpoint_id.eq(target_ep.endpoint_id)),
+                );
+            }
+            /*span.filter(
                 remote_endpoint_id
                     .eq(target_endpoint_id.clone())
                     .or(local_endpoint_id.eq(target_endpoint_id)),
-            ).limit(100)
+            )*/
+            query
+                .limit(100)
                 .load::<SpanDb>(&self.0)
                 .ok()
-                .unwrap()
+                .unwrap_or(vec![])
         };
 
         Ok(

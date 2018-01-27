@@ -252,23 +252,26 @@ impl Handler<GetSpans> for super::DbExecutor {
     type Result = MessageResult<GetSpans>;
 
     fn handle(&mut self, msg: GetSpans, _: &mut Self::Context) -> Self::Result {
-        let target_ep: Option<EndpointDb> = {
+        let target_ep: Option<Result<EndpointDb, _>> = {
             use super::schema::endpoint::dsl::*;
 
-            msg.0.service_name.and_then(|query_service_name| {
+            msg.0.service_name.map(|query_service_name| {
                 endpoint
                     .filter(service_name.eq(query_service_name.to_lowercase()))
                     .first::<EndpointDb>(&self.0)
-                    .ok()
             })
         };
+        if let Some(Err(_err)) = target_ep {
+            // no endpoint found matching query
+            return Ok(vec![]);
+        }
 
         let spans: Vec<SpanDb> = {
             use super::schema::span::dsl::*;
 
             let mut query = span.filter(duration.is_not_null()).into_boxed();
 
-            if let Some(target_ep) = target_ep {
+            if let Some(Ok(target_ep)) = target_ep {
                 query = query.filter(
                     remote_endpoint_id
                         .eq(target_ep.endpoint_id.clone())

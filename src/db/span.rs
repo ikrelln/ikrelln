@@ -266,7 +266,6 @@ impl Handler<GetSpans> for super::DbExecutor {
         let spans: Vec<SpanDb> = {
             use super::schema::span::dsl::*;
 
-            //TODO: sort by timestamp
             let mut query = span.filter(duration.is_not_null()).into_boxed();
 
             if let Some(target_ep) = target_ep {
@@ -276,12 +275,8 @@ impl Handler<GetSpans> for super::DbExecutor {
                         .or(local_endpoint_id.eq(target_ep.endpoint_id)),
                 );
             }
-            /*span.filter(
-                remote_endpoint_id
-                    .eq(target_endpoint_id.clone())
-                    .or(local_endpoint_id.eq(target_endpoint_id)),
-            )*/
             query
+                .order(ts.desc())
                 .limit(100)
                 .load::<SpanDb>(&self.0)
                 .ok()

@@ -70,7 +70,7 @@ fn get_all_from_span(span: ::engine::span::Span) -> FromSpan {
         trace_id: trace_id.clone(),
         id: span_id.clone(),
         parent_id: span.parent_id,
-        name: span.name,
+        name: span.name.map(|s| s.to_lowercase()),
         kind: span.kind.map(|k| k.to_string()),
         duration: span.duration,
         ts: span.timestamp,
@@ -83,7 +83,7 @@ fn get_all_from_span(span: ::engine::span::Span) -> FromSpan {
     let local_endpoint = if let Some(endpoint) = span.local_endpoint {
         Some(EndpointDb {
             endpoint_id: "n/a".to_string(),
-            service_name: endpoint.service_name,
+            service_name: endpoint.service_name.map(|s| s.to_lowercase()),
             ipv4: endpoint.ipv4,
             ipv6: endpoint.ipv6,
             port: endpoint.port,
@@ -95,7 +95,7 @@ fn get_all_from_span(span: ::engine::span::Span) -> FromSpan {
     let remote_endpoint = if let Some(endpoint) = span.remote_endpoint {
         Some(EndpointDb {
             endpoint_id: "n/a".to_string(),
-            service_name: endpoint.service_name,
+            service_name: endpoint.service_name.map(|s| s.to_lowercase()),
             ipv4: endpoint.ipv4,
             ipv6: endpoint.ipv6,
             port: endpoint.port,
@@ -124,8 +124,8 @@ fn get_all_from_span(span: ::engine::span::Span) -> FromSpan {
                 trace_id: trace_id.clone(),
                 span_id: span_id.clone(),
                 tag_id: uuid::Uuid::new_v4().hyphenated().to_string(),
-                name: key.clone(),
-                value: value.clone(),
+                name: key.clone().to_lowercase(),
+                value: value.clone().to_lowercase(),
             }
         })
         .collect();
@@ -257,7 +257,7 @@ impl Handler<GetSpans> for super::DbExecutor {
 
             msg.0.service_name.and_then(|query_service_name| {
                 endpoint
-                    .filter(service_name.eq(query_service_name))
+                    .filter(service_name.eq(query_service_name.to_lowercase()))
                     .first::<EndpointDb>(&self.0)
                     .ok()
             })

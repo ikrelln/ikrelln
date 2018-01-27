@@ -2,6 +2,7 @@ use actix_web::{middleware, Application, HttpRequest, HttpServer, Method};
 use engine;
 use uuid;
 use actix;
+use chrono;
 
 use engine::ingestor::Ingestor;
 
@@ -17,6 +18,7 @@ fn index(_req: HttpRequest<AppState>) -> String {
 pub struct AppState {
     ingestor: actix::SyncAddress<Ingestor>,
     db_actor: actix::SyncAddress<::db::DbExecutor>,
+    start_time: chrono::DateTime<chrono::Utc>,
 }
 
 pub fn serve(
@@ -29,6 +31,7 @@ pub fn serve(
         Application::with_state(AppState {
             ingestor: ingestor.clone(),
             db_actor: db_actor.clone(),
+            start_time: chrono::Utc::now(),
         }).middleware(
             middleware::DefaultHeaders::build()
                 .header(

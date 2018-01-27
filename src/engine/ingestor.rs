@@ -2,6 +2,13 @@ use actix::*;
 use chrono;
 use futures;
 
+pub struct Ingestor(pub SyncAddress<::db::DbExecutor>);
+
+impl Actor for Ingestor {
+    type Context = Context<Self>;
+}
+
+
 #[derive(Debug)]
 pub struct IngestEvents<T> {
     pub ingest_id: super::IngestId,
@@ -25,25 +32,17 @@ impl<T> IngestEvents<T> {
         }
     }
 }
-
 impl<T> ResponseType for IngestEvents<T> {
     type Item = ();
     type Error = ();
 }
-pub struct Ingestor(pub SyncAddress<::db::DbExecutor>);
-
-impl Actor for Ingestor {
-    type Context = Context<Self>;
-}
 
 #[derive(Debug)]
 pub struct FinishedIngest<T>(pub IngestEvents<T>);
-
 impl<T> ResponseType for FinishedIngest<T> {
     type Item = ();
     type Error = ();
 }
-
 impl<T> Handler<Result<FinishedIngest<T>, futures::Canceled>> for Ingestor {
     type Result = Result<(), ()>;
     fn handle(

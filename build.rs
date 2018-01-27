@@ -24,7 +24,7 @@ fn commit_date() -> Result<String, Ignore> {
     Ok(try!(String::from_utf8(
         try!(
             Command::new("git")
-                .args(&["log", "-1", "--pretty=format:%ci"])
+                .args(&["log", "-1", "--pretty=format:%cI"])
                 .output()
         ).stdout
     )))

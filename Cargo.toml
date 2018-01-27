@@ -7,7 +7,7 @@ build = "build.rs"
 [dependencies]
 log = "0.4"
 fern = "0.5"
-chrono = "0.4"
+chrono = { version = "0.4", features = [ "serde" ] }
 mime = "0.3"
 time = "0.1"
 
@@ -29,6 +29,8 @@ failure = "0.1"
 diesel = { version = "1.1.0" }
 libsqlite3-sys = { version = "*", features = ["bundled"], optional = true }
 openssl-sys = { version = "*", optional = true }
+
+http = "0.1"
 
 [patch.crates-io]
 # Needed for Postgres. Patches the build script to support cross-compilation.

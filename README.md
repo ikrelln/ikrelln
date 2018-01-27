@@ -8,7 +8,7 @@ i'Krelln is a test reporting and tracing system. It helps gather test execution 
 You can start i'Krelln by Docker:
  
  ```bash
-docker run -d -p 8080:8080 ikrelln/ikrelln:sqlite
+docker run -d -p 8080:8080 ikrelln/ikrelln
 ```
 
 Once it started, browse to http://localhost:8080 to find your tests results!

@@ -237,11 +237,62 @@ impl Handler<GetServices> for super::DbExecutor {
     }
 }
 
-
+#[derive(Debug)]
 pub struct SpanQuery {
-    pub service_name: Option<String>,
     pub filter_finish: bool,
+    pub service_name: Option<String>,
+    pub span_name: Option<String>,
     pub trace_id: Option<String>,
+    pub min_duration: Option<i64>,
+    pub max_duration: Option<i64>,
+    pub end_ts: i64,
+    pub lookback: Option<i64>,
+    pub limit: i64,
+}
+use actix_web;
+use std::str::FromStr;
+use time;
+impl SpanQuery {
+    pub fn from_req(req: &actix_web::HttpRequest<::http::AppState>) -> Self {
+        return SpanQuery {
+            filter_finish: req.query()
+                .get("finished")
+                .and_then(|s| FromStr::from_str(s).ok())
+                .unwrap_or(true),
+            service_name: req.query().get("serviceName").map(|s| s.to_string()),
+            span_name: req.query().get("spanName").map(|s| s.to_string()),
+            trace_id: req.query().get("traceId").map(|s| s.to_string()),
+            min_duration: req.query()
+                .get("minDuration")
+                .and_then(|s| s.parse::<i64>().ok()),
+            max_duration: req.query()
+                .get("maxDuration")
+                .and_then(|s| s.parse::<i64>().ok()),
+            end_ts: req.query()
+                .get("endTs")
+                .and_then(|s| s.parse::<i64>().ok())
+                .map(|v| v * 1000)
+                .unwrap_or_else(|| {
+                    let now = time::get_time();
+                    (now.sec * 1000000) + ((now.nsec / 1000) as i64)
+                }),
+            lookback: req.query()
+                .get("lookback")
+                .and_then(|s| s.parse::<i64>().ok())
+                .map(|v| v * 1000),
+            limit: req.query()
+                .get("limit")
+                .and_then(|s| s.parse::<i64>().ok())
+                .unwrap_or(100),
+        };
+    }
+
+    pub fn with_trace_id(self, trace_id: String) -> Self {
+        SpanQuery {
+            trace_id: Some(trace_id),
+            ..self
+        }
+    }
 }
 
 pub struct GetSpans(pub SpanQuery);
@@ -254,7 +305,7 @@ impl Handler<GetSpans> for super::DbExecutor {
     type Result = MessageResult<GetSpans>;
 
     fn handle(&mut self, msg: GetSpans, _: &mut Self::Context) -> Self::Result {
-        let target_ep: Option<Result<EndpointDb, _>> = {
+        let query_endpoint: Option<Result<EndpointDb, _>> = {
             use super::schema::endpoint::dsl::*;
 
             msg.0.service_name.map(|query_service_name| {
@@ -263,7 +314,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                     .first::<EndpointDb>(&self.0)
             })
         };
-        if let Some(Err(_err)) = target_ep {
+        if let Some(Err(_err)) = query_endpoint {
             // no endpoint found matching query
             return Ok(vec![]);
         }
@@ -277,21 +328,37 @@ impl Handler<GetSpans> for super::DbExecutor {
                 query = query.filter(duration.is_not_null());
             }
 
-            if let Some(Ok(target_ep)) = target_ep {
+            if let Some(Ok(query_endpoint)) = query_endpoint {
                 query = query.filter(
                     remote_endpoint_id
-                        .eq(target_ep.endpoint_id.clone())
-                        .or(local_endpoint_id.eq(target_ep.endpoint_id)),
+                        .eq(query_endpoint.endpoint_id.clone())
+                        .or(local_endpoint_id.eq(query_endpoint.endpoint_id)),
                 );
+            }
+
+            if let Some(query_span_name) = msg.0.span_name {
+                query = query.filter(name.eq(query_span_name));
             }
 
             if let Some(query_trace_id) = msg.0.trace_id {
                 query = query.filter(trace_id.eq(query_trace_id));
             }
 
+            if let Some(query_max_duration) = msg.0.max_duration {
+                query = query.filter(duration.le(query_max_duration));
+            }
+            if let Some(query_min_duration) = msg.0.min_duration {
+                query = query.filter(duration.ge(query_min_duration));
+            }
+
+            query = query.filter(ts.le(msg.0.end_ts));
+            if let Some(query_lookback) = msg.0.lookback {
+                query = query.filter(ts.ge(msg.0.end_ts - query_lookback));
+            }
+
             query
                 .order(ts.desc())
-                .limit(100)
+                .limit(msg.0.limit)
                 .load::<SpanDb>(&self.0)
                 .ok()
                 .unwrap_or(vec![])

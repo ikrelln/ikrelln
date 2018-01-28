@@ -51,13 +51,9 @@ pub fn get_spans_by_service(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.query().get("serviceName") {
-        Some(service) => req.state()
+        Some(_) => req.state()
             .db_actor
-            .call_fut(::db::span::GetSpans(::db::span::SpanQuery {
-                service_name: Some(service.to_string()),
-                filter_finish: true,
-                trace_id: None,
-            }))
+            .call_fut(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
             .from_err()
             .and_then(|res| match res {
                 Ok(spans) => Ok(httpcodes::HTTPOk.build().json(spans)?),
@@ -77,11 +73,9 @@ pub fn get_spans_by_trace_id(
     match req.match_info().get("traceId") {
         Some(trace_id) => req.state()
             .db_actor
-            .call_fut(::db::span::GetSpans(::db::span::SpanQuery {
-                service_name: None,
-                filter_finish: true,
-                trace_id: Some(trace_id.to_string()),
-            }))
+            .call_fut(::db::span::GetSpans(
+                ::db::span::SpanQuery::from_req(&req).with_trace_id(trace_id.to_string()),
+            ))
             .from_err()
             .and_then(|res| match res {
                 Ok(spans) => Ok(httpcodes::HTTPOk.build().json(spans)?),

@@ -226,7 +226,7 @@ impl Handler<GetServices> for super::DbExecutor {
 
         Ok(
             endpoint
-                .limit(100)
+                .order(service_name.asc())
                 .load::<EndpointDb>(&self.0)
                 .ok()
                 .unwrap_or(vec![])

@@ -6,7 +6,7 @@ use futures;
 #[serde(tag = "error", content = "msg")]
 pub enum IkError {
     #[fail(display = "internal error")] InternalError,
-    #[fail(display = "bad request")] BadClientData(String),
+    #[fail(display = "bad request")] BadRequest(String),
 }
 
 impl error::ResponseError for IkError {
@@ -21,7 +21,7 @@ impl error::ResponseError for IkError {
                     .finish()
                     .unwrap()
             }
-            IkError::BadClientData(_) => httpcodes::HTTPBadRequest.build().json(self).unwrap(),
+            IkError::BadRequest(_) => httpcodes::HTTPBadRequest.build().json(self).unwrap(),
         }
     }
 }
@@ -29,9 +29,9 @@ impl From<error::JsonPayloadError> for IkError {
     fn from(err: error::JsonPayloadError) -> IkError {
         match err {
             error::JsonPayloadError::Deserialize(json_err) => {
-                IkError::BadClientData(format!("{}", json_err))
+                IkError::BadRequest(format!("{}", json_err))
             }
-            _ => IkError::BadClientData(format!("{}", err)),
+            _ => IkError::BadRequest(format!("{}", err)),
         }
     }
 }

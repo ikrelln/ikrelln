@@ -50,7 +50,7 @@ pub fn get_services(
 pub fn get_spans_by_service(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    match req.query().get("service") {
+    match req.query().get("serviceName") {
         Some(service) => req.state()
             .db_actor
             .call_fut(::db::span::GetSpans(::db::span::SpanQuery {
@@ -63,8 +63,8 @@ pub fn get_spans_by_service(
             })
             .responder(),
 
-        _ => result(Err(
-            super::errors::IkError::BadClientData("aaa".to_string()),
-        )).responder(),
+        _ => result(Err(super::errors::IkError::BadRequest(
+            "missing serviceName query parameter".to_string(),
+        ))).responder(),
     }
 }

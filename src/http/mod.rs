@@ -54,6 +54,7 @@ pub fn serve(
             .resource("/api/services", |r| {
                 r.method(Method::GET).f(span::get_services)
             })
+            //TODO: this endpoint should be merged with the existing /api/spans
             .resource("/api/spans2", |r| {
                 r.method(Method::GET).f(span::get_spans_by_service)
             })

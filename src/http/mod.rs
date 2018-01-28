@@ -50,13 +50,12 @@ pub fn serve(
             .resource("/api/tests", |r| {
                 r.method(Method::POST).f(test_result::ingest)
             })
-            .resource("/api/spans", |r| r.method(Method::POST).f(span::ingest))
+            .resource("/api/spans", |r| {
+                r.method(Method::POST).f(span::ingest);
+                r.method(Method::GET).f(span::get_spans_by_service);
+            })
             .resource("/api/services", |r| {
                 r.method(Method::GET).f(span::get_services)
-            })
-            //TODO: this endpoint should be merged with the existing /api/spans
-            .resource("/api/spans2", |r| {
-                r.method(Method::GET).f(span::get_spans_by_service)
             })
             .resource("/api/trace/{traceId}", |r| {
                 r.method(Method::GET).f(span::get_spans_by_trace_id)

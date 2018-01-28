@@ -55,6 +55,8 @@ pub fn get_spans_by_service(
             .db_actor
             .call_fut(::db::span::GetSpans(::db::span::SpanQuery {
                 service_name: Some(service.to_string()),
+                filter_finish: true,
+                trace_id: None,
             }))
             .from_err()
             .and_then(|res| match res {
@@ -65,6 +67,30 @@ pub fn get_spans_by_service(
 
         _ => result(Err(super::errors::IkError::BadRequest(
             "missing serviceName query parameter".to_string(),
+        ))).responder(),
+    }
+}
+
+pub fn get_spans_by_trace_id(
+    req: HttpRequest<AppState>,
+) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+    match req.match_info().get("traceId") {
+        Some(trace_id) => req.state()
+            .db_actor
+            .call_fut(::db::span::GetSpans(::db::span::SpanQuery {
+                service_name: None,
+                filter_finish: true,
+                trace_id: Some(trace_id.to_string()),
+            }))
+            .from_err()
+            .and_then(|res| match res {
+                Ok(spans) => Ok(httpcodes::HTTPOk.build().json(spans)?),
+                Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
+            })
+            .responder(),
+
+        _ => result(Err(super::errors::IkError::BadRequest(
+            "missing traceId path parameter".to_string(),
         ))).responder(),
     }
 }

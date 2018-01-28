@@ -240,6 +240,8 @@ impl Handler<GetServices> for super::DbExecutor {
 
 pub struct SpanQuery {
     pub service_name: Option<String>,
+    pub filter_finish: bool,
+    pub trace_id: Option<String>,
 }
 
 pub struct GetSpans(pub SpanQuery);
@@ -269,7 +271,11 @@ impl Handler<GetSpans> for super::DbExecutor {
         let spans: Vec<SpanDb> = {
             use super::schema::span::dsl::*;
 
-            let mut query = span.filter(duration.is_not_null()).into_boxed();
+            let mut query = span.into_boxed();
+
+            if msg.0.filter_finish {
+                query = query.filter(duration.is_not_null());
+            }
 
             if let Some(Ok(target_ep)) = target_ep {
                 query = query.filter(
@@ -278,6 +284,11 @@ impl Handler<GetSpans> for super::DbExecutor {
                         .or(local_endpoint_id.eq(target_ep.endpoint_id)),
                 );
             }
+
+            if let Some(query_trace_id) = msg.0.trace_id {
+                query = query.filter(trace_id.eq(query_trace_id));
+            }
+
             query
                 .order(ts.desc())
                 .limit(100)

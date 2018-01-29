@@ -3,6 +3,9 @@ use actix::{Handler, MessageResult, ResponseType};
 use diesel::prelude::*;
 use uuid;
 use std::collections::HashMap;
+use actix_web;
+use std::str::FromStr;
+use time;
 
 use db::schema::span;
 #[derive(Debug, Insertable, Queryable)]
@@ -249,9 +252,7 @@ pub struct SpanQuery {
     pub lookback: Option<i64>,
     pub limit: i64,
 }
-use actix_web;
-use std::str::FromStr;
-use time;
+
 impl SpanQuery {
     pub fn from_req(req: &actix_web::HttpRequest<::http::AppState>) -> Self {
         return SpanQuery {

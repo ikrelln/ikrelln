@@ -1,6 +1,7 @@
 use actix_web::{httpcodes, AsyncResponder, HttpRequest, HttpResponse};
 use futures::Future;
 use futures::future::result;
+use std::collections::HashMap;
 
 use super::{errors, AppState};
 use engine::ingestor::IngestEvents;
@@ -87,4 +88,31 @@ pub fn get_spans_by_trace_id(
             "missing traceId path parameter".to_string(),
         ))).responder(),
     }
+}
+
+pub fn get_traces(
+    req: HttpRequest<AppState>,
+) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+    req.state()
+        .db_actor
+        .call_fut(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
+        .from_err()
+        .and_then(|res| match res {
+            Ok(spans) => Ok(httpcodes::HTTPOk.build().json({
+                let mut by_trace_with_key = HashMap::new();
+                for span in spans.into_iter() {
+                    by_trace_with_key
+                        .entry(span.trace_id.clone())
+                        .or_insert(Vec::new())
+                        .push(span);
+                }
+                let mut by_trace = Vec::new();
+                for (_, spans) in by_trace_with_key.into_iter() {
+                    by_trace.push(spans);
+                }
+                by_trace
+            })?),
+            Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
+        })
+        .responder()
 }

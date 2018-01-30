@@ -188,18 +188,39 @@ impl Handler<::engine::span::Span> for super::DbExecutor {
         to_upsert.span_db.local_endpoint_id = self.upsert_endpoint(to_upsert.local_endpoint);
         to_upsert.span_db.remote_endpoint_id = self.upsert_endpoint(to_upsert.remote_endpoint);
 
-        use super::schema::span::dsl::*;
-        diesel::insert_into(span)
-            .values(&to_upsert.span_db)
-            .execute(&self.0)
-            .expect("Error inserting Span");
+        {
+            use super::schema::span::dsl::*;
+            match span.filter(
+                id.eq(to_upsert.span_db.id.clone())
+                    .and(trace_id.eq(to_upsert.span_db.trace_id.clone())),
+            ).first::<SpanDb>(&self.0)
+            {
+                Ok(_) => {
+                    //TODO: manage more update cases than duration
+                    diesel::update(
+                        span.filter(
+                            id.eq(to_upsert.span_db.id.clone())
+                                .and(trace_id.eq(to_upsert.span_db.trace_id.clone())),
+                        ),
+                    ).set(duration.eq(to_upsert.span_db.duration))
+                        .execute(&self.0)
+                        .expect(&format!("Error updating Span for {:?}", to_upsert.span_db));
+                }
+                Err(_) => {
+                    diesel::insert_into(span)
+                        .values(&to_upsert.span_db)
+                        .execute(&self.0)
+                        .expect(&format!("Error inserting Span for {:?}", to_upsert.span_db));
+                }
+            };
+        }
 
         use super::schema::annotation::dsl::*;
         to_upsert.annotations.iter().for_each(|item| {
             diesel::insert_into(annotation)
                 .values(item)
                 .execute(&self.0)
-                .expect("Error inserting annotation");
+                .expect(&format!("Error inserting annotation {:?}", item));
         });
 
         use super::schema::tag::dsl::*;
@@ -207,7 +228,7 @@ impl Handler<::engine::span::Span> for super::DbExecutor {
             diesel::insert_into(tag)
                 .values(item)
                 .execute(&self.0)
-                .expect("Error inserting tag");
+                .expect(&format!("Error inserting tag {:?}", item));
         });
 
         Ok(())

@@ -5,7 +5,7 @@ FROM clux/muslrust AS builder
 ADD . ./
 
 # Build diesel cli.
-RUN cargo install diesel_cli --no-default-features --features postgres --git https://github.com/mockersf/diesel/
+RUN cargo install diesel_cli --no-default-features --features postgres
 
 # Build our application.
 RUN cargo build --release --no-default-features --features postgres

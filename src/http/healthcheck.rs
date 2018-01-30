@@ -28,3 +28,9 @@ pub fn healthcheck(req: HttpRequest<AppState>) -> HttpResponse {
         })
         .unwrap()
 }
+
+pub fn zipkin_ui_config(_: HttpRequest<AppState>) -> HttpResponse {
+    httpcodes::HTTPOk
+    .build()
+    .body(r#"{"environment":"","queryLimit":10,"defaultLookback":3600000,"instrumented":".*","logsUrl":null,"searchEnabled":true,"dependency":{"lowErrorRate":0.5,"highErrorRate":0.75}}"#).unwrap()
+}

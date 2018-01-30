@@ -47,21 +47,26 @@ pub fn serve(
             .resource("/healthcheck", |r| {
                 r.method(Method::GET).f(healthcheck::healthcheck)
             })
+            .resource("/config.json", |r| {
+                r.method(Method::GET).f(healthcheck::zipkin_ui_config)
+            })
             .resource("/api/tests", |r| {
                 r.method(Method::POST).f(test_result::ingest)
             })
-            .resource("/api/spans", |r| {
+            .resource("/api/v1/spans", |r| {
                 r.method(Method::POST).f(span::ingest);
                 r.method(Method::GET).f(span::get_spans_by_service);
             })
-            .resource("/api/services", |r| {
+            .resource("/api/v1/services", |r| {
                 r.method(Method::GET).f(span::get_services)
             })
-            .resource("/api/trace/{traceId}", |r| {
+            .resource("/api/v1/trace/{traceId}", |r| {
                 r.method(Method::GET).f(span::get_spans_by_trace_id)
             })
-            .resource("/api/traces", |r| r.method(Method::GET).f(span::get_traces))
-            .resource("/api/dependencies", |r| {
+            .resource("/api/v1/traces", |r| {
+                r.method(Method::GET).f(span::get_traces)
+            })
+            .resource("/api/v1/dependencies", |r| {
                 r.method(Method::GET).f(span::get_dependencies)
             })
     }).bind(format!("{}:{}", host, port))

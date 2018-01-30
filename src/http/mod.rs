@@ -60,8 +60,9 @@ pub fn serve(
             .resource("/api/trace/{traceId}", |r| {
                 r.method(Method::GET).f(span::get_spans_by_trace_id)
             })
-            .resource("/api/traces", |r| {
-                r.method(Method::GET).f(span::get_traces)
+            .resource("/api/traces", |r| r.method(Method::GET).f(span::get_traces))
+            .resource("/api/dependencies", |r| {
+                r.method(Method::GET).f(span::get_dependencies)
             })
     }).bind(format!("{}:{}", host, port))
         .unwrap()

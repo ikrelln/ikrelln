@@ -116,3 +116,63 @@ pub fn get_traces(
         })
         .responder()
 }
+
+#[derive(Debug, Serialize)]
+struct Dependency {
+    parent: String,
+    child: String,
+    call_count: u32,
+    error_count: u32,
+}
+impl Dependency {
+    fn add_call(&self) -> Self {
+        Dependency {
+            parent: self.parent.clone(),
+            child: self.child.clone(),
+            call_count: self.call_count + 1,
+            error_count: self.error_count,
+        }
+    }
+}
+
+pub fn get_dependencies(
+    req: HttpRequest<AppState>,
+) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+    req.state()
+        .db_actor
+        .call_fut(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
+        .from_err()
+        .and_then(|res| match res {
+            Ok(spans) => Ok(httpcodes::HTTPOk.build().json({
+                let by_services = spans.into_iter().fold(HashMap::new(), |mut map, elt| {
+                    let local_service = elt.local_endpoint
+                        .and_then(|ep| ep.service_name)
+                        .unwrap_or("n/a".to_string());
+                    let remote_service = elt.remote_endpoint
+                        .and_then(|ep| ep.service_name)
+                        .unwrap_or("n/a".to_string());
+                    {
+                        let dep = {
+                            map.entry(format!("{}-{}", local_service, remote_service))
+                                .or_insert(Dependency {
+                                    parent: local_service.clone(),
+                                    child: remote_service.clone(),
+                                    call_count: 0,
+                                    error_count: 0,
+                                })
+                                .add_call()
+                        };
+                        map.insert(format!("{}-{}", local_service, remote_service), dep);
+                    }
+                    map
+                });
+                let mut by_trace = Vec::new();
+                for (_, spans) in by_services.into_iter() {
+                    by_trace.push(spans);
+                }
+                by_trace
+            })?),
+            Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
+        })
+        .responder()
+}

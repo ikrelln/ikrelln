@@ -22,7 +22,7 @@ COPY --from=builder \
 COPY --from=builder \
     /home/rust/src/test.sqlite \
     /
-EXPOSE 8080
+EXPOSE 7878
 ENV NB_CONNECTION 1
 ENV DATABASE_URL /test.sqlite
 CMD /usr/local/bin/ikrelln

@@ -33,7 +33,7 @@ COPY --from=builder \
     /usr/local/bin/
 
 # Expose i'Krelln port
-EXPOSE 8080
+EXPOSE 7878
 
 # i'Krelln configurtion
 ENV NB_CONNECTION 5

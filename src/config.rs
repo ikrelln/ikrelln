@@ -30,7 +30,7 @@ impl Config {
                     .long("port")
                     .takes_value(true)
                     .value_name("PORT")
-                    .default_value("8080")
+                    .default_value("7878")
                     .env("PORT")
                     .help("Listen to the specified port"),
             )

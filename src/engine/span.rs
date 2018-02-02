@@ -44,6 +44,7 @@ pub struct Span {
     pub remote_endpoint: Option<Endpoint>,
     #[serde(default)] pub annotations: Vec<Annotation>,
     #[serde(default)] pub tags: HashMap<String, String>,
+    #[serde(default)] pub binary_annotations: Vec<Tag>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -60,6 +61,13 @@ pub struct Endpoint {
 pub struct Annotation {
     pub value: String,
     pub timestamp: i64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Tag {
+    pub key: String,
+    pub value: String,
 }
 
 impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor {

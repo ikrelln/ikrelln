@@ -489,7 +489,15 @@ impl Handler<GetSpans> for super::DbExecutor {
                         local_endpoint: local_endpoint,
                         remote_endpoint: remote_endpoint,
                         annotations: annotations,
-                        tags: tags,
+                        tags: tags.clone(),
+                        binary_annotations: tags.iter()
+                            .map(|(k, v)| {
+                                ::engine::span::Tag {
+                                    key: k.clone(),
+                                    value: v.clone(),
+                                }
+                            })
+                            .collect(),
                     }
                 })
                 .collect(),

@@ -153,24 +153,39 @@ impl super::DbExecutor {
             use super::schema::endpoint::dsl::*;
 
             match endpoint
-                .filter(service_name.eq(le.service_name.clone()))
+                .filter(
+                    service_name
+                        .eq(le.service_name.clone())
+                        .and(ipv4.eq(le.ipv4.clone())),
+                )
                 .first::<EndpointDb>(&self.0)
                 .ok()
             {
                 Some(existing) => Some(existing.endpoint_id),
                 None => {
                     let new_id = uuid::Uuid::new_v4().hyphenated().to_string();
-                    diesel::insert_into(endpoint)
+                    let could_insert = diesel::insert_into(endpoint)
                         .values(&EndpointDb {
                             endpoint_id: new_id.clone(),
-                            service_name: le.service_name,
-                            ipv4: le.ipv4,
+                            service_name: le.service_name.clone(),
+                            ipv4: le.ipv4.clone(),
                             ipv6: le.ipv6,
                             port: le.port,
                         })
-                        .execute(&self.0)
-                        .expect("Error inserting Endpoint");
-                    Some(new_id)
+                        .execute(&self.0);
+                    if let Err(_) = could_insert {
+                        endpoint
+                            .filter(
+                                service_name
+                                    .eq(le.service_name.clone())
+                                    .and(ipv4.eq(le.ipv4.clone())),
+                            )
+                            .first::<EndpointDb>(&self.0)
+                            .ok()
+                            .map(|existing| existing.endpoint_id)
+                    } else {
+                        Some(new_id)
+                    }
                 }
             }
         } else {

@@ -4,7 +4,8 @@ CREATE TABLE endpoint
     service_name VARCHAR(255),
     ipv4 VARCHAR(30),
     ipv6 VARCHAR(50),
-    port INT
+    port INT,
+    CONSTRAINT UC_Endpoint UNIQUE (service_name, ipv4)
 );
 CREATE TABLE span
 (

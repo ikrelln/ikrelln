@@ -1,26 +1,26 @@
 table! {
     annotation (annotation_id) {
-        annotation_id -> Text,
-        trace_id -> Text,
-        span_id -> Text,
-        ts -> BigInt,
-        value -> Text,
+        annotation_id -> Varchar,
+        trace_id -> Varchar,
+        span_id -> Varchar,
+        ts -> Int8,
+        value -> Varchar,
     }
 }
 
 table! {
     endpoint (endpoint_id) {
-        endpoint_id -> Text,
-        service_name -> Nullable<Text>,
-        ipv4 -> Nullable<Text>,
-        ipv6 -> Nullable<Text>,
-        port -> Nullable<Integer>,
+        endpoint_id -> Varchar,
+        service_name -> Nullable<Varchar>,
+        ipv4 -> Nullable<Varchar>,
+        ipv6 -> Nullable<Varchar>,
+        port -> Nullable<Int4>,
     }
 }
 
 table! {
     ingest (id) {
-        id -> Nullable<Text>,
+        id -> Varchar,
         created_at -> Text,
         processed_at -> Nullable<Text>,
     }
@@ -28,44 +28,44 @@ table! {
 
 table! {
     span (trace_id, id) {
-        trace_id -> Text,
-        id -> Text,
-        parent_id -> Nullable<Text>,
-        name -> Nullable<Text>,
-        kind -> Nullable<Text>,
-        duration -> Nullable<BigInt>,
-        ts -> Nullable<BigInt>,
+        trace_id -> Varchar,
+        id -> Varchar,
+        parent_id -> Nullable<Varchar>,
+        name -> Nullable<Varchar>,
+        kind -> Nullable<Varchar>,
+        duration -> Nullable<Int8>,
+        ts -> Nullable<Int8>,
         debug -> Bool,
         shared -> Bool,
-        local_endpoint_id -> Nullable<Text>,
-        remote_endpoint_id -> Nullable<Text>,
+        local_endpoint_id -> Nullable<Varchar>,
+        remote_endpoint_id -> Nullable<Varchar>,
     }
 }
 
 table! {
     tag (tag_id) {
-        tag_id -> Text,
-        trace_id -> Text,
-        span_id -> Text,
-        name -> Text,
-        value -> Text,
+        tag_id -> Varchar,
+        trace_id -> Varchar,
+        span_id -> Varchar,
+        name -> Varchar,
+        value -> Varchar,
     }
 }
 
 table! {
     test (id) {
-        id -> Nullable<Text>,
-        name -> Text,
+        id -> Varchar,
+        name -> Varchar,
     }
 }
 
 table! {
     test_result (id) {
-        id -> Nullable<Text>,
-        test_id -> Text,
-        result -> Text,
-        duration -> BigInt,
-        ts -> BigInt,
+        id -> Varchar,
+        test_id -> Varchar,
+        result -> Varchar,
+        duration -> Int8,
+        ts -> Int8,
     }
 }
 

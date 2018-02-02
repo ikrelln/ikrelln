@@ -379,7 +379,7 @@ impl Handler<GetSpans> for super::DbExecutor {
             }
 
             query
-                .order(ts.desc())
+                .order(ts.asc())
                 .limit(msg.0.limit)
                 .load::<SpanDb>(&self.0)
                 .ok()

@@ -11,7 +11,7 @@ CREATE TABLE span
     trace_id VARCHAR(36) NOT NULL,
     id VARCHAR(36) NOT NULL,
     parent_id VARCHAR(36),
-    name VARCHAR(36),
+    name VARCHAR(255),
     kind VARCHAR(10),
     duration BIGINT,
     ts BIGINT,

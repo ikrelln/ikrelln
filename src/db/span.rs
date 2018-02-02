@@ -148,19 +148,31 @@ impl ResponseType for ::engine::span::Span {
 }
 
 impl super::DbExecutor {
+    fn find_endpoint(&mut self, ep: &EndpointDb) -> Option<EndpointDb> {
+        use super::schema::endpoint::dsl::*;
+
+        let mut query = endpoint.into_boxed();
+        if let Some(query_service_name) = ep.service_name.clone() {
+            query = query.filter(service_name.eq(query_service_name));
+        }
+        if let Some(query_ipv4) = ep.ipv4.clone() {
+            query = query.filter(ipv4.eq(query_ipv4));
+        }
+        if let Some(query_ipv6) = ep.ipv6.clone() {
+            query = query.filter(ipv6.eq(query_ipv6));
+        }
+        if let Some(query_port) = ep.port {
+            query = query.filter(port.eq(query_port));
+        }
+
+        query.first::<EndpointDb>(&self.0).ok()
+    }
+
     fn upsert_endpoint(&mut self, ep: Option<EndpointDb>) -> Option<String> {
         if let Some(le) = ep {
             use super::schema::endpoint::dsl::*;
 
-            match endpoint
-                .filter(
-                    service_name
-                        .eq(le.service_name.clone())
-                        .and(ipv4.eq(le.ipv4.clone())),
-                )
-                .first::<EndpointDb>(&self.0)
-                .ok()
-            {
+            match self.find_endpoint(&le) {
                 Some(existing) => Some(existing.endpoint_id),
                 None => {
                     let new_id = uuid::Uuid::new_v4().hyphenated().to_string();
@@ -169,20 +181,12 @@ impl super::DbExecutor {
                             endpoint_id: new_id.clone(),
                             service_name: le.service_name.clone(),
                             ipv4: le.ipv4.clone(),
-                            ipv6: le.ipv6,
+                            ipv6: le.ipv6.clone(),
                             port: le.port,
                         })
                         .execute(&self.0);
                     if let Err(_) = could_insert {
-                        endpoint
-                            .filter(
-                                service_name
-                                    .eq(le.service_name.clone())
-                                    .and(ipv4.eq(le.ipv4.clone())),
-                            )
-                            .first::<EndpointDb>(&self.0)
-                            .ok()
-                            .map(|existing| existing.endpoint_id)
+                        self.find_endpoint(&le).map(|existing| existing.endpoint_id)
                     } else {
                         Some(new_id)
                     }

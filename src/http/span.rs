@@ -57,7 +57,15 @@ pub fn get_spans_by_service(
             .call_fut(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
             .from_err()
             .and_then(|res| match res {
-                Ok(spans) => Ok(httpcodes::HTTPOk.build().json(spans)?),
+                Ok(spans) => {
+                    let mut span_names = spans
+                        .iter()
+                        .map(|span| span.name.clone().unwrap_or("n/a".to_string()))
+                        .collect::<Vec<String>>();
+                    span_names.sort_unstable();
+                    span_names.dedup();
+                    Ok(httpcodes::HTTPOk.build().json(span_names)?)
+                }
                 Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
             })
             .responder(),

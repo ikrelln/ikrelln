@@ -68,6 +68,7 @@ pub struct Annotation {
 pub struct Tag {
     pub key: String,
     pub value: String,
+    pub endpoint: Option<Endpoint>,
 }
 
 impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor {

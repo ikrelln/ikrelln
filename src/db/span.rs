@@ -476,6 +476,9 @@ impl Handler<GetSpans> for super::DbExecutor {
                             .collect()
                     };
 
+                    let binary_annotation_endpoint =
+                        remote_endpoint.clone().or(local_endpoint.clone());
+
                     ::engine::span::Span {
                         trace_id: spandb.trace_id.clone(),
                         id: spandb.id.clone(),
@@ -495,6 +498,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                                 ::engine::span::Tag {
                                     key: k.clone(),
                                     value: v.clone(),
+                                    endpoint: binary_annotation_endpoint.clone(),
                                 }
                             })
                             .collect(),

@@ -39,9 +39,11 @@ impl Handler<IngestEventDb> for super::DbExecutor {
                 .set(processed_at.eq(msg.processed_at))
                 .execute(&self.0)
                 .expect(&format!("Error updating Ingest"));
+            info!("finishing ingest '{}'", ingest_id);
+        } else {
+            info!("starting ingest '{}'", ingest_id);
         }
 
-        info!("starting ingest '{}'", ingest_id);
         Ok(())
     }
 }

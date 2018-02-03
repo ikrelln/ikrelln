@@ -1,3 +1,9 @@
+CREATE TABLE ingest
+(
+    id VARCHAR PRIMARY KEY,
+    created_at TIMESTAMP NOT NULL,
+    processed_at TIMESTAMP
+);
 CREATE TABLE endpoint
 (
     endpoint_id VARCHAR(36) NOT NULL PRIMARY KEY,

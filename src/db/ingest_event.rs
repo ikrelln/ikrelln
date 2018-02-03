@@ -1,78 +1,47 @@
 use diesel;
 use actix::{Handler, MessageResult, ResponseType};
 use diesel::prelude::*;
+use chrono;
 
 use db::schema::ingest;
 #[derive(Debug, Insertable)]
 #[table_name = "ingest"]
-pub struct StartIngestEventDb {
+pub struct IngestEventDb {
     id: String,
-    created_at: String,
+    created_at: chrono::NaiveDateTime,
+    processed_at: Option<chrono::NaiveDateTime>,
 }
-impl ResponseType for StartIngestEventDb {
+impl ResponseType for IngestEventDb {
     type Item = ();
     type Error = ();
 }
 
-impl<'a, T> From<&'a ::engine::ingestor::IngestEvents<T>> for StartIngestEventDb {
-    fn from(ie: &::engine::ingestor::IngestEvents<T>) -> StartIngestEventDb {
-        StartIngestEventDb {
+impl<'a, T> From<&'a ::engine::ingestor::IngestEvents<T>> for IngestEventDb {
+    fn from(ie: &::engine::ingestor::IngestEvents<T>) -> IngestEventDb {
+        IngestEventDb {
             id: ie.ingest_id.to_string(),
-            created_at: ie.created_at.to_rfc2822(),
+            created_at: ie.created_at,
+            processed_at: ie.processed_at,
         }
     }
 }
+impl Handler<IngestEventDb> for super::DbExecutor {
+    type Result = MessageResult<IngestEventDb>;
 
-#[derive(Debug, Insertable)]
-#[table_name = "ingest"]
-pub struct FinishIngestEventDb {
-    id: String,
-    processed_at: String,
-}
-impl ResponseType for FinishIngestEventDb {
-    type Item = ();
-    type Error = ();
-}
-
-impl<'a, T> From<&'a ::engine::ingestor::IngestEvents<T>> for FinishIngestEventDb {
-    fn from(ie: &::engine::ingestor::IngestEvents<T>) -> FinishIngestEventDb {
-        FinishIngestEventDb {
-            id: ie.ingest_id.to_string(),
-            processed_at: ie.processed_at
-                .map(|date| date.to_rfc2822())
-                .unwrap_or("N/A".to_string()),
-        }
-    }
-}
-
-impl Handler<StartIngestEventDb> for super::DbExecutor {
-    type Result = MessageResult<StartIngestEventDb>;
-
-    fn handle(&mut self, msg: StartIngestEventDb, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: IngestEventDb, _: &mut Self::Context) -> Self::Result {
         use super::schema::ingest::dsl::*;
 
         let ingest_id = msg.id.clone();
-        diesel::insert_into(ingest)
-            .values(&msg)
-            .execute(&self.0)
-            .expect("Error inserting Ingest");
+        let insert = diesel::insert_into(ingest).values(&msg).execute(&self.0);
+        if let Err(_) = insert {
+            diesel::update(ingest)
+                .filter(id.eq(msg.id))
+                .set(processed_at.eq(msg.processed_at))
+                .execute(&self.0)
+                .expect(&format!("Error updating Ingest"));
+        }
+
         info!("starting ingest '{}'", ingest_id);
-        Ok(())
-    }
-}
-
-impl Handler<FinishIngestEventDb> for super::DbExecutor {
-    type Result = MessageResult<FinishIngestEventDb>;
-
-    fn handle(&mut self, msg: FinishIngestEventDb, _: &mut Self::Context) -> Self::Result {
-        use super::schema::ingest::dsl::*;
-
-        let ingest_id = msg.id.clone();
-        diesel::update(ingest.find(msg.id))
-            .set(processed_at.eq(msg.processed_at))
-            .execute(&self.0)
-            .expect("Error inserting Ingest");
-        info!("finished ingest '{}'", ingest_id);
         Ok(())
     }
 }

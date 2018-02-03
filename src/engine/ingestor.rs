@@ -13,21 +13,21 @@ impl Actor for Ingestor {
 pub struct IngestEvents<T> {
     pub ingest_id: super::IngestId,
     pub events: Vec<T>,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub processed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at: chrono::NaiveDateTime,
+    pub processed_at: Option<chrono::NaiveDateTime>,
 }
 impl<T> IngestEvents<T> {
     pub fn new(events: Vec<T>) -> IngestEvents<T> {
         IngestEvents {
             ingest_id: super::IngestId::new(),
             events: events,
-            created_at: chrono::Utc::now(),
+            created_at: chrono::Utc::now().naive_utc(),
             processed_at: None,
         }
     }
     fn done(self) -> IngestEvents<T> {
         IngestEvents {
-            processed_at: Some(chrono::Utc::now()),
+            processed_at: Some(chrono::Utc::now().naive_utc()),
             ..self
         }
     }
@@ -52,7 +52,7 @@ impl<T> Handler<Result<FinishedIngest<T>, futures::Canceled>> for Ingestor {
     ) -> Self::Result {
         if let Ok(fi) = msg {
             self.0
-                .send(::db::ingest_event::FinishIngestEventDb::from(&fi.0.done()));
+                .send(::db::ingest_event::IngestEventDb::from(&fi.0.done()));
         }
         Ok(())
     }

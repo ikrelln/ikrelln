@@ -7,7 +7,6 @@ use chrono;
 use engine::ingestor::Ingestor;
 
 mod healthcheck;
-mod test_result;
 mod errors;
 mod span;
 
@@ -49,9 +48,6 @@ pub fn serve(
             })
             .resource("/config.json", |r| {
                 r.method(Method::GET).f(healthcheck::zipkin_ui_config)
-            })
-            .resource("/api/tests", |r| {
-                r.method(Method::POST).f(test_result::ingest)
             })
             .resource("/api/v1/spans", |r| {
                 r.method(Method::POST).f(span::ingest);

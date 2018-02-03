@@ -21,8 +21,8 @@ table! {
 table! {
     ingest (id) {
         id -> Varchar,
-        created_at -> Text,
-        processed_at -> Nullable<Text>,
+        created_at -> Timestamp,
+        processed_at -> Nullable<Timestamp>,
     }
 }
 
@@ -52,29 +52,10 @@ table! {
     }
 }
 
-table! {
-    test (id) {
-        id -> Varchar,
-        name -> Varchar,
-    }
-}
-
-table! {
-    test_result (id) {
-        id -> Varchar,
-        test_id -> Varchar,
-        result -> Varchar,
-        duration -> Int8,
-        ts -> Int8,
-    }
-}
-
 allow_tables_to_appear_in_same_query!(
     annotation,
     endpoint,
     ingest,
     span,
     tag,
-    test,
-    test_result,
 );

@@ -3,7 +3,6 @@ use uuid;
 use std::fmt;
 
 pub mod ingestor;
-pub mod test_result;
 pub mod span;
 
 pub fn hello() -> &'static str {

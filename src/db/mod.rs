@@ -3,7 +3,6 @@ use actix::{Actor, SyncContext};
 
 pub mod schema;
 pub mod ingest_event;
-pub mod test_result;
 pub mod span;
 
 #[cfg(feature = "sqlite")]

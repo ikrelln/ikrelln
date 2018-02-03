@@ -79,8 +79,7 @@ impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor 
         msg: super::ingestor::IngestEvents<Span>,
         _ctx: &mut Context<Self>,
     ) -> Self::Result {
-        self.0
-            .send(::db::ingest_event::StartIngestEventDb::from(&msg));
+        self.0.send(::db::ingest_event::IngestEventDb::from(&msg));
         let msg_futures = msg.events
             .iter()
             .map(move |event: &Span| self.0.call_fut(event.clone()))

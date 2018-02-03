@@ -3,7 +3,7 @@ table! {
         annotation_id -> Varchar,
         trace_id -> Varchar,
         span_id -> Varchar,
-        ts -> Int8,
+        ts -> Timestamp,
         value -> Varchar,
     }
 }
@@ -34,7 +34,7 @@ table! {
         name -> Nullable<Varchar>,
         kind -> Nullable<Varchar>,
         duration -> Nullable<Int8>,
-        ts -> Nullable<Int8>,
+        ts -> Nullable<Timestamp>,
         debug -> Bool,
         shared -> Bool,
         local_endpoint_id -> Nullable<Varchar>,

@@ -5,7 +5,7 @@ use uuid;
 use std::collections::HashMap;
 use actix_web;
 use std::str::FromStr;
-use time;
+use chrono;
 
 use db::schema::span;
 #[derive(Debug, Insertable, Queryable)]
@@ -17,7 +17,7 @@ pub struct SpanDb {
     name: Option<String>,
     kind: Option<String>,
     duration: Option<i64>,
-    ts: Option<i64>,
+    ts: Option<chrono::NaiveDateTime>,
     debug: bool,
     shared: bool,
     local_endpoint_id: Option<String>,
@@ -53,7 +53,7 @@ pub struct AnnotationDb {
     annotation_id: String,
     trace_id: String,
     span_id: String,
-    ts: i64,
+    ts: chrono::NaiveDateTime,
     value: String,
 }
 
@@ -76,7 +76,13 @@ fn get_all_from_span(span: ::engine::span::Span) -> FromSpan {
         name: span.name.map(|s| s.to_lowercase()),
         kind: span.kind.map(|k| k.to_string()),
         duration: span.duration,
-        ts: span.timestamp,
+        ts: span.timestamp.map(|ts| {
+            // span timestamp is in microseconds
+            chrono::NaiveDateTime::from_timestamp(
+                ts / 1000 / 1000,
+                (ts % (1000 * 1000) * 1000) as u32,
+            )
+        }),
         debug: span.debug,
         shared: span.shared,
         local_endpoint_id: None,
@@ -114,7 +120,11 @@ fn get_all_from_span(span: ::engine::span::Span) -> FromSpan {
                 trace_id: trace_id.clone(),
                 span_id: span_id.clone(),
                 annotation_id: uuid::Uuid::new_v4().hyphenated().to_string(),
-                ts: annotation.timestamp,
+                ts: chrono::NaiveDateTime::from_timestamp(
+                    // timestamp is in microseconds
+                    annotation.timestamp / 1000 / 1000,
+                    (annotation.timestamp % 1000 * 1000) as u32,
+                ),
                 value: annotation.value.clone(),
             }
         })
@@ -288,8 +298,8 @@ pub struct SpanQuery {
     pub trace_id: Option<String>,
     pub min_duration: Option<i64>,
     pub max_duration: Option<i64>,
-    pub end_ts: i64,
-    pub lookback: Option<i64>,
+    pub end_ts: chrono::NaiveDateTime,
+    pub lookback: Option<chrono::Duration>,
     pub limit: i64,
 }
 
@@ -312,15 +322,18 @@ impl SpanQuery {
             end_ts: req.query()
                 .get("endTs")
                 .and_then(|s| s.parse::<i64>().ok())
-                .map(|v| v * 1000)
-                .unwrap_or_else(|| {
-                    let now = time::get_time();
-                    (now.sec * 1000000) + ((now.nsec / 1000) as i64)
-                }),
+                .map(|v| {
+                    // query timestamp is in milliseconds
+                    chrono::NaiveDateTime::from_timestamp(
+                        v / 1000,
+                        ((v % 1000) * 1000 * 1000) as u32,
+                    )
+                })
+                .unwrap_or_else(|| chrono::Utc::now().naive_utc()),
             lookback: req.query()
                 .get("lookback")
                 .and_then(|s| s.parse::<i64>().ok())
-                .map(|v| v * 1000),
+                .map(|v| chrono::Duration::milliseconds(v)),
             limit: req.query()
                 .get("limit")
                 .and_then(|s| s.parse::<i64>().ok())
@@ -457,7 +470,9 @@ impl Handler<GetSpans> for super::DbExecutor {
                             .iter()
                             .map(|an| {
                                 ::engine::span::Annotation {
-                                    timestamp: an.ts,
+                                    timestamp: ((an.ts.timestamp() * 1000)
+                                        + (an.ts.timestamp_subsec_millis() as i64))
+                                        * 1000,
                                     value: an.value.clone(),
                                 }
                             })
@@ -489,7 +504,9 @@ impl Handler<GetSpans> for super::DbExecutor {
                         parent_id: spandb.parent_id.clone(),
                         name: spandb.name.clone(),
                         kind: spandb.kind.clone().map(|k| k.into()),
-                        timestamp: spandb.ts,
+                        timestamp: spandb.ts.map(|ts| {
+                            ((ts.timestamp() * 1000) + (ts.timestamp_subsec_millis() as i64)) * 1000
+                        }),
                         duration: spandb.duration,
                         debug: spandb.debug,
                         shared: spandb.shared,

@@ -21,7 +21,7 @@ CREATE TABLE span
     name VARCHAR(255),
     kind VARCHAR(10),
     duration BIGINT,
-    ts BIGINT,
+    ts TIMESTAMP,
     debug BOOLEAN NOT NULL,
     shared BOOLEAN NOT NULL,
     local_endpoint_id VARCHAR(36),
@@ -35,7 +35,7 @@ CREATE TABLE annotation
     annotation_id VARCHAR(36) NOT NULL PRIMARY KEY,
     trace_id VARCHAR(36) NOT NULL,
     span_id VARCHAR(36) NOT NULL,
-    ts BIGINT NOT NULL,
+    ts TIMESTAMP NOT NULL,
     value VARCHAR(255) NOT NULL,
     FOREIGN KEY (trace_id, span_id) REFERENCES span (trace_id, id)
 );

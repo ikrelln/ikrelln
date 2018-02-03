@@ -5,7 +5,6 @@ extern crate fern;
 #[macro_use]
 extern crate log;
 extern crate mime;
-extern crate time;
 
 extern crate clap;
 

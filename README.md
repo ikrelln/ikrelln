@@ -7,9 +7,18 @@ i'Krelln is a test reporting and tracing system. It helps gather test execution 
 
 You can start i'Krelln by Docker:
  
- ```bash
-docker run -d -p 7878:7878 ikrelln/ikrelln
+```bash
+docker run -d -p 7878:7878 -e DATABASE_URL=postgres://postgreshost:5432/ ikrelln/ikrelln
 ```
 
-Once it started, browse to http://localhost:7878 to find your tests results!
+Once it started, you can send your spans on http://localhost:7878/api/v1/spans.
 
+### All in one Docker image
+
+This image, designed for quick local testing, launch i'Krelln, the zipkin ui and a postgres DB.
+
+```bash
+docker run -d -p 7878:7878 -p 9411:80 ikrelln/ikrelln:all-in-one
+```
+
+Once started, you can send your spans to http://localhost:7878/api/v1/spans, and access zipkin ui on http://localhost:9411/zipkin/

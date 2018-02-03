@@ -529,3 +529,61 @@ impl Handler<GetSpans> for super::DbExecutor {
         )
     }
 }
+
+pub struct SpanCleanup(pub chrono::NaiveDateTime);
+impl ResponseType for SpanCleanup {
+    type Item = ();
+    type Error = ();
+}
+impl Handler<SpanCleanup> for super::DbExecutor {
+    type Result = MessageResult<SpanCleanup>;
+
+    fn handle(&mut self, msg: SpanCleanup, _: &mut Self::Context) -> Self::Result {
+        use super::schema::span::dsl::*;
+
+        let spans: Vec<SpanDb> = {
+            use super::schema::span::dsl::*;
+
+            span.filter(duration.is_not_null())
+                .filter(ts.lt(msg.0))
+                .order(ts.asc())
+                .load::<SpanDb>(&self.0)
+                .ok()
+                .unwrap_or(vec![])
+        };
+
+        spans.iter().for_each(|spandb| {
+            {
+                use super::schema::annotation::dsl::*;
+
+                diesel::delete(
+                    annotation.filter(
+                        trace_id
+                            .eq(spandb.trace_id.clone())
+                            .and(span_id.eq(spandb.id.clone())),
+                    ),
+                ).execute(&self.0)
+                    .expect("Error deleting Annotation");
+            }
+
+            {
+                use super::schema::tag::dsl::*;
+
+                diesel::delete(
+                    tag.filter(
+                        trace_id
+                            .eq(spandb.trace_id.clone())
+                            .and(span_id.eq(spandb.id.clone())),
+                    ),
+                ).execute(&self.0)
+                    .expect("Error deleting Tag");
+            }
+        });
+
+        diesel::delete(span.filter(ts.lt(msg.0)))
+            .execute(&self.0)
+            .expect("Error cleaning up Span");
+
+        Ok(())
+    }
+}

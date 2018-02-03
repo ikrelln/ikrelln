@@ -47,3 +47,22 @@ impl Handler<IngestEventDb> for super::DbExecutor {
         Ok(())
     }
 }
+
+pub struct IngestCleanup(pub chrono::NaiveDateTime);
+impl ResponseType for IngestCleanup {
+    type Item = ();
+    type Error = ();
+}
+impl Handler<IngestCleanup> for super::DbExecutor {
+    type Result = MessageResult<IngestCleanup>;
+
+    fn handle(&mut self, msg: IngestCleanup, _: &mut Self::Context) -> Self::Result {
+        use super::schema::ingest::dsl::*;
+
+        diesel::delete(ingest.filter(processed_at.lt(msg.0)))
+            .execute(&self.0)
+            .expect("Error cleaning up Ingest");
+
+        Ok(())
+    }
+}

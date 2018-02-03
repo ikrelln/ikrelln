@@ -16,6 +16,14 @@ pub struct Times {
 }
 
 pub fn healthcheck(req: HttpRequest<AppState>) -> HttpResponse {
+    let hours_to_cleanup = 24;
+    req.state().db_actor.send(::db::ingest_event::IngestCleanup(
+        chrono::Utc::now().naive_utc() - chrono::Duration::hours(hours_to_cleanup),
+    ));
+    req.state().db_actor.send(::db::span::SpanCleanup(
+        chrono::Utc::now().naive_utc() - chrono::Duration::hours(hours_to_cleanup),
+    ));
+
     httpcodes::HTTPOk
         .build()
         .json(HealthcheckResponse {

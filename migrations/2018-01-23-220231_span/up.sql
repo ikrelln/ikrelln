@@ -1,6 +1,6 @@
 CREATE TABLE ingest
 (
-    id VARCHAR PRIMARY KEY,
+    id VARCHAR NOT NULL PRIMARY KEY,
     created_at TIMESTAMP NOT NULL,
     processed_at TIMESTAMP
 );
@@ -11,7 +11,7 @@ CREATE TABLE endpoint
     ipv4 VARCHAR(30),
     ipv6 VARCHAR(50),
     port INT,
-    CONSTRAINT UC_Endpoint UNIQUE (service_name, ipv4)
+    CONSTRAINT UC_Endpoint UNIQUE (service_name, ipv4, ipv6, port)
 );
 CREATE TABLE span
 (

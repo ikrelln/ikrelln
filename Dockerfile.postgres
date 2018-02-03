@@ -4,17 +4,11 @@ FROM clux/muslrust AS builder
 # Add our source code.
 ADD . ./
 
-# Build diesel cli.
-RUN cargo install diesel_cli --no-default-features --features postgres
-
 # Build our application.
 RUN cargo build --release --no-default-features --features postgres
 
 # Now, we need to build our _real_ Docker container
-FROM postgres:10.1-alpine
-
-# Reset entrypoint from postgres container
-ENTRYPOINT [ ]
+FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
@@ -22,27 +16,8 @@ RUN apk --no-cache add ca-certificates
 COPY --from=builder \
     /volume/target/x86_64-unknown-linux-musl/release/ikrelln \
     /usr/local/bin/
-COPY --from=builder \
-    /volume/Cargo.toml \
-    /
-COPY --from=builder \
-    /volume/migrations \
-    /migrations
-COPY --from=builder \
-    /root/.cargo/bin/diesel \
-    /usr/local/bin/
 
 # Expose i'Krelln port
 EXPOSE 7878
 
-# i'Krelln configurtion
-ENV NB_CONNECTION 5
-ENV DATABASE_URL postgresql://postgres@localhost:5432
-
-# Start script to run postgres in the background
-RUN echo "docker-entrypoint.sh postgres &" > start.sh
-RUN echo "sleep 5" >> start.sh
-RUN echo "/usr/local/bin/diesel setup" >> start.sh
-RUN echo "/usr/local/bin/ikrelln" >> start.sh
-
-CMD sh /start.sh
+CMD ikrelln

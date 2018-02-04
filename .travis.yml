@@ -9,8 +9,7 @@ matrix:
 services:
   - postgresql
 env:
-  - DATABASE_URL=postgresql://postgres@localhost:5432
-  - NB_CONNECTION=1
+  - DATABASE_URL=postgresql://postgres@localhost:5432 NB_CONNECTION=1
 cache: cargo
 before_script:
   - export PATH="$PATH:$HOME/.cargo/bin"

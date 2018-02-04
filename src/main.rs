@@ -27,7 +27,7 @@ use actix::Actor;
 mod build_info;
 mod config;
 mod engine;
-mod http;
+mod api;
 mod db;
 
 fn main() {
@@ -56,6 +56,7 @@ fn main() {
 
     info!(
         "you can connect to the UI at http://{}:{}",
+    api::serve(
         config.host,
         config.port
     );

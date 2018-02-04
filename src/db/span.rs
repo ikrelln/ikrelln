@@ -304,7 +304,7 @@ pub struct SpanQuery {
 }
 
 impl SpanQuery {
-    pub fn from_req(req: &actix_web::HttpRequest<::http::AppState>) -> Self {
+    pub fn from_req(req: &actix_web::HttpRequest<::api::AppState>) -> Self {
         return SpanQuery {
             filter_finish: req.query()
                 .get("finished")

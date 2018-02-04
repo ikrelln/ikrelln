@@ -54,22 +54,39 @@ fn main() {
 
     info!("Starting i'Krelln with config: {:?}", config);
 
-    info!(
-        "you can connect to the UI at http://{}:{}",
+    let system_and_actors = SystemAndActors::setup(&config);
+
     api::serve(
         config.host,
-        config.port
+        config.port,
+        system_and_actors.ingestor,
+        system_and_actors.db_actor,
     );
+    system_and_actors.system.run();
+}
 
-    let system = actix::System::new("i'Krelln");
-    let db_actor = {
-        let db_url = config.db_url;
-        actix::SyncArbiter::start(config.db_nb_connection, move || {
-            db::DbExecutor(db::establish_connection(db_url.clone()))
-        })
-    };
-    let ingestor_actor: actix::SyncAddress<_> =
-        engine::ingestor::Ingestor(db_actor.clone()).start();
-    http::serve(config.host, config.port, ingestor_actor, db_actor);
-    system.run();
+
+struct SystemAndActors {
+    system: actix::SystemRunner,
+    db_actor: actix::SyncAddress<db::DbExecutor>,
+    ingestor: actix::SyncAddress<engine::ingestor::Ingestor>,
+}
+impl SystemAndActors {
+    fn setup(config: &config::Config) -> SystemAndActors {
+        let system = actix::System::new("i'Krelln");
+        let db_actor = {
+            let db_url = config.db_url.clone();
+            actix::SyncArbiter::start(config.db_nb_connection, move || {
+                db::DbExecutor(db::establish_connection(db_url.clone()))
+            })
+        };
+        let ingestor_actor: actix::SyncAddress<_> =
+            engine::ingestor::Ingestor(db_actor.clone()).start();
+
+        SystemAndActors {
+            system: system,
+            db_actor: db_actor,
+            ingestor: ingestor_actor,
+        }
+    }
 }

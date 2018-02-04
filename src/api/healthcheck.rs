@@ -73,3 +73,56 @@ pub fn zipkin_ui_config(_: HttpRequest<AppState>) -> HttpResponse {
         })
         .unwrap()
 }
+
+#[cfg(test)]
+mod tests {
+    extern crate http;
+
+    use actix;
+    use actix_web::test::TestRequest;
+    use futures;
+    use self::http::StatusCode;
+    use super::*;
+
+    use api::AppState;
+
+    #[test]
+    fn can_get_config() {
+        let system_and_actors = ::SystemAndActors::setup(&::config::Config::load());
+
+        let app_state = AppState {
+            ingestor: system_and_actors.ingestor,
+            db_actor: system_and_actors.db_actor,
+            start_time: chrono::Utc::now(),
+        };
+
+        let resp = TestRequest::with_state(app_state)
+            .run(zipkin_ui_config)
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.body().is_binary(), true);
+    }
+
+    #[test]
+    fn can_get_healthcheck() {
+        let system_and_actors = ::SystemAndActors::setup(&::config::Config::load());
+
+        let app_state = AppState {
+            ingestor: system_and_actors.ingestor,
+            db_actor: system_and_actors.db_actor,
+            start_time: chrono::Utc::now(),
+        };
+
+        actix::Arbiter::handle().spawn({
+            let resp = TestRequest::with_state(app_state).run(healthcheck).unwrap();
+            assert_eq!(resp.status(), StatusCode::OK);
+            assert_eq!(resp.body().is_binary(), true);
+
+
+
+            actix::Arbiter::system().send(actix::msgs::SystemExit(0));
+            futures::future::ok(())
+        });
+        system_and_actors.system.run();
+    }
+}

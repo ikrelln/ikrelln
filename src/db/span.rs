@@ -516,7 +516,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                         tags: tags.clone(),
                         binary_annotations: tags.iter()
                             .map(|(k, v)| {
-                                ::engine::span::Tag {
+                                ::engine::span::BinaryTag {
                                     key: k.clone(),
                                     value: v.clone(),
                                     endpoint: binary_annotation_endpoint.clone(),

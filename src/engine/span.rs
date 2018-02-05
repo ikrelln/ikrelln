@@ -44,7 +44,7 @@ pub struct Span {
     pub remote_endpoint: Option<Endpoint>,
     #[serde(default)] pub annotations: Vec<Annotation>,
     #[serde(default)] pub tags: HashMap<String, String>,
-    #[serde(default)] pub binary_annotations: Vec<Tag>,
+    #[serde(default)] pub binary_annotations: Vec<BinaryTag>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -65,7 +65,7 @@ pub struct Annotation {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct Tag {
+pub struct BinaryTag {
     pub key: String,
     pub value: String,
     pub endpoint: Option<Endpoint>,

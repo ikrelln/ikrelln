@@ -82,7 +82,15 @@ impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor 
         self.0.send(::db::ingest_event::IngestEventDb::from(&msg));
         let msg_futures = msg.events
             .iter()
-            .map(move |event: &Span| self.0.call_fut(event.clone()))
+            .map(move |event: &Span| {
+                match (event.duration, event.parent_id.clone()) {
+                    (Some(_), None) => Arbiter::registry()
+                        .get::<super::batcher::Batcher>()
+                        .send(super::batcher::Register(event.trace_id.clone())),
+                    _ => (),
+                }
+                self.0.call_fut(event.clone())
+            })
             .collect::<Vec<_>>();
         let finishing = join_all(msg_futures).and_then(|_| {
             futures::future::result(Ok(super::ingestor::FinishedIngest(msg)))

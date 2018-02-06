@@ -4,6 +4,7 @@ use std::fmt;
 
 pub mod ingestor;
 pub mod span;
+pub mod batcher;
 
 pub fn hello() -> &'static str {
     "I am i'Krelln"

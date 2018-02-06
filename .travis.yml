@@ -13,5 +13,5 @@ env:
 cache: cargo
 before_script:
   - export PATH="$PATH:$HOME/.cargo/bin"
-  - cargo install diesel_cli --no-default-features --features postgres
+  - which diesel || cargo install diesel_cli --no-default-features --features postgres
   - diesel setup

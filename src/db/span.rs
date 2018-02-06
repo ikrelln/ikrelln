@@ -337,6 +337,7 @@ impl SpanQuery {
             limit: req.query()
                 .get("limit")
                 .and_then(|s| s.parse::<i64>().ok())
+                .map(|v| if v > 1000 { 1000 } else { v })
                 .unwrap_or(100),
         };
     }

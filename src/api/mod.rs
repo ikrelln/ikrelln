@@ -16,20 +16,13 @@ fn index(_req: HttpRequest<AppState>) -> String {
 
 pub struct AppState {
     ingestor: actix::SyncAddress<Ingestor>,
-    db_actor: actix::SyncAddress<::db::DbExecutor>,
     start_time: chrono::DateTime<chrono::Utc>,
 }
 
-pub fn serve(
-    host: String,
-    port: u16,
-    ingestor: actix::SyncAddress<Ingestor>,
-    db_actor: actix::SyncAddress<::db::DbExecutor>,
-) {
+pub fn serve(host: String, port: u16, ingestor: actix::SyncAddress<Ingestor>) {
     HttpServer::new(move || {
         Application::with_state(AppState {
             ingestor: ingestor.clone(),
-            db_actor: db_actor.clone(),
             start_time: chrono::Utc::now(),
         }).middleware(
             middleware::DefaultHeaders::build()

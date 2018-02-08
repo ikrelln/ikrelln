@@ -1,5 +1,8 @@
 #![deny(warnings)]
 
+#[macro_use]
+extern crate lazy_static;
+
 extern crate chrono;
 extern crate fern;
 #[macro_use]
@@ -54,39 +57,35 @@ fn main() {
 
     info!("Starting i'Krelln with config: {:?}", config);
 
-    let system_and_actors = SystemAndActors::setup(&config);
+    let system_and_actors = SystemAndActors::setup();
 
-    api::serve(
-        config.host,
-        config.port,
-        system_and_actors.ingestor,
-        system_and_actors.db_actor,
-    );
+    api::serve(config.host, config.port, system_and_actors.ingestor);
     system_and_actors.system.run();
 }
 
 
 struct SystemAndActors {
     system: actix::SystemRunner,
-    db_actor: actix::SyncAddress<db::DbExecutor>,
     ingestor: actix::SyncAddress<engine::ingestor::Ingestor>,
 }
 impl SystemAndActors {
-    fn setup(config: &config::Config) -> SystemAndActors {
+    fn setup() -> SystemAndActors {
         let system = actix::System::new("i'Krelln");
-        let db_actor = {
-            let db_url = config.db_url.clone();
-            actix::SyncArbiter::start(config.db_nb_connection, move || {
-                db::DbExecutor(db::establish_connection(db_url.clone()))
-            })
-        };
         let ingestor_actor: actix::SyncAddress<_> =
-            engine::ingestor::Ingestor(db_actor.clone()).start();
+            engine::ingestor::Ingestor(DB_EXECUTOR_POOL.clone()).start();
 
         SystemAndActors {
             system: system,
-            db_actor: db_actor,
             ingestor: ingestor_actor,
         }
     }
+}
+
+lazy_static! {
+    static ref DB_EXECUTOR_POOL: actix::SyncAddress<db::DbExecutor> = {
+        let config = ::config::Config::load();
+        actix::SyncArbiter::start(config.db_nb_connection, move || {
+            db::DbExecutor(db::establish_connection(config.db_url.clone()))
+        })
+    };
 }

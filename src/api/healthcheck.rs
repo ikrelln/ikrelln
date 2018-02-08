@@ -17,10 +17,10 @@ pub struct Times {
 
 pub fn healthcheck(req: HttpRequest<AppState>) -> HttpResponse {
     let hours_to_cleanup = 24;
-    req.state().db_actor.send(::db::ingest_event::IngestCleanup(
+    ::DB_EXECUTOR_POOL.send(::db::ingest_event::IngestCleanup(
         chrono::Utc::now().naive_utc() - chrono::Duration::hours(hours_to_cleanup),
     ));
-    req.state().db_actor.send(::db::span::SpanCleanup(
+    ::DB_EXECUTOR_POOL.send(::db::span::SpanCleanup(
         chrono::Utc::now().naive_utc() - chrono::Duration::hours(hours_to_cleanup),
     ));
 
@@ -88,11 +88,10 @@ mod tests {
 
     #[test]
     fn can_get_config() {
-        let system_and_actors = ::SystemAndActors::setup(&::config::Config::load());
+        let system_and_actors = ::SystemAndActors::setup();
 
         let app_state = AppState {
             ingestor: system_and_actors.ingestor,
-            db_actor: system_and_actors.db_actor,
             start_time: chrono::Utc::now(),
         };
 
@@ -105,11 +104,10 @@ mod tests {
 
     #[test]
     fn can_get_healthcheck() {
-        let system_and_actors = ::SystemAndActors::setup(&::config::Config::load());
+        let system_and_actors = ::SystemAndActors::setup();
 
         let app_state = AppState {
             ingestor: system_and_actors.ingestor,
-            db_actor: system_and_actors.db_actor,
             start_time: chrono::Utc::now(),
         };
 

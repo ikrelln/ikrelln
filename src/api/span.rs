@@ -35,10 +35,9 @@ pub fn ingest(
 
 
 pub fn get_services(
-    req: HttpRequest<AppState>,
+    _req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    req.state()
-        .db_actor
+    ::DB_EXECUTOR_POOL
         .call_fut(::db::span::GetServices)
         .from_err()
         .and_then(|res| match res {
@@ -52,8 +51,7 @@ pub fn get_spans_by_service(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.query().get("serviceName") {
-        Some(_) => req.state()
-            .db_actor
+        Some(_) => ::DB_EXECUTOR_POOL
             .call_fut(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
             .from_err()
             .and_then(|res| match res {
@@ -80,8 +78,7 @@ pub fn get_spans_by_trace_id(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("traceId") {
-        Some(trace_id) => req.state()
-            .db_actor
+        Some(trace_id) => ::DB_EXECUTOR_POOL
             .call_fut(::db::span::GetSpans(
                 ::db::span::SpanQuery::from_req(&req).with_trace_id(trace_id.to_string()),
             ))
@@ -101,8 +98,7 @@ pub fn get_spans_by_trace_id(
 pub fn get_traces(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    req.state()
-        .db_actor
+    ::DB_EXECUTOR_POOL
         .call_fut(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
         .from_err()
         .and_then(|res| match res {
@@ -146,8 +142,7 @@ impl Dependency {
 pub fn get_dependencies(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    req.state()
-        .db_actor
+    ::DB_EXECUTOR_POOL
         .call_fut(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
         .from_err()
         .and_then(|res| match res {

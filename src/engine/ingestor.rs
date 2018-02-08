@@ -2,10 +2,16 @@ use actix::*;
 use chrono;
 use futures;
 
-pub struct Ingestor(pub SyncAddress<::db::DbExecutor>);
+#[derive(Default)]
+pub struct Ingestor;
 
 impl Actor for Ingestor {
     type Context = Context<Self>;
+}
+
+impl Supervised for Ingestor {}
+impl SystemService for Ingestor {
+    fn service_started(&mut self, _ctx: &mut Context<Self>) {}
 }
 
 
@@ -51,8 +57,7 @@ impl<T> Handler<Result<FinishedIngest<T>, futures::Canceled>> for Ingestor {
         _ctx: &mut Context<Self>,
     ) -> Self::Result {
         if let Ok(fi) = msg {
-            self.0
-                .send(::db::ingest_event::IngestEventDb::from(&fi.0.done()));
+            ::DB_EXECUTOR_POOL.send(::db::ingest_event::IngestEventDb::from(&fi.0.done()));
         }
         Ok(())
     }

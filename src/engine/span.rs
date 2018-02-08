@@ -77,9 +77,9 @@ impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor 
     fn handle(
         &mut self,
         msg: super::ingestor::IngestEvents<Span>,
-        _ctx: &mut Context<Self>,
+        ctx: &mut Context<Self>,
     ) -> Self::Result {
-        self.0.send(::db::ingest_event::IngestEventDb::from(&msg));
+        ::DB_EXECUTOR_POOL.send(::db::ingest_event::IngestEventDb::from(&msg));
         let msg_futures = msg.events
             .iter()
             .map(move |event: &Span| {
@@ -89,13 +89,13 @@ impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor 
                         .send(super::batcher::Register(event.trace_id.clone())),
                     _ => (),
                 }
-                self.0.call_fut(event.clone())
+                ::DB_EXECUTOR_POOL.call_fut(event.clone())
             })
             .collect::<Vec<_>>();
         let finishing = join_all(msg_futures).and_then(|_| {
             futures::future::result(Ok(super::ingestor::FinishedIngest(msg)))
         });
-        _ctx.add_future(finishing);
+        ctx.add_future(finishing);
         Ok(())
     }
 }

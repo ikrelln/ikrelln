@@ -71,8 +71,7 @@ struct SystemAndActors {
 impl SystemAndActors {
     fn setup() -> SystemAndActors {
         let system = actix::System::new("i'Krelln");
-        let ingestor_actor: actix::SyncAddress<_> =
-            engine::ingestor::Ingestor(DB_EXECUTOR_POOL.clone()).start();
+        let ingestor_actor: actix::SyncAddress<_> = engine::ingestor::Ingestor.start();
 
         SystemAndActors {
             system: system,

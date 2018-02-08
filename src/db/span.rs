@@ -138,7 +138,7 @@ fn get_all_from_span(span: ::engine::span::Span) -> FromSpan {
                 span_id: span_id.clone(),
                 tag_id: uuid::Uuid::new_v4().hyphenated().to_string(),
                 name: key.clone().to_lowercase(),
-                value: value.clone().to_lowercase(),
+                value: value.clone(),
             }
         })
         .collect();

@@ -65,16 +65,16 @@ struct FromSpan {
     annotations: Vec<AnnotationDb>,
 }
 
-fn get_all_from_span(span: ::engine::span::Span) -> FromSpan {
-    let trace_id = span.trace_id;
-    let span_id = span.id;
+fn get_all_from_span(span: &::engine::span::Span) -> FromSpan {
+    let trace_id = span.trace_id.clone();
+    let span_id = span.id.clone();
 
     let span_db = SpanDb {
         trace_id: trace_id.clone(),
         id: span_id.clone(),
-        parent_id: span.parent_id,
-        name: span.name.map(|s| s.to_lowercase()),
-        kind: span.kind.map(|k| k.to_string()),
+        parent_id: span.parent_id.clone(),
+        name: span.name.clone().map(|s| s.to_lowercase()),
+        kind: span.kind.clone().map(|k| k.to_string()),
         duration: span.duration,
         ts: span.timestamp.map(|ts| {
             // span timestamp is in microseconds
@@ -89,7 +89,7 @@ fn get_all_from_span(span: ::engine::span::Span) -> FromSpan {
         remote_endpoint_id: None,
     };
 
-    let local_endpoint = if let Some(endpoint) = span.local_endpoint {
+    let local_endpoint = if let Some(endpoint) = span.local_endpoint.clone() {
         Some(EndpointDb {
             endpoint_id: "n/a".to_string(),
             service_name: endpoint.service_name.map(|s| s.to_lowercase()),
@@ -101,7 +101,7 @@ fn get_all_from_span(span: ::engine::span::Span) -> FromSpan {
         None
     };
 
-    let remote_endpoint = if let Some(endpoint) = span.remote_endpoint {
+    let remote_endpoint = if let Some(endpoint) = span.remote_endpoint.clone() {
         Some(EndpointDb {
             endpoint_id: "n/a".to_string(),
             service_name: endpoint.service_name.map(|s| s.to_lowercase()),
@@ -153,7 +153,7 @@ fn get_all_from_span(span: ::engine::span::Span) -> FromSpan {
 }
 
 impl ResponseType for ::engine::span::Span {
-    type Item = ();
+    type Item = ::engine::span::Span;
     type Error = ();
 }
 
@@ -212,7 +212,7 @@ impl Handler<::engine::span::Span> for super::DbExecutor {
     type Result = MessageResult<::engine::span::Span>;
 
     fn handle(&mut self, msg: ::engine::span::Span, _: &mut Self::Context) -> Self::Result {
-        let mut to_upsert = get_all_from_span(msg);
+        let mut to_upsert = get_all_from_span(&msg);
 
         to_upsert.span_db.local_endpoint_id = self.upsert_endpoint(to_upsert.local_endpoint);
         to_upsert.span_db.remote_endpoint_id = self.upsert_endpoint(to_upsert.remote_endpoint);
@@ -260,7 +260,7 @@ impl Handler<::engine::span::Span> for super::DbExecutor {
                 .expect(&format!("Error inserting tag {:?}", item));
         });
 
-        Ok(())
+        Ok(msg)
     }
 }
 

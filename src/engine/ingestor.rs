@@ -11,7 +11,9 @@ impl Actor for Ingestor {
 
 impl Supervised for Ingestor {}
 impl SystemService for Ingestor {
-    fn service_started(&mut self, _ctx: &mut Context<Self>) {}
+    fn service_started(&mut self, _ctx: &mut Context<Self>) {
+        info!("started Ingestor")
+    }
 }
 
 

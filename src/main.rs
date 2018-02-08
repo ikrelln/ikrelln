@@ -25,8 +25,6 @@ extern crate futures;
 #[macro_use]
 extern crate diesel;
 
-use actix::Actor;
-
 mod build_info;
 mod config;
 mod engine;
@@ -57,27 +55,11 @@ fn main() {
 
     info!("Starting i'Krelln with config: {:?}", config);
 
-    let system_and_actors = SystemAndActors::setup();
+    let system = actix::System::new("i'Krelln");
 
-    api::serve(config.host, config.port, system_and_actors.ingestor);
-    system_and_actors.system.run();
-}
+    api::serve(config.host, config.port);
 
-
-struct SystemAndActors {
-    system: actix::SystemRunner,
-    ingestor: actix::SyncAddress<engine::ingestor::Ingestor>,
-}
-impl SystemAndActors {
-    fn setup() -> SystemAndActors {
-        let system = actix::System::new("i'Krelln");
-        let ingestor_actor: actix::SyncAddress<_> = engine::ingestor::Ingestor.start();
-
-        SystemAndActors {
-            system: system,
-            ingestor: ingestor_actor,
-        }
-    }
+    system.run();
 }
 
 lazy_static! {

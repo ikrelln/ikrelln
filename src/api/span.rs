@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use super::{errors, AppState};
 use engine::ingestor::IngestEvents;
 use engine::span::Span;
+use actix::Arbiter;
 
 #[derive(Debug, Serialize)]
 struct IngestResponse {
@@ -16,7 +17,7 @@ struct IngestResponse {
 pub fn ingest(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    let ingestor = req.state().ingestor.clone();
+    let ingestor = Arbiter::system_registry().get::<::engine::ingestor::Ingestor>();
     req.json()
         .from_err()
         .and_then(move |val: Vec<Span>| {

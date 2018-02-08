@@ -1,10 +1,7 @@
 use actix_web::{middleware, Application, HttpRequest, HttpServer, Method};
 use engine;
 use uuid;
-use actix;
 use chrono;
-
-use engine::ingestor::Ingestor;
 
 mod healthcheck;
 mod errors;
@@ -15,14 +12,12 @@ fn index(_req: HttpRequest<AppState>) -> String {
 }
 
 pub struct AppState {
-    ingestor: actix::SyncAddress<Ingestor>,
     start_time: chrono::DateTime<chrono::Utc>,
 }
 
-pub fn serve(host: String, port: u16, ingestor: actix::SyncAddress<Ingestor>) {
+pub fn serve(host: String, port: u16) {
     HttpServer::new(move || {
         Application::with_state(AppState {
-            ingestor: ingestor.clone(),
             start_time: chrono::Utc::now(),
         }).middleware(
             middleware::DefaultHeaders::build()

@@ -88,10 +88,7 @@ mod tests {
 
     #[test]
     fn can_get_config() {
-        let system_and_actors = ::SystemAndActors::setup();
-
         let app_state = AppState {
-            ingestor: system_and_actors.ingestor,
             start_time: chrono::Utc::now(),
         };
 
@@ -104,10 +101,9 @@ mod tests {
 
     #[test]
     fn can_get_healthcheck() {
-        let system_and_actors = ::SystemAndActors::setup();
+        let system = actix::System::new("test");
 
         let app_state = AppState {
-            ingestor: system_and_actors.ingestor,
             start_time: chrono::Utc::now(),
         };
 
@@ -121,6 +117,6 @@ mod tests {
             actix::Arbiter::system().send(actix::msgs::SystemExit(0));
             futures::future::ok(())
         });
-        system_and_actors.system.run();
+        system.run();
     }
 }

@@ -303,6 +303,22 @@ pub struct SpanQuery {
     pub limit: i64,
 }
 
+impl Default for SpanQuery {
+    fn default() -> Self {
+        SpanQuery {
+            filter_finish: true,
+            service_name: None,
+            span_name: None,
+            trace_id: None,
+            min_duration: None,
+            max_duration: None,
+            end_ts: chrono::Utc::now().naive_utc(),
+            lookback: None,
+            limit: 1000,
+        }
+    }
+}
+
 impl SpanQuery {
     pub fn from_req(req: &actix_web::HttpRequest<::api::AppState>) -> Self {
         return SpanQuery {
@@ -345,6 +361,12 @@ impl SpanQuery {
     pub fn with_trace_id(self, trace_id: String) -> Self {
         SpanQuery {
             trace_id: Some(trace_id),
+            ..self
+        }
+    }
+    pub fn with_limit(self, limit: i64) -> Self {
+        SpanQuery {
+            limit: limit,
             ..self
         }
     }

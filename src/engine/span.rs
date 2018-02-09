@@ -83,13 +83,17 @@ impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor 
         let msg_futures = msg.events
             .iter()
             .map(move |event: &Span| {
-                match (event.duration, event.parent_id.clone()) {
-                    (Some(_), None) => Arbiter::registry()
-                        .get::<super::batcher::Batcher>()
-                        .send(super::batcher::Register(event.trace_id.clone())),
-                    _ => (),
-                }
-                ::DB_EXECUTOR_POOL.call_fut(event.clone())
+                ::DB_EXECUTOR_POOL.call_fut(event.clone()).and_then(|span| {
+                    if let Ok(span) = span {
+                        match (span.duration, span.parent_id.clone()) {
+                            (Some(_), None) => Arbiter::system_registry()
+                                .get::<super::test::TraceParser>()
+                                .send(super::test::TraceDoneNow(span.trace_id.clone())),
+                            _ => (),
+                        }
+                    }
+                    futures::future::result(Ok(()))
+                })
             })
             .collect::<Vec<_>>();
         let finishing = join_all(msg_futures).and_then(|_| {

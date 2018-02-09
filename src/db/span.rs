@@ -301,6 +301,7 @@ pub struct SpanQuery {
     pub end_ts: chrono::NaiveDateTime,
     pub lookback: Option<chrono::Duration>,
     pub limit: i64,
+    pub only_endpoint: bool,
 }
 
 impl Default for SpanQuery {
@@ -315,6 +316,7 @@ impl Default for SpanQuery {
             end_ts: chrono::Utc::now().naive_utc(),
             lookback: None,
             limit: 1000,
+            only_endpoint: false,
         }
     }
 }
@@ -355,6 +357,7 @@ impl SpanQuery {
                 .and_then(|s| s.parse::<i64>().ok())
                 .map(|v| if v > 1000 { 1000 } else { v })
                 .unwrap_or(1000),
+            only_endpoint: false,
         };
     }
 
@@ -367,6 +370,12 @@ impl SpanQuery {
     pub fn with_limit(self, limit: i64) -> Self {
         SpanQuery {
             limit: limit,
+            ..self
+        }
+    }
+    pub fn only_endpoint(self) -> Self {
+        SpanQuery {
+            only_endpoint: true,
             ..self
         }
     }
@@ -433,6 +442,10 @@ impl Handler<GetSpans> for super::DbExecutor {
                 query = query.filter(ts.ge(msg.0.end_ts - query_lookback));
             }
 
+            if msg.0.only_endpoint {
+                query = query.filter(remote_endpoint_id.is_not_null());
+            }
+
             query
                 .order(ts.asc())
                 .limit(msg.0.limit)
@@ -441,6 +454,8 @@ impl Handler<GetSpans> for super::DbExecutor {
                 .unwrap_or(vec![])
         };
 
+        let without_tags = msg.0.only_endpoint;
+        let without_annotations = msg.0.only_endpoint;
         Ok(
             spans
                 .iter()
@@ -478,7 +493,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                             })
                     });
 
-                    let annotations = {
+                    let annotations = if !without_annotations {
                         use super::schema::annotation::dsl::*;
 
                         annotation
@@ -500,10 +515,12 @@ impl Handler<GetSpans> for super::DbExecutor {
                                 }
                             })
                             .collect()
+                    } else {
+                        vec![]
                     };
 
                     //TODO: way too slow
-                    let tags: HashMap<String, String> = {
+                    let tags: HashMap<String, String> = if !without_tags {
                         use super::schema::tag::dsl::*;
 
                         tag.filter(
@@ -516,6 +533,8 @@ impl Handler<GetSpans> for super::DbExecutor {
                             .iter()
                             .map(|t| (t.name.clone(), t.value.clone()))
                             .collect()
+                    } else {
+                        HashMap::new()
                     };
 
                     let binary_annotation_endpoint =

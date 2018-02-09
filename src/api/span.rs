@@ -145,7 +145,11 @@ pub fn get_dependencies(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     ::DB_EXECUTOR_POOL
-        .call_fut(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
+        .call_fut(::db::span::GetSpans(
+            ::db::span::SpanQuery::from_req(&req)
+                .with_limit(100000)
+                .only_endpoint(),
+        ))
         .from_err()
         .and_then(|res| match res {
             Ok(spans) => Ok(httpcodes::HTTPOk.build().json({

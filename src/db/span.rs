@@ -544,7 +544,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                         trace_id: spandb.trace_id.clone(),
                         id: spandb.id.clone(),
                         parent_id: spandb.parent_id.clone(),
-                        name: spandb.name.clone(),
+                        name: spandb.name.clone().map(|s| s.chars().take(250).collect()),
                         kind: spandb.kind.clone().map(|k| k.into()),
                         timestamp: spandb.ts.map(|ts| {
                             ((ts.timestamp() * 1000) + (ts.timestamp_subsec_millis() as i64)) * 1000

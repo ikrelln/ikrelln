@@ -45,6 +45,6 @@ CREATE TABLE tag
     trace_id VARCHAR(36) NOT NULL,
     span_id VARCHAR(36) NOT NULL,
     name VARCHAR(255) NOT NULL,
-    value VARCHAR(255) NOT NULL,
+    value VARCHAR NOT NULL,
     FOREIGN KEY (trace_id, span_id) REFERENCES span (trace_id, id)
 );

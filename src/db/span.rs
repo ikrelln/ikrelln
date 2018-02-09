@@ -456,15 +456,22 @@ impl Handler<GetSpans> for super::DbExecutor {
 
         let without_tags = msg.0.only_endpoint;
         let without_annotations = msg.0.only_endpoint;
+
+        let mut loaded_endpoints: HashMap<String, ::engine::span::Endpoint> = HashMap::new();
+
         Ok(
             spans
                 .iter()
                 .map(|spandb| {
                     let local_endpoint = spandb.local_endpoint_id.clone().and_then(|lep_id| {
+                        if loaded_endpoints.contains_key(&lep_id) {
+                            return loaded_endpoints.get(&lep_id).cloned();
+                        }
+
                         use super::schema::endpoint::dsl::*;
 
-                        endpoint
-                            .filter(endpoint_id.eq(lep_id))
+                        let ep = endpoint
+                            .filter(endpoint_id.eq(lep_id.clone()))
                             .first::<EndpointDb>(&self.0)
                             .ok()
                             .map(|ep| {
@@ -474,13 +481,21 @@ impl Handler<GetSpans> for super::DbExecutor {
                                     ipv6: ep.ipv6,
                                     port: ep.port,
                                 }
-                            })
+                            });
+                        if let Some(ep_found) = ep.clone() {
+                            loaded_endpoints.insert(lep_id, ep_found);
+                        }
+                        ep
                     });
-                    let remote_endpoint = spandb.remote_endpoint_id.clone().and_then(|lep_id| {
+                    let remote_endpoint = spandb.remote_endpoint_id.clone().and_then(|rep_id| {
+                        if loaded_endpoints.contains_key(&rep_id) {
+                            return loaded_endpoints.get(&rep_id).cloned();
+                        }
+
                         use super::schema::endpoint::dsl::*;
 
-                        endpoint
-                            .filter(endpoint_id.eq(lep_id))
+                        let ep = endpoint
+                            .filter(endpoint_id.eq(rep_id.clone()))
                             .first::<EndpointDb>(&self.0)
                             .ok()
                             .map(|ep| {
@@ -490,7 +505,11 @@ impl Handler<GetSpans> for super::DbExecutor {
                                     ipv6: ep.ipv6,
                                     port: ep.port,
                                 }
-                            })
+                            });
+                        if let Some(ep_found) = ep.clone() {
+                            loaded_endpoints.insert(rep_id, ep_found);
+                        }
+                        ep
                     });
 
                     let annotations = if !without_annotations {

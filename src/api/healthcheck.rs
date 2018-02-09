@@ -61,7 +61,7 @@ pub fn zipkin_ui_config(_: HttpRequest<AppState>) -> HttpResponse {
         .build()
         .json(ZipkinUiConfig {
             environment: "".to_string(),
-            query_limit: 10000,
+            query_limit: 100,
             default_lookback: 3600000,
             instrumented: ".*".to_string(),
             logs_url: None,

@@ -123,6 +123,7 @@ pub fn get_traces(
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct Dependency {
     parent: String,
     child: String,

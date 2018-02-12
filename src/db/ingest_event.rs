@@ -33,12 +33,12 @@ impl Handler<IngestEventDb> for super::DbExecutor {
 
         let ingest_id = msg.id.clone();
         let insert = diesel::insert_into(ingest).values(&msg).execute(&self.0);
-        if let Err(_) = insert {
+        if insert.is_err() {
             diesel::update(ingest)
                 .filter(id.eq(msg.id))
                 .set(processed_at.eq(msg.processed_at))
                 .execute(&self.0)
-                .expect(&format!("Error updating Ingest"));
+                .expect("Error updating Ingest");
             info!("finishing ingest '{}'", ingest_id);
         } else {
             info!("starting ingest '{}'", ingest_id);

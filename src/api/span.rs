@@ -59,7 +59,9 @@ pub fn get_spans_by_service(
                 Ok(spans) => {
                     let mut span_names = spans
                         .iter()
-                        .map(|span| span.name.clone().unwrap_or("n/a".to_string()))
+                        .map(|span| {
+                            span.name.clone().unwrap_or_else(|| "n/a".to_string())
+                        })
                         .collect::<Vec<String>>();
                     span_names.sort_unstable();
                     span_names.dedup();
@@ -105,14 +107,14 @@ pub fn get_traces(
         .and_then(|res| match res {
             Ok(spans) => Ok(httpcodes::HTTPOk.build().json({
                 let mut by_trace_with_key = HashMap::new();
-                for span in spans.into_iter() {
+                for span in spans {
                     by_trace_with_key
                         .entry(span.trace_id.clone())
-                        .or_insert(Vec::new())
+                        .or_insert_with(Vec::new)
                         .push(span);
                 }
                 let mut by_trace = Vec::new();
-                for (_, spans) in by_trace_with_key.into_iter() {
+                for (_, spans) in by_trace_with_key {
                     by_trace.push(spans);
                 }
                 by_trace
@@ -147,7 +149,7 @@ pub fn get_dependencies(
     ::DB_EXECUTOR_POOL
         .call_fut(::db::span::GetSpans(
             ::db::span::SpanQuery::from_req(&req)
-                .with_limit(100000)
+                .with_limit(100_000)
                 .only_endpoint(),
         ))
         .from_err()
@@ -156,10 +158,10 @@ pub fn get_dependencies(
                 let by_services = spans.into_iter().fold(HashMap::new(), |mut map, elt| {
                     let local_service = elt.local_endpoint
                         .and_then(|ep| ep.service_name)
-                        .unwrap_or("n/a".to_string());
+                        .unwrap_or_else(|| "n/a".to_string());
                     let remote_service = elt.remote_endpoint
                         .and_then(|ep| ep.service_name)
-                        .unwrap_or("n/a".to_string());
+                        .unwrap_or_else(|| "n/a".to_string());
                     {
                         let dep = {
                             map.entry(format!("{}-{}", local_service, remote_service))
@@ -176,7 +178,7 @@ pub fn get_dependencies(
                     map
                 });
                 let mut by_trace = Vec::new();
-                for (_, spans) in by_services.into_iter() {
+                for (_, spans) in by_services {
                     by_trace.push(spans);
                 }
                 by_trace

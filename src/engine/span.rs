@@ -85,11 +85,10 @@ impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor 
             .map(move |event: &Span| {
                 ::DB_EXECUTOR_POOL.call_fut(event.clone()).and_then(|span| {
                     if let Ok(span) = span {
-                        match (span.duration, span.parent_id.clone()) {
-                            (Some(_), None) => Arbiter::system_registry()
+                        if let (Some(_), None) = (span.duration, span.parent_id.clone()) {
+                            Arbiter::system_registry()
                                 .get::<super::test::TraceParser>()
-                                .send(super::test::TraceDoneNow(span.trace_id.clone())),
-                            _ => (),
+                                .send(super::test::TraceDoneNow(span.trace_id.clone()));
                         }
                     }
                     futures::future::result(Ok(()))

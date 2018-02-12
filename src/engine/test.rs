@@ -103,26 +103,26 @@ impl FromStr for OpenTracingTag {
 
 #[derive(Clone)]
 enum IkrellnTags {
-    TestClass,
-    TestEnvironment,
-    TestName,
-    TestResult,
-    TestStepParameters,
-    TestStepStatus,
-    TestStepType,
-    TestSuite,
+    Class,
+    Environment,
+    Name,
+    Result,
+    StepParameters,
+    StepStatus,
+    StepType,
+    Suite,
 }
 impl From<IkrellnTags> for &'static str {
     fn from(tag: IkrellnTags) -> &'static str {
         match tag {
-            IkrellnTags::TestClass => "test.class",
-            IkrellnTags::TestEnvironment => "test.environment",
-            IkrellnTags::TestName => "test.name",
-            IkrellnTags::TestResult => "test.result",
-            IkrellnTags::TestStepParameters => "test.step_parameters",
-            IkrellnTags::TestStepStatus => "test.step_status",
-            IkrellnTags::TestStepType => "test.step_type",
-            IkrellnTags::TestSuite => "test.suite",
+            IkrellnTags::Class => "test.class",
+            IkrellnTags::Environment => "test.environment",
+            IkrellnTags::Name => "test.name",
+            IkrellnTags::Result => "test.result",
+            IkrellnTags::StepParameters => "test.step_parameters",
+            IkrellnTags::StepStatus => "test.step_status",
+            IkrellnTags::StepType => "test.step_type",
+            IkrellnTags::Suite => "test.suite",
         }
     }
 }
@@ -131,14 +131,14 @@ impl FromStr for IkrellnTags {
     type Err = NonIkrellnTag;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "test.class" => Ok(IkrellnTags::TestClass),
-            "test.environment" => Ok(IkrellnTags::TestEnvironment),
-            "test.name" => Ok(IkrellnTags::TestName),
-            "test.result" => Ok(IkrellnTags::TestResult),
-            "test.step_parameters" => Ok(IkrellnTags::TestStepParameters),
-            "test.step_status" => Ok(IkrellnTags::TestStepStatus),
-            "test.step_type" => Ok(IkrellnTags::TestStepType),
-            "test.suite" => Ok(IkrellnTags::TestSuite),
+            "test.class" => Ok(IkrellnTags::Class),
+            "test.environment" => Ok(IkrellnTags::Environment),
+            "test.name" => Ok(IkrellnTags::Name),
+            "test.result" => Ok(IkrellnTags::Result),
+            "test.step_parameters" => Ok(IkrellnTags::StepParameters),
+            "test.step_status" => Ok(IkrellnTags::StepStatus),
+            "test.step_type" => Ok(IkrellnTags::StepType),
+            "test.suite" => Ok(IkrellnTags::Suite),
             &_ => Err(NonIkrellnTag),
         }
     }
@@ -233,12 +233,12 @@ pub enum TestResult {
     Skipped,
 }
 impl TestResult {
-    fn try_from(s: String) -> Result<Self, KnownTag> {
+    fn try_from(s: &str) -> Result<Self, KnownTag> {
         match s.to_lowercase().as_ref() {
             "success" => Ok(TestResult::Success),
             "failure" => Ok(TestResult::Failure),
             "skipped" => Ok(TestResult::Skipped),
-            _ => Err(IkrellnTags::TestResult.into()),
+            _ => Err(IkrellnTags::Result.into()),
         }
     }
 }
@@ -263,7 +263,7 @@ impl TestExecution {
         &'static str: From<T>,
     {
         tags.get(tag.clone().into())
-            .ok_or(tag.into())
+            .ok_or_else(|| tag.into())
             .map(|v| v.to_string())
     }
     fn value_from_tag_or(
@@ -273,7 +273,7 @@ impl TestExecution {
     ) -> Result<String, KnownTag> {
         match span.tags
             .get(tag.clone().into())
-            .ok_or(tag.into())
+            .ok_or_else(|| tag.into())
             .map(|v| v.to_string())
         {
             Ok(value) => Ok(value),
@@ -283,18 +283,18 @@ impl TestExecution {
 
     fn try_from(span: &::engine::span::Span) -> Result<Self, KnownTag> {
         Ok(TestExecution {
-            suite: Self::value_from_tag_or(&span, IkrellnTags::TestSuite, |span| {
+            suite: Self::value_from_tag_or(span, IkrellnTags::Suite, |span| {
                 span.local_endpoint.clone().and_then(|ep| ep.service_name)
             })?,
-            class: Self::value_from_tag(&span.tags, IkrellnTags::TestClass)?,
-            name: Self::value_from_tag_or(&span, IkrellnTags::TestName, |span| span.name.clone())?,
+            class: Self::value_from_tag(&span.tags, IkrellnTags::Class)?,
+            name: Self::value_from_tag_or(span, IkrellnTags::Name, |span| span.name.clone())?,
             trace_id: span.trace_id.clone(),
             date: span.timestamp.ok_or(KnownTag {
                 tag: "ts".to_string(),
             })?,
-            result: TestResult::try_from(Self::value_from_tag_or(
-                &span,
-                IkrellnTags::TestResult,
+            result: TestResult::try_from(&Self::value_from_tag_or(
+                span,
+                IkrellnTags::Result,
                 |span| {
                     Self::value_from_tag(&span.tags, OpenTracingTag::Error)
                         .ok()
@@ -307,7 +307,7 @@ impl TestExecution {
             duration: span.duration.ok_or(KnownTag {
                 tag: "duration".to_string(),
             })?,
-            environment: Self::value_from_tag(&span.tags, IkrellnTags::TestEnvironment).ok(),
+            environment: Self::value_from_tag(&span.tags, IkrellnTags::Environment).ok(),
         })
     }
 }

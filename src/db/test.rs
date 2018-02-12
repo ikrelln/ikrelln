@@ -38,10 +38,10 @@ impl super::DbExecutor {
             .ok()
     }
 
-    fn upsert_test(&mut self, testdb: TestDb) -> String {
+    fn upsert_test(&mut self, testdb: &TestDb) -> String {
         use super::schema::test::dsl::*;
 
-        match self.find_test(&testdb) {
+        match self.find_test(testdb) {
             Some(existing) => existing.id,
             None => {
                 let new_id = uuid::Uuid::new_v4().hyphenated().to_string();
@@ -53,8 +53,8 @@ impl super::DbExecutor {
                         test_name: testdb.test_name.clone(),
                     })
                     .execute(&self.0);
-                if let Err(_) = could_insert {
-                    self.find_test(&testdb).map(|existing| existing.id).unwrap()
+                if could_insert.is_err() {
+                    self.find_test(testdb).map(|existing| existing.id).unwrap()
                 } else {
                     new_id
                 }
@@ -76,7 +76,7 @@ impl Handler<::engine::test::TestExecution> for super::DbExecutor {
         msg: ::engine::test::TestExecution,
         _: &mut Self::Context,
     ) -> Self::Result {
-        let saved_test_id = self.upsert_test(TestDb {
+        let saved_test_id = self.upsert_test(&TestDb {
             id: "n/a".to_string(),
             test_suite: msg.suite.clone(),
             test_class: msg.class.clone(),

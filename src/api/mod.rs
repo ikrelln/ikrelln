@@ -15,7 +15,7 @@ pub struct AppState {
     start_time: chrono::DateTime<chrono::Utc>,
 }
 
-pub fn serve(host: String, port: u16) {
+pub fn serve(host: &str, port: u16) {
     HttpServer::new(move || {
         Application::with_state(AppState {
             start_time: chrono::Utc::now(),

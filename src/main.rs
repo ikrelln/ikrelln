@@ -57,7 +57,7 @@ fn main() {
 
     let system = actix::System::new("i'Krelln");
 
-    api::serve(config.host, config.port);
+    api::serve(&config.host, config.port);
 
     system.run();
 }
@@ -66,7 +66,7 @@ lazy_static! {
     static ref DB_EXECUTOR_POOL: actix::SyncAddress<db::DbExecutor> = {
         let config = ::config::Config::load();
         actix::SyncArbiter::start(config.db_nb_connection, move || {
-            db::DbExecutor(db::establish_connection(config.db_url.clone()))
+            db::DbExecutor(db::establish_connection(&config.db_url))
         })
     };
 }

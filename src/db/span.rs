@@ -195,7 +195,7 @@ impl super::DbExecutor {
                             port: le.port,
                         })
                         .execute(&self.0);
-                    if let Err(_) = could_insert {
+                    if could_insert.is_err() {
                         self.find_endpoint(&le).map(|existing| existing.endpoint_id)
                     } else {
                         Some(new_id)
@@ -282,9 +282,11 @@ impl Handler<GetServices> for super::DbExecutor {
                 .order(service_name.asc())
                 .load::<EndpointDb>(&self.0)
                 .ok()
-                .unwrap_or(vec![])
+                .unwrap_or_else(|| vec![])
                 .iter()
-                .map(|ep| ep.service_name.clone().unwrap_or("".to_string()))
+                .map(|ep| {
+                    ep.service_name.clone().unwrap_or_else(|| "".to_string())
+                })
                 .collect(),
         )
     }
@@ -323,7 +325,7 @@ impl Default for SpanQuery {
 
 impl SpanQuery {
     pub fn from_req(req: &actix_web::HttpRequest<::api::AppState>) -> Self {
-        return SpanQuery {
+        SpanQuery {
             filter_finish: req.query()
                 .get("finished")
                 .and_then(|s| FromStr::from_str(s).ok())
@@ -351,14 +353,14 @@ impl SpanQuery {
             lookback: req.query()
                 .get("lookback")
                 .and_then(|s| s.parse::<i64>().ok())
-                .map(|v| chrono::Duration::milliseconds(v)),
+                .map(chrono::Duration::milliseconds),
             limit: req.query()
                 .get("limit")
                 .and_then(|s| s.parse::<i64>().ok())
                 .map(|v| if v > 1000 { 1000 } else { v })
                 .unwrap_or(1000),
             only_endpoint: false,
-        };
+        }
     }
 
     pub fn with_trace_id(self, trace_id: String) -> Self {
@@ -451,7 +453,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                 .limit(msg.0.limit)
                 .load::<SpanDb>(&self.0)
                 .ok()
-                .unwrap_or(vec![])
+                .unwrap_or_else(|| vec![])
         };
 
         let without_tags = msg.0.only_endpoint;
@@ -523,12 +525,12 @@ impl Handler<GetSpans> for super::DbExecutor {
                             )
                             .load::<AnnotationDb>(&self.0)
                             .ok()
-                            .unwrap_or(vec![])
+                            .unwrap_or_else(|| vec![])
                             .iter()
                             .map(|an| {
                                 ::engine::span::Annotation {
                                     timestamp: ((an.ts.timestamp() * 1000)
-                                        + (an.ts.timestamp_subsec_millis() as i64))
+                                        + i64::from(an.ts.timestamp_subsec_millis()))
                                         * 1000,
                                     value: an.value.clone(),
                                 }
@@ -548,7 +550,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                                 .and(span_id.eq(spandb.id.clone())),
                         ).load::<TagDb>(&self.0)
                             .ok()
-                            .unwrap_or(vec![])
+                            .unwrap_or_else(|| vec![])
                             .iter()
                             .map(|t| (t.name.clone(), t.value.clone()))
                             .collect()
@@ -557,7 +559,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                     };
 
                     let binary_annotation_endpoint =
-                        remote_endpoint.clone().or(local_endpoint.clone());
+                        remote_endpoint.clone().or_else(|| local_endpoint.clone());
 
                     ::engine::span::Span {
                         trace_id: spandb.trace_id.clone(),
@@ -566,7 +568,8 @@ impl Handler<GetSpans> for super::DbExecutor {
                         name: spandb.name.clone().map(|s| s.chars().take(250).collect()),
                         kind: spandb.kind.clone().map(|k| k.into()),
                         timestamp: spandb.ts.map(|ts| {
-                            ((ts.timestamp() * 1000) + (ts.timestamp_subsec_millis() as i64)) * 1000
+                            ((ts.timestamp() * 1000) + i64::from(ts.timestamp_subsec_millis()))
+                                * 1000
                         }),
                         duration: spandb.duration,
                         debug: spandb.debug,
@@ -610,7 +613,7 @@ impl Handler<SpanCleanup> for super::DbExecutor {
                 .order(ts.asc())
                 .load::<SpanDb>(&self.0)
                 .ok()
-                .unwrap_or(vec![])
+                .unwrap_or_else(|| vec![])
         };
 
         spans.iter().for_each(|spandb| {

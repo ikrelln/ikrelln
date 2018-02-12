@@ -42,7 +42,10 @@ pub fn get_services(
         .call_fut(::db::span::GetServices)
         .from_err()
         .and_then(|res| match res {
-            Ok(services) => Ok(httpcodes::HTTPOk.build().json(services)?),
+            Ok(mut services) => {
+                services.dedup();
+                Ok(httpcodes::HTTPOk.build().json(services)?)
+            }
             Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
         })
         .responder()

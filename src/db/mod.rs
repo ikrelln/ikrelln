@@ -4,6 +4,7 @@ use actix::{Actor, SyncContext};
 pub mod schema;
 pub mod ingest_event;
 pub mod span;
+pub mod test;
 
 #[cfg(feature = "sqlite")]
 pub fn establish_connection(database_url: String) -> SqliteConnection {

@@ -52,10 +52,34 @@ table! {
     }
 }
 
+table! {
+    test (id) {
+        id -> Varchar,
+        test_suite -> Varchar,
+        test_class -> Varchar,
+        test_name -> Varchar,
+    }
+}
+
+table! {
+    test_execution (test_id, trace_id) {
+        test_id -> Varchar,
+        trace_id -> Varchar,
+        date -> Timestamp,
+        result -> Int4,
+        duration -> Int8,
+        environment -> Nullable<Varchar>,
+    }
+}
+
+joinable!(test_execution -> test (test_id));
+
 allow_tables_to_appear_in_same_query!(
     annotation,
     endpoint,
     ingest,
     span,
     tag,
+    test,
+    test_execution,
 );

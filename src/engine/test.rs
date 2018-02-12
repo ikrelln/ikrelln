@@ -219,6 +219,7 @@ impl Handler<Result<TestExecutionToSave, futures::Canceled>> for TraceParser {
     ) -> Self::Result {
         if let Ok(test_execution) = msg {
             info!("got a test execution parsed: {:?}", test_execution);
+            ::DB_EXECUTOR_POOL.send(test_execution.0);
         }
 
         Ok(())
@@ -226,7 +227,7 @@ impl Handler<Result<TestExecutionToSave, futures::Canceled>> for TraceParser {
 }
 
 #[derive(Debug)]
-enum TestResult {
+pub enum TestResult {
     Success,
     Failure,
     Skipped,
@@ -243,15 +244,15 @@ impl TestResult {
 }
 
 #[derive(Debug)]
-struct TestExecution {
-    suite: String,
-    class: String,
-    name: String,
-    trace_id: String,
-    date: i64,
-    result: TestResult,
-    duration: i64,
-    environment: Option<String>,
+pub struct TestExecution {
+    pub suite: String,
+    pub class: String,
+    pub name: String,
+    pub trace_id: String,
+    pub date: i64,
+    pub result: TestResult,
+    pub duration: i64,
+    pub environment: Option<String>,
 }
 
 impl TestExecution {

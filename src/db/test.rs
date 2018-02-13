@@ -106,3 +106,24 @@ impl Handler<::engine::test::TestExecution> for super::DbExecutor {
         Ok(msg)
     }
 }
+
+pub struct GetTestSuites;
+impl ResponseType for GetTestSuites {
+    type Item = Vec<String>;
+    type Error = ();
+}
+
+impl Handler<GetTestSuites> for super::DbExecutor {
+    type Result = MessageResult<GetTestSuites>;
+
+    fn handle(&mut self, _msg: GetTestSuites, _: &mut Self::Context) -> Self::Result {
+        use super::schema::test::dsl::*;
+
+        Ok(
+            test.select(test_suite)
+                .distinct()
+                .load(&self.0)
+                .expect("error loading test suites"),
+        )
+    }
+}

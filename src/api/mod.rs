@@ -6,6 +6,7 @@ use chrono;
 mod healthcheck;
 mod errors;
 mod span;
+mod test;
 
 fn index(_req: HttpRequest<AppState>) -> String {
     String::from(engine::hello())
@@ -52,6 +53,9 @@ pub fn serve(host: &str, port: u16) {
             })
             .resource("/api/v1/dependencies", |r| {
                 r.method(Method::GET).f(span::get_dependencies)
+            })
+            .resource("/api/v2/testsuites", |r| {
+                r.method(Method::GET).f(test::get_test_suites)
             })
     }).bind(format!("{}:{}", host, port))
         .unwrap()

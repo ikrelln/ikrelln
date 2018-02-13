@@ -1,4 +1,6 @@
 use actix_web::{middleware, Application, HttpRequest, HttpServer, Method};
+use actix_web::middleware::cors;
+
 use engine;
 use uuid;
 use chrono;
@@ -31,6 +33,12 @@ pub fn serve(host: &str, port: u16) {
             .middleware(middleware::Logger::new(
                 "%a %t \"%r\" %s %b \"%{Referer}i\" \"%{User-Agent}i\" %{X-Request-Id}o - %T",
             ))
+            .middleware(
+                cors::Cors::build()
+                    .send_wildcard()
+                    .finish()
+                    .expect("Error creating CORS middleware"),
+            )
             .resource("/", |r| r.method(Method::GET).f(index))
             .resource("/healthcheck", |r| {
                 r.method(Method::GET).f(healthcheck::healthcheck)

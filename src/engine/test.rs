@@ -245,8 +245,7 @@ impl TestResult {
 
 #[derive(Debug)]
 pub struct TestExecution {
-    pub suite: String,
-    pub class: String,
+    pub path: Vec<String>,
     pub name: String,
     pub trace_id: String,
     pub date: i64,
@@ -282,11 +281,13 @@ impl TestExecution {
     }
 
     fn try_from(span: &::engine::span::Span) -> Result<Self, KnownTag> {
+        let suite = Self::value_from_tag_or(span, IkrellnTags::Suite, |span| {
+            span.local_endpoint.clone().and_then(|ep| ep.service_name)
+        })?;
+        let class = Self::value_from_tag(&span.tags, IkrellnTags::Class)?;
+
         Ok(TestExecution {
-            suite: Self::value_from_tag_or(span, IkrellnTags::Suite, |span| {
-                span.local_endpoint.clone().and_then(|ep| ep.service_name)
-            })?,
-            class: Self::value_from_tag(&span.tags, IkrellnTags::Class)?,
+            path: vec![suite, class],
             name: Self::value_from_tag_or(span, IkrellnTags::Name, |span| span.name.clone())?,
             trace_id: span.trace_id.clone(),
             date: span.timestamp.ok_or(KnownTag {

@@ -1,10 +1,9 @@
-CREATE TABLE test
+CREATE TABLE test_item
 (
-    id VARCHAR NOT NULL PRIMARY KEY,
-    test_suite VARCHAR(255) NOT NULL,
-    test_class VARCHAR(255) NOT NULL,
-    test_name VARCHAR(255) NOT NULL,
-    CONSTRAINT UC_Test UNIQUE (test_suite, test_class, test_name)
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    parent_id VARCHAR(36),
+    name VARCHAR(255) NOT NULL,
+    source INT NOT NULL
 );
 CREATE TABLE test_execution
 (
@@ -15,5 +14,5 @@ CREATE TABLE test_execution
     duration BIGINT NOT NULL,
     environment VARCHAR,
     PRIMARY KEY (test_id, trace_id),
-    FOREIGN KEY (test_id) REFERENCES test(id)
+    FOREIGN KEY (test_id) REFERENCES test_item(id)
 );

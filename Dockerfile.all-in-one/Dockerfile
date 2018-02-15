@@ -10,6 +10,13 @@ RUN cargo install diesel_cli --no-default-features --features postgres
 # Build our application.
 RUN cargo build --release --no-default-features --features postgres
 
+# Build UI
+RUN apt-get update && apt-get install -y git curl
+RUN curl -sL https://deb.nodesource.com/setup_9.x | bash
+RUN apt-get install -y nodejs
+RUN git clone https://github.com/ikrelln/ikrelln-ui.git
+RUN cd ikrelln-ui && npm install && npm run build
+
 # Now, we need to build our _real_ Docker container
 FROM postgres:10.1-alpine
 
@@ -170,6 +177,9 @@ COPY --from=builder \
 COPY --from=builder \
 	/root/.cargo/bin/diesel \
 	/usr/local/bin/
+COPY --from=builder \
+	/volume/ikrelln-ui/build \
+	/var/www/html/ikrelln
 
 # Expose i'Krelln port
 EXPOSE 7878

@@ -21,11 +21,9 @@ pub fn get_test_by_parent(
             Ok(test_items) => Ok(httpcodes::HTTPOk.build().json(
                 test_items
                     .iter()
-                    .map(|item| {
-                        TestItem {
-                            id: item.id.clone(),
-                            name: item.name.clone(),
-                        }
+                    .map(|item| TestItem {
+                        id: item.id.clone(),
+                        name: item.name.clone(),
                     })
                     .collect::<Vec<TestItem>>(),
             )?),

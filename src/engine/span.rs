@@ -95,9 +95,8 @@ impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor 
                 })
             })
             .collect::<Vec<_>>();
-        let finishing = join_all(msg_futures).and_then(|_| {
-            futures::future::result(Ok(super::ingestor::FinishedIngest(msg)))
-        });
+        let finishing = join_all(msg_futures)
+            .and_then(|_| futures::future::result(Ok(super::ingestor::FinishedIngest(msg))));
         ctx.add_future(finishing);
         Ok(())
     }

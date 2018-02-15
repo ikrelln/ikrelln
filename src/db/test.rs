@@ -26,7 +26,6 @@ pub struct TestExecutionDb {
     environment: Option<String>,
 }
 
-
 impl super::DbExecutor {
     fn find_test_item(&mut self, test_item_db: &TestItemDb) -> Option<TestItemDb> {
         use super::schema::test_item::dsl::*;

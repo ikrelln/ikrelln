@@ -132,14 +132,12 @@ fn get_all_from_span(span: &::engine::span::Span) -> FromSpan {
 
     let tags = span.tags
         .iter()
-        .map(|(key, value)| {
-            TagDb {
-                trace_id: trace_id.clone(),
-                span_id: span_id.clone(),
-                tag_id: uuid::Uuid::new_v4().hyphenated().to_string(),
-                name: key.clone().to_lowercase(),
-                value: value.clone(),
-            }
+        .map(|(key, value)| TagDb {
+            trace_id: trace_id.clone(),
+            span_id: span_id.clone(),
+            tag_id: uuid::Uuid::new_v4().hyphenated().to_string(),
+            name: key.clone().to_lowercase(),
+            value: value.clone(),
         })
         .collect();
 
@@ -264,7 +262,6 @@ impl Handler<::engine::span::Span> for super::DbExecutor {
     }
 }
 
-
 pub struct GetServices;
 impl ResponseType for GetServices {
     type Item = Vec<String>;
@@ -277,18 +274,14 @@ impl Handler<GetServices> for super::DbExecutor {
     fn handle(&mut self, _msg: GetServices, _: &mut Self::Context) -> Self::Result {
         use super::schema::endpoint::dsl::*;
 
-        Ok(
-            endpoint
-                .order(service_name.asc())
-                .load::<EndpointDb>(&self.0)
-                .ok()
-                .unwrap_or_else(|| vec![])
-                .iter()
-                .map(|ep| {
-                    ep.service_name.clone().unwrap_or_else(|| "".to_string())
-                })
-                .collect(),
-        )
+        Ok(endpoint
+            .order(service_name.asc())
+            .load::<EndpointDb>(&self.0)
+            .ok()
+            .unwrap_or_else(|| vec![])
+            .iter()
+            .map(|ep| ep.service_name.clone().unwrap_or_else(|| "".to_string()))
+            .collect())
     }
 }
 
@@ -461,136 +454,125 @@ impl Handler<GetSpans> for super::DbExecutor {
 
         let mut loaded_endpoints: HashMap<String, ::engine::span::Endpoint> = HashMap::new();
 
-        Ok(
-            spans
-                .iter()
-                .map(|spandb| {
-                    let local_endpoint = spandb.local_endpoint_id.clone().and_then(|lep_id| {
-                        if loaded_endpoints.contains_key(&lep_id) {
-                            return loaded_endpoints.get(&lep_id).cloned();
-                        }
+        Ok(spans
+            .iter()
+            .map(|spandb| {
+                let local_endpoint = spandb.local_endpoint_id.clone().and_then(|lep_id| {
+                    if loaded_endpoints.contains_key(&lep_id) {
+                        return loaded_endpoints.get(&lep_id).cloned();
+                    }
 
-                        use super::schema::endpoint::dsl::*;
+                    use super::schema::endpoint::dsl::*;
 
-                        let ep = endpoint
-                            .filter(endpoint_id.eq(lep_id.clone()))
-                            .first::<EndpointDb>(&self.0)
-                            .ok()
-                            .map(|ep| {
-                                ::engine::span::Endpoint {
-                                    service_name: ep.service_name,
-                                    ipv4: ep.ipv4,
-                                    ipv6: ep.ipv6,
-                                    port: ep.port,
-                                }
-                            });
-                        if let Some(ep_found) = ep.clone() {
-                            loaded_endpoints.insert(lep_id, ep_found);
-                        }
-                        ep
-                    });
-                    let remote_endpoint = spandb.remote_endpoint_id.clone().and_then(|rep_id| {
-                        if loaded_endpoints.contains_key(&rep_id) {
-                            return loaded_endpoints.get(&rep_id).cloned();
-                        }
+                    let ep = endpoint
+                        .filter(endpoint_id.eq(lep_id.clone()))
+                        .first::<EndpointDb>(&self.0)
+                        .ok()
+                        .map(|ep| ::engine::span::Endpoint {
+                            service_name: ep.service_name,
+                            ipv4: ep.ipv4,
+                            ipv6: ep.ipv6,
+                            port: ep.port,
+                        });
+                    if let Some(ep_found) = ep.clone() {
+                        loaded_endpoints.insert(lep_id, ep_found);
+                    }
+                    ep
+                });
+                let remote_endpoint = spandb.remote_endpoint_id.clone().and_then(|rep_id| {
+                    if loaded_endpoints.contains_key(&rep_id) {
+                        return loaded_endpoints.get(&rep_id).cloned();
+                    }
 
-                        use super::schema::endpoint::dsl::*;
+                    use super::schema::endpoint::dsl::*;
 
-                        let ep = endpoint
-                            .filter(endpoint_id.eq(rep_id.clone()))
-                            .first::<EndpointDb>(&self.0)
-                            .ok()
-                            .map(|ep| {
-                                ::engine::span::Endpoint {
-                                    service_name: ep.service_name,
-                                    ipv4: ep.ipv4,
-                                    ipv6: ep.ipv6,
-                                    port: ep.port,
-                                }
-                            });
-                        if let Some(ep_found) = ep.clone() {
-                            loaded_endpoints.insert(rep_id, ep_found);
-                        }
-                        ep
-                    });
+                    let ep = endpoint
+                        .filter(endpoint_id.eq(rep_id.clone()))
+                        .first::<EndpointDb>(&self.0)
+                        .ok()
+                        .map(|ep| ::engine::span::Endpoint {
+                            service_name: ep.service_name,
+                            ipv4: ep.ipv4,
+                            ipv6: ep.ipv6,
+                            port: ep.port,
+                        });
+                    if let Some(ep_found) = ep.clone() {
+                        loaded_endpoints.insert(rep_id, ep_found);
+                    }
+                    ep
+                });
 
-                    let annotations = if !without_annotations {
-                        use super::schema::annotation::dsl::*;
+                let annotations = if !without_annotations {
+                    use super::schema::annotation::dsl::*;
 
-                        annotation
-                            .filter(
-                                trace_id
-                                    .eq(spandb.trace_id.clone())
-                                    .and(span_id.eq(spandb.id.clone())),
-                            )
-                            .load::<AnnotationDb>(&self.0)
-                            .ok()
-                            .unwrap_or_else(|| vec![])
-                            .iter()
-                            .map(|an| {
-                                ::engine::span::Annotation {
-                                    timestamp: ((an.ts.timestamp() * 1000)
-                                        + i64::from(an.ts.timestamp_subsec_millis()))
-                                        * 1000,
-                                    value: an.value.clone(),
-                                }
-                            })
-                            .collect()
-                    } else {
-                        vec![]
-                    };
-
-                    //TODO: way too slow
-                    let tags: HashMap<String, String> = if !without_tags {
-                        use super::schema::tag::dsl::*;
-
-                        tag.filter(
+                    annotation
+                        .filter(
                             trace_id
                                 .eq(spandb.trace_id.clone())
                                 .and(span_id.eq(spandb.id.clone())),
-                        ).load::<TagDb>(&self.0)
-                            .ok()
-                            .unwrap_or_else(|| vec![])
-                            .iter()
-                            .map(|t| (t.name.clone(), t.value.clone()))
-                            .collect()
-                    } else {
-                        HashMap::new()
-                    };
+                        )
+                        .load::<AnnotationDb>(&self.0)
+                        .ok()
+                        .unwrap_or_else(|| vec![])
+                        .iter()
+                        .map(|an| ::engine::span::Annotation {
+                            timestamp: ((an.ts.timestamp() * 1000)
+                                + i64::from(an.ts.timestamp_subsec_millis()))
+                                * 1000,
+                            value: an.value.clone(),
+                        })
+                        .collect()
+                } else {
+                    vec![]
+                };
 
-                    let binary_annotation_endpoint =
-                        remote_endpoint.clone().or_else(|| local_endpoint.clone());
+                //TODO: way too slow
+                let tags: HashMap<String, String> = if !without_tags {
+                    use super::schema::tag::dsl::*;
 
-                    ::engine::span::Span {
-                        trace_id: spandb.trace_id.clone(),
-                        id: spandb.id.clone(),
-                        parent_id: spandb.parent_id.clone(),
-                        name: spandb.name.clone().map(|s| s.chars().take(250).collect()),
-                        kind: spandb.kind.clone().map(|k| k.into()),
-                        timestamp: spandb.ts.map(|ts| {
-                            ((ts.timestamp() * 1000) + i64::from(ts.timestamp_subsec_millis()))
-                                * 1000
-                        }),
-                        duration: spandb.duration,
-                        debug: spandb.debug,
-                        shared: spandb.shared,
-                        local_endpoint: local_endpoint,
-                        remote_endpoint: remote_endpoint,
-                        annotations: annotations,
-                        tags: tags.clone(),
-                        binary_annotations: tags.iter()
-                            .map(|(k, v)| {
-                                ::engine::span::BinaryTag {
-                                    key: k.clone(),
-                                    value: v.clone(),
-                                    endpoint: binary_annotation_endpoint.clone(),
-                                }
-                            })
-                            .collect(),
-                    }
-                })
-                .collect(),
-        )
+                    tag.filter(
+                        trace_id
+                            .eq(spandb.trace_id.clone())
+                            .and(span_id.eq(spandb.id.clone())),
+                    ).load::<TagDb>(&self.0)
+                        .ok()
+                        .unwrap_or_else(|| vec![])
+                        .iter()
+                        .map(|t| (t.name.clone(), t.value.clone()))
+                        .collect()
+                } else {
+                    HashMap::new()
+                };
+
+                let binary_annotation_endpoint =
+                    remote_endpoint.clone().or_else(|| local_endpoint.clone());
+
+                ::engine::span::Span {
+                    trace_id: spandb.trace_id.clone(),
+                    id: spandb.id.clone(),
+                    parent_id: spandb.parent_id.clone(),
+                    name: spandb.name.clone().map(|s| s.chars().take(250).collect()),
+                    kind: spandb.kind.clone().map(|k| k.into()),
+                    timestamp: spandb.ts.map(|ts| {
+                        ((ts.timestamp() * 1000) + i64::from(ts.timestamp_subsec_millis())) * 1000
+                    }),
+                    duration: spandb.duration,
+                    debug: spandb.debug,
+                    shared: spandb.shared,
+                    local_endpoint: local_endpoint,
+                    remote_endpoint: remote_endpoint,
+                    annotations: annotations,
+                    tags: tags.clone(),
+                    binary_annotations: tags.iter()
+                        .map(|(k, v)| ::engine::span::BinaryTag {
+                            key: k.clone(),
+                            value: v.clone(),
+                            endpoint: binary_annotation_endpoint.clone(),
+                        })
+                        .collect(),
+                }
+            })
+            .collect())
     }
 }
 

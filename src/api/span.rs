@@ -34,7 +34,6 @@ pub fn ingest(
         .responder()
 }
 
-
 pub fn get_services(
     _req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
@@ -62,9 +61,7 @@ pub fn get_spans_by_service(
                 Ok(spans) => {
                     let mut span_names = spans
                         .iter()
-                        .map(|span| {
-                            span.name.clone().unwrap_or_else(|| "n/a".to_string())
-                        })
+                        .map(|span| span.name.clone().unwrap_or_else(|| "n/a".to_string()))
                         .collect::<Vec<String>>();
                     span_names.sort_unstable();
                     span_names.dedup();

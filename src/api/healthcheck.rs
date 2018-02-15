@@ -112,8 +112,6 @@ mod tests {
             assert_eq!(resp.status(), StatusCode::OK);
             assert_eq!(resp.body().is_binary(), true);
 
-
-
             actix::Arbiter::system().send(actix::msgs::SystemExit(0));
             futures::future::ok(())
         });

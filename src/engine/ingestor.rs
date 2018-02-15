@@ -16,7 +16,6 @@ impl SystemService for Ingestor {
     }
 }
 
-
 #[derive(Debug)]
 pub struct IngestEvents<T> {
     pub ingest_id: super::IngestId,

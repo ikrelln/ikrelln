@@ -189,8 +189,7 @@ impl Handler<TraceDone> for TraceParser {
                         Err(tag) => {
                             warn!(
                                 "missing / invalid tag {:?} in trace {:?} main span",
-                                tag,
-                                main_span.trace_id
+                                tag, main_span.trace_id
                             );
                             Ok(None)
                         }

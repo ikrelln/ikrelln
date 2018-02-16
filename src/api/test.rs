@@ -9,7 +9,7 @@ struct TestItem {
     name: String,
 }
 
-pub fn get_test_by_parent(
+pub fn get_tests_by_parent(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     ::DB_EXECUTOR_POOL
@@ -26,6 +26,23 @@ pub fn get_test_by_parent(
                         name: item.name.clone(),
                     })
                     .collect::<Vec<TestItem>>(),
+            )?),
+            Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
+        })
+        .responder()
+}
+
+pub fn get_test_results(
+    req: HttpRequest<AppState>,
+) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+    ::DB_EXECUTOR_POOL
+        .call_fut(::db::test::GetTestResults(
+            ::db::test::TestResultQuery::from_req(&req),
+        ))
+        .from_err()
+        .and_then(|res| match res {
+            Ok(test_results) => Ok(httpcodes::HTTPOk.build().json(
+                test_results
             )?),
             Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
         })

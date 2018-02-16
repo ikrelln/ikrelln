@@ -53,17 +53,6 @@ table! {
 }
 
 table! {
-    test_execution (test_id, trace_id) {
-        test_id -> Varchar,
-        trace_id -> Varchar,
-        date -> Timestamp,
-        result -> Int4,
-        duration -> Int8,
-        environment -> Nullable<Varchar>,
-    }
-}
-
-table! {
     test_item (id) {
         id -> Varchar,
         parent_id -> Nullable<Varchar>,
@@ -72,7 +61,18 @@ table! {
     }
 }
 
-joinable!(test_execution -> test_item (test_id));
+table! {
+    test_result (test_id, trace_id) {
+        test_id -> Varchar,
+        trace_id -> Varchar,
+        date -> Timestamp,
+        status -> Int4,
+        duration -> Int8,
+        environment -> Nullable<Varchar>,
+    }
+}
+
+joinable!(test_result -> test_item (test_id));
 
 allow_tables_to_appear_in_same_query!(
     annotation,
@@ -80,6 +80,6 @@ allow_tables_to_appear_in_same_query!(
     ingest,
     span,
     tag,
-    test_execution,
     test_item,
+    test_result,
 );

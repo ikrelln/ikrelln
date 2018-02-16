@@ -183,7 +183,7 @@ impl Handler<TraceDone> for TraceParser {
                 if let Ok(spans) = spans {
                     let mut _spans_processed: Vec<String> = vec![];
                     let main_span = spans.iter().find(|span| span.parent_id.is_none()).unwrap();
-                    let te = TestExecution::try_from(main_span);
+                    let te = TestResult::try_from(main_span);
                     match te {
                         Ok(te) => Ok(Some(te)),
                         Err(tag) => {
@@ -208,7 +208,7 @@ impl Handler<TraceDone> for TraceParser {
 }
 
 #[derive(Message, Debug)]
-pub struct TestExecutionToSave(TestExecution);
+pub struct TestExecutionToSave(TestResult);
 impl Handler<Result<TestExecutionToSave, futures::Canceled>> for TraceParser {
     type Result = Result<(), ()>;
     fn handle(
@@ -225,35 +225,35 @@ impl Handler<Result<TestExecutionToSave, futures::Canceled>> for TraceParser {
     }
 }
 
-#[derive(Debug)]
-pub enum TestResult {
+#[derive(Debug, Serialize)]
+pub enum TestStatus {
     Success,
     Failure,
     Skipped,
 }
-impl TestResult {
+impl TestStatus {
     fn try_from(s: &str) -> Result<Self, KnownTag> {
         match s.to_lowercase().as_ref() {
-            "success" => Ok(TestResult::Success),
-            "failure" => Ok(TestResult::Failure),
-            "skipped" => Ok(TestResult::Skipped),
+            "success" => Ok(TestStatus::Success),
+            "failure" => Ok(TestStatus::Failure),
+            "skipped" => Ok(TestStatus::Skipped),
             _ => Err(IkrellnTags::Result.into()),
         }
     }
 }
 
-#[derive(Debug)]
-pub struct TestExecution {
+#[derive(Debug, Serialize)]
+pub struct TestResult {
     pub path: Vec<String>,
     pub name: String,
     pub trace_id: String,
     pub date: i64,
-    pub result: TestResult,
+    pub status: TestStatus,
     pub duration: i64,
     pub environment: Option<String>,
 }
 
-impl TestExecution {
+impl TestResult {
     fn value_from_tag<T>(tags: &HashMap<String, String>, tag: T) -> Result<String, KnownTag>
     where
         T: Clone,
@@ -285,14 +285,14 @@ impl TestExecution {
         })?;
         let class = Self::value_from_tag(&span.tags, IkrellnTags::Class)?;
 
-        Ok(TestExecution {
+        Ok(TestResult {
             path: vec![suite, class],
             name: Self::value_from_tag_or(span, IkrellnTags::Name, |span| span.name.clone())?,
             trace_id: span.trace_id.clone(),
             date: span.timestamp.ok_or(KnownTag {
                 tag: "ts".to_string(),
             })?,
-            result: TestResult::try_from(&Self::value_from_tag_or(
+            status: TestStatus::try_from(&Self::value_from_tag_or(
                 span,
                 IkrellnTags::Result,
                 |span| {

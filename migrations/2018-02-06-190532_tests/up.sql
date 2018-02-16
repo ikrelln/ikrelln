@@ -5,12 +5,12 @@ CREATE TABLE test_item
     name VARCHAR(255) NOT NULL,
     source INT NOT NULL
 );
-CREATE TABLE test_execution
+CREATE TABLE test_result
 (
     test_id VARCHAR NOT NULL,
     trace_id VARCHAR(36) NOT NULL,
     date TIMESTAMP NOT NULL,
-    result INT NOT NULL,
+    status INT NOT NULL,
     duration BIGINT NOT NULL,
     environment VARCHAR,
     PRIMARY KEY (test_id, trace_id),

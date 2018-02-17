@@ -241,22 +241,60 @@ impl Handler<GetTestResults> for super::DbExecutor {
         let test_results: Vec<TestResultDb> =
             query.load(&self.0).expect("error loading test results");
 
+        let mut test_item_cache = super::helper::Cacher::new();
+
         Ok(test_results
             .iter()
-            .map(|tr| ::engine::test::TestResult {
-                path: vec![],
-                name: "".to_string(),
-                date: (((tr.date.timestamp() * 1000) + i64::from(tr.date.timestamp_subsec_millis()))
-                    * 1000),
-                duration: tr.duration,
-                environment: tr.environment.clone(),
-                status: match tr.status {
-                    0 => ::engine::test::TestStatus::Success,
-                    1 => ::engine::test::TestStatus::Failure,
-                    2 => ::engine::test::TestStatus::Skipped,
-                    _ => ::engine::test::TestStatus::Failure,
-                },
-                trace_id: tr.trace_id.clone(),
+            .map(|tr| {
+                let test = test_item_cache
+                    .get(&tr.test_id, |ti_id| {
+                        use super::schema::test_item::dsl::*;
+
+                        test_item
+                            .filter(id.eq(ti_id))
+                            .first::<TestItemDb>(&self.0)
+                            .ok()
+                    })
+                    .clone();
+
+                let mut test_item_to_get = test.clone().and_then(|t| t.parent_id);
+                let mut path = vec![];
+                while test_item_to_get.is_some() {
+                    if let Some(test) = test_item_cache
+                        .get(&test_item_to_get.unwrap(), |ti_id| {
+                            use super::schema::test_item::dsl::*;
+
+                            test_item
+                                .filter(id.eq(ti_id))
+                                .first::<TestItemDb>(&self.0)
+                                .ok()
+                        })
+                        .clone()
+                    {
+                        test_item_to_get = test.parent_id;
+                        path.push(test.name);
+                    } else {
+                        test_item_to_get = None;
+                    }
+                }
+                path.reverse();
+
+                ::engine::test::TestResult {
+                    path: path,
+                    name: test.unwrap().name,
+                    date: (((tr.date.timestamp() * 1000)
+                        + i64::from(tr.date.timestamp_subsec_millis()))
+                        * 1000),
+                    duration: tr.duration,
+                    environment: tr.environment.clone(),
+                    status: match tr.status {
+                        0 => ::engine::test::TestStatus::Success,
+                        1 => ::engine::test::TestStatus::Failure,
+                        2 => ::engine::test::TestStatus::Skipped,
+                        _ => ::engine::test::TestStatus::Failure,
+                    },
+                    trace_id: tr.trace_id.clone(),
+                }
             })
             .collect::<Vec<::engine::test::TestResult>>())
     }

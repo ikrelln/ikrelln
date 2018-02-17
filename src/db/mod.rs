@@ -6,6 +6,8 @@ pub mod ingest_event;
 pub mod span;
 pub mod test;
 
+mod helper;
+
 #[cfg(feature = "sqlite")]
 pub fn establish_connection(database_url: &str) -> SqliteConnection {
     info!("opening connection to DB {}", database_url);

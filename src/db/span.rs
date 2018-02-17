@@ -452,54 +452,42 @@ impl Handler<GetSpans> for super::DbExecutor {
         let without_tags = msg.0.only_endpoint;
         let without_annotations = msg.0.only_endpoint;
 
-        let mut loaded_endpoints: HashMap<String, ::engine::span::Endpoint> = HashMap::new();
+        let mut endpoint_cache = super::helper::Cacher::new();
 
         Ok(spans
             .iter()
             .map(|spandb| {
                 let local_endpoint = spandb.local_endpoint_id.clone().and_then(|lep_id| {
-                    if loaded_endpoints.contains_key(&lep_id) {
-                        return loaded_endpoints.get(&lep_id).cloned();
-                    }
+                    endpoint_cache.get(lep_id, |id| {
+                        use super::schema::endpoint::dsl::*;
 
-                    use super::schema::endpoint::dsl::*;
-
-                    let ep = endpoint
-                        .filter(endpoint_id.eq(lep_id.clone()))
-                        .first::<EndpointDb>(&self.0)
-                        .ok()
-                        .map(|ep| ::engine::span::Endpoint {
-                            service_name: ep.service_name,
-                            ipv4: ep.ipv4,
-                            ipv6: ep.ipv6,
-                            port: ep.port,
-                        });
-                    if let Some(ep_found) = ep.clone() {
-                        loaded_endpoints.insert(lep_id, ep_found);
-                    }
-                    ep
+                        endpoint
+                            .filter(endpoint_id.eq(id))
+                            .first::<EndpointDb>(&self.0)
+                            .ok()
+                            .map(|ep| ::engine::span::Endpoint {
+                                service_name: ep.service_name,
+                                ipv4: ep.ipv4,
+                                ipv6: ep.ipv6,
+                                port: ep.port,
+                            })
+                    })
                 });
                 let remote_endpoint = spandb.remote_endpoint_id.clone().and_then(|rep_id| {
-                    if loaded_endpoints.contains_key(&rep_id) {
-                        return loaded_endpoints.get(&rep_id).cloned();
-                    }
+                    endpoint_cache.get(rep_id, |id| {
+                        use super::schema::endpoint::dsl::*;
 
-                    use super::schema::endpoint::dsl::*;
-
-                    let ep = endpoint
-                        .filter(endpoint_id.eq(rep_id.clone()))
-                        .first::<EndpointDb>(&self.0)
-                        .ok()
-                        .map(|ep| ::engine::span::Endpoint {
-                            service_name: ep.service_name,
-                            ipv4: ep.ipv4,
-                            ipv6: ep.ipv6,
-                            port: ep.port,
-                        });
-                    if let Some(ep_found) = ep.clone() {
-                        loaded_endpoints.insert(rep_id, ep_found);
-                    }
-                    ep
+                        endpoint
+                            .filter(endpoint_id.eq(id))
+                            .first::<EndpointDb>(&self.0)
+                            .ok()
+                            .map(|ep| ::engine::span::Endpoint {
+                                service_name: ep.service_name,
+                                ipv4: ep.ipv4,
+                                ipv6: ep.ipv6,
+                                port: ep.port,
+                            })
+                    })
                 });
 
                 let annotations = if !without_annotations {

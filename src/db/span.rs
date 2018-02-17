@@ -458,36 +458,40 @@ impl Handler<GetSpans> for super::DbExecutor {
             .iter()
             .map(|spandb| {
                 let local_endpoint = spandb.local_endpoint_id.clone().and_then(|lep_id| {
-                    endpoint_cache.get(lep_id, |id| {
-                        use super::schema::endpoint::dsl::*;
+                    endpoint_cache
+                        .get(&lep_id, |id| {
+                            use super::schema::endpoint::dsl::*;
 
-                        endpoint
-                            .filter(endpoint_id.eq(id))
-                            .first::<EndpointDb>(&self.0)
-                            .ok()
-                            .map(|ep| ::engine::span::Endpoint {
-                                service_name: ep.service_name,
-                                ipv4: ep.ipv4,
-                                ipv6: ep.ipv6,
-                                port: ep.port,
-                            })
-                    })
+                            endpoint
+                                .filter(endpoint_id.eq(id))
+                                .first::<EndpointDb>(&self.0)
+                                .ok()
+                                .map(|ep| ::engine::span::Endpoint {
+                                    service_name: ep.service_name,
+                                    ipv4: ep.ipv4,
+                                    ipv6: ep.ipv6,
+                                    port: ep.port,
+                                })
+                        })
+                        .clone()
                 });
                 let remote_endpoint = spandb.remote_endpoint_id.clone().and_then(|rep_id| {
-                    endpoint_cache.get(rep_id, |id| {
-                        use super::schema::endpoint::dsl::*;
+                    endpoint_cache
+                        .get(&rep_id, |id| {
+                            use super::schema::endpoint::dsl::*;
 
-                        endpoint
-                            .filter(endpoint_id.eq(id))
-                            .first::<EndpointDb>(&self.0)
-                            .ok()
-                            .map(|ep| ::engine::span::Endpoint {
-                                service_name: ep.service_name,
-                                ipv4: ep.ipv4,
-                                ipv6: ep.ipv6,
-                                port: ep.port,
-                            })
-                    })
+                            endpoint
+                                .filter(endpoint_id.eq(id))
+                                .first::<EndpointDb>(&self.0)
+                                .ok()
+                                .map(|ep| ::engine::span::Endpoint {
+                                    service_name: ep.service_name,
+                                    ipv4: ep.ipv4,
+                                    ipv6: ep.ipv6,
+                                    port: ep.port,
+                                })
+                        })
+                        .clone()
                 });
 
                 let annotations = if !without_annotations {

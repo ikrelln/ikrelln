@@ -150,7 +150,6 @@ pub struct TestResultQuery {
     pub end_ts: chrono::NaiveDateTime,
     pub lookback: Option<chrono::Duration>,
     pub limit: i64,
-    pub only_endpoint: bool,
 }
 
 impl Default for TestResultQuery {
@@ -161,8 +160,7 @@ impl Default for TestResultQuery {
             max_duration: None,
             end_ts: chrono::Utc::now().naive_utc(),
             lookback: None,
-            limit: 1000,
-            only_endpoint: false,
+            limit: 10000,
         }
     }
 }
@@ -202,9 +200,8 @@ impl TestResultQuery {
             limit: req.query()
                 .get("limit")
                 .and_then(|s| s.parse::<i64>().ok())
-                .map(|v| if v > 1000 { 1000 } else { v })
-                .unwrap_or(1000),
-            only_endpoint: false,
+                .map(|v| if v > 10000 { 10000 } else { v })
+                .unwrap_or(10000),
         }
     }
 }
@@ -238,8 +235,11 @@ impl Handler<GetTestResults> for super::DbExecutor {
             query = query.filter(date.ge(msg.0.end_ts - query_lookback));
         }
 
-        let test_results: Vec<TestResultDb> =
-            query.load(&self.0).expect("error loading test results");
+        let test_results: Vec<TestResultDb> = query
+            .order(date.desc())
+            .limit(msg.0.limit)
+            .load(&self.0)
+            .expect("error loading test results");
 
         let mut test_item_cache = super::helper::Cacher::new();
 
@@ -263,7 +263,6 @@ impl Handler<GetTestResults> for super::DbExecutor {
                     if let Some(test) = test_item_cache
                         .get(&test_item_to_get.unwrap(), |ti_id| {
                             use super::schema::test_item::dsl::*;
-
                             test_item
                                 .filter(id.eq(ti_id))
                                 .first::<TestItemDb>(&self.0)

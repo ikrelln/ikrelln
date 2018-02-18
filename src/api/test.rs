@@ -41,9 +41,7 @@ pub fn get_test_results(
         ))
         .from_err()
         .and_then(|res| match res {
-            Ok(test_results) => Ok(httpcodes::HTTPOk.build().json(
-                test_results
-            )?),
+            Ok(test_results) => Ok(httpcodes::HTTPOk.build().json(test_results)?),
             Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
         })
         .responder()

@@ -5,6 +5,7 @@ use std::fmt;
 pub mod ingestor;
 pub mod span;
 pub mod test;
+pub mod streams;
 
 pub fn hello() -> &'static str {
     "I am i'Krelln"

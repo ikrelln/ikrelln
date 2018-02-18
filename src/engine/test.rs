@@ -5,6 +5,9 @@ use std::time::Duration;
 use futures::{self, Future};
 use actix::prelude::*;
 
+#[cfg(feature = "python")]
+use cpython::{PyDict, Python, ToPyObject};
+
 #[derive(Debug)]
 struct KnownTag {
     tag: String,
@@ -161,7 +164,7 @@ impl Handler<TraceDoneNow> for TraceParser {
     type Result = Result<(), ()>;
 
     fn handle(&mut self, msg: TraceDoneNow, ctx: &mut Context<Self>) -> Self::Result {
-        ctx.notify_later(TraceDone(msg.0), Duration::new(10, 0));
+        ctx.notify_later(TraceDone(msg.0), Duration::new(2, 0));
         Ok(())
     }
 }
@@ -218,14 +221,17 @@ impl Handler<Result<TestExecutionToSave, futures::Canceled>> for TraceParser {
     ) -> Self::Result {
         if let Ok(test_execution) = msg {
             info!("got a test execution parsed: {:?}", test_execution);
-            ::DB_EXECUTOR_POOL.send(test_execution.0);
+            ::DB_EXECUTOR_POOL.send(test_execution.0.clone());
+            actix::Arbiter::system_registry()
+                .get::<::engine::streams::Streamer>()
+                .send(::engine::streams::Test(test_execution.0));
         }
 
         Ok(())
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub enum TestStatus {
     Success,
     Failure,
@@ -242,7 +248,7 @@ impl TestStatus {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct TestResult {
     pub path: Vec<String>,
     pub name: String,
@@ -251,6 +257,36 @@ pub struct TestResult {
     pub status: TestStatus,
     pub duration: i64,
     pub environment: Option<String>,
+}
+
+#[cfg(feature = "python")]
+impl ToPyObject for TestResult {
+    type ObjectType = PyDict;
+    fn to_py_object(&self, py: Python) -> Self::ObjectType {
+        let object = PyDict::new(py);
+        object.set_item(py, "path", self.path.clone()).unwrap();
+        object.set_item(py, "name", self.name.clone()).unwrap();
+        object
+            .set_item(py, "trace_id", self.trace_id.clone())
+            .unwrap();
+        object.set_item(py, "date", self.date).unwrap();
+        object
+            .set_item(
+                py,
+                "status",
+                match self.status {
+                    TestStatus::Success => "Success",
+                    TestStatus::Failure => "Failure",
+                    TestStatus::Skipped => "Skipped",
+                },
+            )
+            .unwrap();
+        object.set_item(py, "duration", self.duration).unwrap();
+        if let Some(environment) = self.environment.clone() {
+            object.set_item(py, "environment", environment).unwrap();
+        }
+        object
+    }
 }
 
 impl TestResult {

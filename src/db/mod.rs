@@ -5,6 +5,7 @@ pub mod schema;
 pub mod ingest_event;
 pub mod span;
 pub mod test;
+pub mod scripts;
 
 mod helper;
 

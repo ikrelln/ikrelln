@@ -12,7 +12,7 @@ mime = "0.3"
 lazy_static = "1.0"
 clap = "2.29"
 
-uuid = { version = "0.5", features = ["serde", "v4"] }
+uuid = { version = "0.6", features = ["serde", "v4"] }
 
 serde = "1.0"
 serde_derive = "1.0"
@@ -31,6 +31,8 @@ openssl-sys = { version = "*", optional = true }
 
 http = "0.1"
 
+cpython = { version = "0.1", optional = true }
+
 [patch.crates-io]
 # Needed for Postgres. Patches the build script to support cross-compilation.
 pq-sys = { git = 'https://github.com/golddranks/pq-sys' }
@@ -39,3 +41,4 @@ pq-sys = { git = 'https://github.com/golddranks/pq-sys' }
 default = [ "postgres" ]
 postgres = [ "diesel/postgres", "openssl-sys" ]
 sqlite = [ "diesel/sqlite", "libsqlite3-sys" ]
+python = [ "cpython" ]

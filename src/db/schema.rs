@@ -27,6 +27,17 @@ table! {
 }
 
 table! {
+    script (id) {
+        id -> Varchar,
+        name -> Varchar,
+        source -> Varchar,
+        script_type -> Int4,
+        date_added -> Timestamp,
+        status -> Int4,
+    }
+}
+
+table! {
     span (trace_id, id) {
         trace_id -> Varchar,
         id -> Varchar,
@@ -78,6 +89,7 @@ allow_tables_to_appear_in_same_query!(
     annotation,
     endpoint,
     ingest,
+    script,
     span,
     tag,
     test_item,

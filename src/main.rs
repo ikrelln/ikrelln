@@ -25,6 +25,9 @@ extern crate futures;
 #[macro_use]
 extern crate diesel;
 
+#[cfg(feature = "python")]
+extern crate cpython;
+
 mod build_info;
 mod config;
 mod engine;
@@ -58,6 +61,10 @@ fn main() {
     let system = actix::System::new("i'Krelln");
 
     api::serve(&config.host, config.port);
+
+    actix::Arbiter::system_registry()
+        .get::<::engine::streams::Streamer>()
+        .send(::engine::streams::LoadScripts);
 
     system.run();
 }

@@ -9,6 +9,7 @@ mod healthcheck;
 mod errors;
 mod span;
 mod test;
+mod script;
 
 fn index(_req: HttpRequest<AppState>) -> String {
     String::from(engine::hello())
@@ -67,6 +68,9 @@ pub fn serve(host: &str, port: u16) {
             })
             .resource("/api/v1/testresults", |r| {
                 r.method(Method::GET).f(test::get_test_results)
+            })
+            .resource("/api/v1/scripts", |r| {
+                r.method(Method::POST).f(script::save_script);
             })
     }).bind(format!("{}:{}", host, port))
         .unwrap()

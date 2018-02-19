@@ -1,19 +1,17 @@
-# Our first FROM statement declares the build environment.
-FROM clux/muslrust AS builder
+FROM alpine:edge as builder
 
-# Add our source code.
-ADD . ./
+RUN apk add --update bash git curl file rust cargo python3 python3-dev libpq zlib make file perl
+RUN ln -s /usr/bin/python3 /usr/bin/python
 
-# Build diesel cli.
+RUN apk add libressl-dev postgresql-dev
+
 RUN cargo install diesel_cli --no-default-features --features postgres
 
-# Build our application.
-RUN cargo build --release --no-default-features --features postgres
+ADD . ./ikrelln/
 
-# Build UI
-RUN apt-get update && apt-get install -y git curl
-RUN curl -sL https://deb.nodesource.com/setup_9.x | bash
-RUN apt-get install -y nodejs
+RUN cd ikrelln && cargo build --features postgres,python --release
+
+RUN apk add nodejs nodejs-npm
 RUN git clone https://github.com/ikrelln/ikrelln-ui.git
 RUN cd ikrelln-ui && npm install && npm run build
 
@@ -159,6 +157,9 @@ EXPOSE 80
 
 RUN mkdir /var/tmp/nginx
 
+RUN apk add --update --no-cache python3 libgcc
+RUN pip3 install requests
+
 # Reset entrypoint from postgres container
 ENTRYPOINT [ ]
 
@@ -166,19 +167,19 @@ RUN apk --no-cache add ca-certificates
 
 # Copy files from builder
 COPY --from=builder \
-	/volume/target/x86_64-unknown-linux-musl/release/ikrelln \
+	/ikrelln/target/release/ikrelln \
 	/usr/local/bin/
 COPY --from=builder \
-	/volume/Cargo.toml \
+	/ikrelln/Cargo.toml \
 	/
 COPY --from=builder \
-	/volume/migrations \
+	/ikrelln/migrations \
 	/migrations
 COPY --from=builder \
 	/root/.cargo/bin/diesel \
 	/usr/local/bin/
 COPY --from=builder \
-	/volume/ikrelln-ui/build \
+	/ikrelln-ui/build \
 	/var/www/html/ikrelln
 
 # Expose i'Krelln port

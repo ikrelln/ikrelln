@@ -294,6 +294,7 @@ impl Handler<GetTestResults> for super::DbExecutor {
                 path.reverse();
 
                 ::engine::test::TestResult {
+                    test_id: tr.test_id.clone(),
                     path: path,
                     name: test.unwrap().name,
                     date: (((tr.date.timestamp() * 1000)

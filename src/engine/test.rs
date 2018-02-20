@@ -250,6 +250,7 @@ impl TestStatus {
 
 #[derive(Debug, Serialize, Clone)]
 pub struct TestResult {
+    pub test_id: String,
     pub path: Vec<String>,
     pub name: String,
     pub trace_id: String,
@@ -322,6 +323,7 @@ impl TestResult {
         let class = Self::value_from_tag(&span.tags, IkrellnTags::Class)?;
 
         Ok(TestResult {
+            test_id: "n/a".to_string(),
             path: vec![suite, class],
             name: Self::value_from_tag_or(span, IkrellnTags::Name, |span| span.name.clone())?,
             trace_id: span.trace_id.clone(),

@@ -1,5 +1,7 @@
 use actix_web::{httpcodes, AsyncResponder, HttpRequest, HttpResponse};
+use actix;
 use futures::Future;
+use futures::future::result;
 use uuid;
 use chrono;
 
@@ -18,7 +20,73 @@ pub fn save_script(
                 ..script
             };
             ::DB_EXECUTOR_POOL.send(::db::scripts::SaveScript(new_script.clone()));
+            actix::Arbiter::system_registry()
+                .get::<::engine::streams::Streamer>()
+                .send(::engine::streams::AddScript(new_script.clone()));
             return Ok(httpcodes::HTTPOk.build().json(new_script)?);
+        })
+        .responder()
+}
+
+pub fn get_script(
+    req: HttpRequest<AppState>,
+) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+    match req.match_info().get("scriptId") {
+        Some(script_id) => ::DB_EXECUTOR_POOL
+            .call_fut(::db::scripts::GetScript(script_id.to_string()))
+            .from_err()
+            .and_then(|res| match res {
+                Ok(Some(script)) => Ok(httpcodes::HTTPOk.build().json(script)?),
+                Ok(None) => Err(super::errors::IkError::NotFound(
+                    "script not found".to_string(),
+                )),
+                Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
+            })
+            .responder(),
+
+        _ => result(Err(super::errors::IkError::BadRequest(
+            "missing scriptId path parameter".to_string(),
+        ))).responder(),
+    }
+}
+
+pub fn delete_script(
+    req: HttpRequest<AppState>,
+) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+    match req.match_info().get("scriptId") {
+        Some(script_id) => ::DB_EXECUTOR_POOL
+            .call_fut(::db::scripts::DeleteScript(script_id.to_string()))
+            .from_err()
+            .and_then(|res| match res {
+                Ok(Some(script)) => {
+                    actix::Arbiter::system_registry()
+                        .get::<::engine::streams::Streamer>()
+                        .send(::engine::streams::RemoveScript(script.clone()));
+
+                    Ok(httpcodes::HTTPOk.build().json(script)?)
+                }
+                Ok(None) => Err(super::errors::IkError::NotFound(
+                    "script not found".to_string(),
+                )),
+                Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
+            })
+            .responder(),
+
+        _ => result(Err(super::errors::IkError::BadRequest(
+            "missing scriptId path parameter".to_string(),
+        ))).responder(),
+    }
+}
+
+pub fn list_scripts(
+    _req: HttpRequest<AppState>,
+) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+    ::DB_EXECUTOR_POOL
+        .call_fut(::db::scripts::GetAll)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(scripts) => Ok(httpcodes::HTTPOk.build().json(scripts)?),
+            Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
         })
         .responder()
 }

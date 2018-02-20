@@ -81,6 +81,30 @@ impl Handler<Result<UpdateScripts, futures::Canceled>> for Streamer {
     }
 }
 
+#[derive(Message)]
+pub struct AddScript(pub Script);
+impl Handler<AddScript> for Streamer {
+    type Result = Result<(), ()>;
+    fn handle(&mut self, msg: AddScript, _ctx: &mut Context<Self>) -> Self::Result {
+        self.scripts.push(msg.0);
+        Ok(())
+    }
+}
+
+#[derive(Message)]
+pub struct RemoveScript(pub Script);
+impl Handler<RemoveScript> for Streamer {
+    type Result = Result<(), ()>;
+    fn handle(&mut self, msg: RemoveScript, _ctx: &mut Context<Self>) -> Self::Result {
+        let index = self.scripts
+            .iter()
+            .position(|x| (*x.id.clone().unwrap()) == msg.0.id.clone().unwrap())
+            .unwrap();
+        self.scripts.remove(index);
+        Ok(())
+    }
+}
+
 #[derive(Message, Debug)]
 pub struct Test(pub ::engine::test::TestResult);
 impl Handler<Test> for Streamer {

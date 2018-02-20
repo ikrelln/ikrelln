@@ -86,3 +86,76 @@ impl Handler<GetAll> for super::DbExecutor {
             .collect())
     }
 }
+
+pub struct GetScript(pub String);
+
+impl ResponseType for GetScript {
+    type Item = Option<::engine::streams::Script>;
+    type Error = ();
+}
+
+impl Handler<GetScript> for super::DbExecutor {
+    type Result = MessageResult<GetScript>;
+
+    fn handle(&mut self, msg: GetScript, _: &mut Self::Context) -> Self::Result {
+        use super::schema::script::dsl::*;
+        let script_found = script.filter(id.eq(msg.0)).first::<ScriptDb>(&self.0).ok();
+
+        Ok(
+            script_found.map(|script_from_db| ::engine::streams::Script {
+                id: Some(script_from_db.id.clone()),
+                date_added: Some(script_from_db.date_added),
+                script_type: match script_from_db.script_type {
+                    0 => ::engine::streams::ScriptType::Test,
+                    _ => ::engine::streams::ScriptType::Span,
+                },
+                name: script_from_db.name.clone(),
+                source: script_from_db.source.clone(),
+                status: Some(match script_from_db.status {
+                    0 => ::engine::streams::ScriptStatus::Enabled,
+                    _ => ::engine::streams::ScriptStatus::Disabled,
+                }),
+            }),
+        )
+    }
+}
+
+pub struct DeleteScript(pub String);
+
+impl ResponseType for DeleteScript {
+    type Item = Option<::engine::streams::Script>;
+    type Error = ();
+}
+
+impl Handler<DeleteScript> for super::DbExecutor {
+    type Result = MessageResult<DeleteScript>;
+
+    fn handle(&mut self, msg: DeleteScript, _: &mut Self::Context) -> Self::Result {
+        use super::schema::script::dsl::*;
+        let script_found = script
+            .filter(id.eq(msg.0.clone()))
+            .first::<ScriptDb>(&self.0)
+            .ok();
+
+        diesel::delete(script.filter(id.eq(msg.0)))
+            .execute(&self.0)
+            .expect("Error deleting script");
+
+        Ok(
+            script_found.map(|script_from_db| ::engine::streams::Script {
+                id: Some(script_from_db.id.clone()),
+                date_added: Some(script_from_db.date_added),
+                script_type: match script_from_db.script_type {
+                    0 => ::engine::streams::ScriptType::Test,
+                    _ => ::engine::streams::ScriptType::Span,
+                },
+                name: script_from_db.name.clone(),
+                source: script_from_db.source.clone(),
+                status: Some(match script_from_db.status {
+                    0 => ::engine::streams::ScriptStatus::Enabled,
+                    _ => ::engine::streams::ScriptStatus::Disabled,
+                }),
+            }),
+        )
+    }
+}

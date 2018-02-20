@@ -7,6 +7,7 @@ use futures;
 pub enum IkError {
     #[fail(display = "internal error")] InternalError,
     #[fail(display = "bad request")] BadRequest(String),
+    #[fail(display = "not found")] NotFound(String),
 }
 
 impl error::ResponseError for IkError {
@@ -22,6 +23,7 @@ impl error::ResponseError for IkError {
                     .unwrap()
             }
             IkError::BadRequest(_) => httpcodes::HTTPBadRequest.build().json(self).unwrap(),
+            IkError::NotFound(_) => httpcodes::HTTPNotFound.build().json(self).unwrap(),
         }
     }
 }

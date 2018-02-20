@@ -70,7 +70,12 @@ pub fn serve(host: &str, port: u16) {
                 r.method(Method::GET).f(test::get_test_results)
             })
             .resource("/api/v1/scripts", |r| {
+                r.method(Method::GET).f(script::list_scripts);
                 r.method(Method::POST).f(script::save_script);
+            })
+            .resource("/api/v1/scripts/{scriptId}", |r| {
+                r.method(Method::GET).f(script::get_script);
+                r.method(Method::DELETE).f(script::delete_script);
             })
     }).bind(format!("{}:{}", host, port))
         .unwrap()

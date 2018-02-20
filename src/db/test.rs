@@ -241,7 +241,22 @@ impl Handler<GetTestResults> for super::DbExecutor {
             .load(&self.0)
             .expect("error loading test results");
 
-        let mut test_item_cache = super::helper::Cacher::new();
+        let mut test_item_cache = super::helper::Cacher::new_with({
+            //prefetch first level test items in one query
+            use super::schema::test_item::dsl::*;
+
+            let mut query = test_item.into_boxed();
+            for tr in test_results.iter() {
+                query = query.or_filter(id.eq(tr.test_id.clone()));
+            }
+            query
+                .load::<TestItemDb>(&self.0)
+                .ok()
+                .unwrap_or_else(|| vec![])
+                .iter()
+                .map(|item| (item.id.clone(), Some(item.clone())))
+                .collect()
+        });
 
         Ok(test_results
             .iter()

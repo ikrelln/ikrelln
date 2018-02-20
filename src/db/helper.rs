@@ -10,6 +10,9 @@ impl<T> Cacher<T> {
             cache: HashMap::new(),
         }
     }
+    pub fn new_with(cache: HashMap<String, Option<T>>) -> Self {
+        Self { cache }
+    }
 }
 
 impl<T> Cacher<T>

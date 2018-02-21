@@ -249,13 +249,14 @@ impl Default for TestResultQuery {
             max_duration: None,
             end_ts: chrono::Utc::now().naive_utc(),
             lookback: None,
-            limit: 10000,
+            limit: 1000,
         }
     }
 }
 
 impl TestResultQuery {
     pub fn from_req(req: &actix_web::HttpRequest<::api::AppState>) -> Self {
+        let default = TestResultQuery::default();
         TestResultQuery {
             trace_id: req.query().get("traceId").map(|s| s.to_string()),
             status: req.query().get("status").and_then(|status| {
@@ -290,8 +291,8 @@ impl TestResultQuery {
             limit: req.query()
                 .get("limit")
                 .and_then(|s| s.parse::<i64>().ok())
-                .map(|v| if v > 10000 { 10000 } else { v })
-                .unwrap_or(10000),
+                .map(|v| if v > default.limit { default.limit } else { v })
+                .unwrap_or(default.limit),
         }
     }
 }

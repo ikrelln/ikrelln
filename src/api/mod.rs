@@ -8,7 +8,7 @@ use chrono;
 mod healthcheck;
 mod errors;
 mod span;
-mod test;
+pub mod test;
 mod script;
 
 fn index(_req: HttpRequest<AppState>) -> String {
@@ -65,6 +65,9 @@ pub fn serve(host: &str, port: u16) {
             })
             .resource("/api/v1/tests", |r| {
                 r.method(Method::GET).f(test::get_tests_by_parent)
+            })
+            .resource("/api/v1/tests/{testId}", |r| {
+                r.method(Method::GET).f(test::get_test)
             })
             .resource("/api/v1/testresults", |r| {
                 r.method(Method::GET).f(test::get_test_results)

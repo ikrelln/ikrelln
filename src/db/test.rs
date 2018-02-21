@@ -119,9 +119,18 @@ impl Handler<::engine::test::TestResult> for super::DbExecutor {
     }
 }
 
-pub struct GetTestItems(pub Option<String>);
+#[derive(Default)]
+pub struct TestItemQuery {
+    pub id: Option<String>,
+    pub parent_id: Option<Option<String>>,
+    pub with_full_path: bool,
+    pub with_children: bool,
+    pub with_traces: bool,
+}
+
+pub struct GetTestItems(pub TestItemQuery);
 impl ResponseType for GetTestItems {
-    type Item = Vec<TestItemDb>;
+    type Item = Vec<::api::test::TestDetails>;
     type Error = ();
 }
 
@@ -133,17 +142,96 @@ impl Handler<GetTestItems> for super::DbExecutor {
 
         let mut query = test_item.into_boxed();
 
-        query = match msg.0.clone() {
-            Some(filter_parent_id) => query.filter(parent_id.eq(filter_parent_id)),
-            None => query.filter(parent_id.is_null()),
-        };
+        if let Some(has_parent_id) = msg.0.parent_id.clone() {
+            query = match has_parent_id.clone() {
+                Some(filter_parent_id) => query.filter(parent_id.eq(filter_parent_id)),
+                None => query.filter(parent_id.is_null()),
+            };
+        }
 
-        Ok(query.load(&self.0).expect("error loading test items"))
+        if let Some(filter_id) = msg.0.id.clone() {
+            query = query.filter(id.eq(filter_id));
+        }
+
+        Ok(query
+            .load::<TestItemDb>(&self.0)
+            .expect("error loading test items")
+            .iter()
+            .map(|ti| {
+                let mut test_item_to_get = ti.parent_id.clone();
+                let mut path = vec![];
+                if msg.0.with_full_path {
+                    while test_item_to_get.is_some() {
+                        if let Some(test) = {
+                            use super::schema::test_item::dsl::*;
+                            test_item
+                                .filter(id.eq(test_item_to_get.unwrap()))
+                                .first::<TestItemDb>(&self.0)
+                                .ok()
+                        } {
+                            test_item_to_get = test.parent_id;
+                            path.push(::api::test::TestItem {
+                                name: test.name,
+                                id: test.id,
+                            });
+                        } else {
+                            test_item_to_get = None;
+                        }
+                    }
+                    path.reverse();
+                }
+
+                let children = match msg.0.with_children {
+                    true => {
+                        use super::schema::test_item::dsl::*;
+                        test_item
+                            .filter(parent_id.eq(ti.id.clone()))
+                            .load::<TestItemDb>(&self.0)
+                            .ok()
+                            .unwrap_or_else(|| vec![])
+                            .iter()
+                            .map(|ti| ::api::test::TestItem {
+                                name: ti.name.clone(),
+                                id: ti.id.clone(),
+                            })
+                            .collect()
+                    }
+                    false => vec![],
+                };
+
+                let traces = match msg.0.with_traces {
+                    true => {
+                        use super::schema::test_result::dsl::*;
+
+                        test_result
+                            .filter(test_id.eq(ti.id.clone()))
+                            .order(date.desc())
+                            .limit(1000)
+                            .load::<TestResultDb>(&self.0)
+                            .ok()
+                            .unwrap_or_else(|| vec![])
+                            .iter()
+                            .map(|tr| tr.trace_id.clone())
+                            .collect()
+                    }
+                    false => vec![],
+                };
+
+                ::api::test::TestDetails {
+                    children: children,
+                    last_traces: traces,
+                    name: ti.name.clone(),
+                    path: path,
+                    test_id: ti.id.clone(),
+                }
+            })
+            .collect())
     }
 }
 
 #[derive(Debug)]
 pub struct TestResultQuery {
+    pub trace_id: Option<String>,
     pub status: Option<i32>,
     pub min_duration: Option<i64>,
     pub max_duration: Option<i64>,
@@ -155,6 +243,7 @@ pub struct TestResultQuery {
 impl Default for TestResultQuery {
     fn default() -> Self {
         TestResultQuery {
+            trace_id: None,
             status: None,
             min_duration: None,
             max_duration: None,
@@ -168,6 +257,7 @@ impl Default for TestResultQuery {
 impl TestResultQuery {
     pub fn from_req(req: &actix_web::HttpRequest<::api::AppState>) -> Self {
         TestResultQuery {
+            trace_id: req.query().get("traceId").map(|s| s.to_string()),
             status: req.query().get("status").and_then(|status| {
                 match status.to_lowercase().as_ref() {
                     "success" => Some(0),
@@ -218,6 +308,10 @@ impl Handler<GetTestResults> for super::DbExecutor {
         use super::schema::test_result::dsl::*;
 
         let mut query = test_result.into_boxed();
+
+        if let Some(query_trace_id) = msg.0.trace_id {
+            query = query.filter(trace_id.eq(query_trace_id));
+        }
 
         if let Some(query_status) = msg.0.status {
             query = query.filter(status.eq(query_status));

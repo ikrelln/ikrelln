@@ -62,20 +62,43 @@ pub fn get_test(
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("testId") {
         Some(test_id) => ::DB_EXECUTOR_POOL
-            .call_fut(::db::test::GetTestItems(::db::test::TestItemQuery {
-                id: Some(test_id.to_string()),
-                with_children: true,
-                with_full_path: true,
-                with_traces: true,
-                ..Default::default()
-            }))
+            .call_fut(match test_id {
+                "root" => ::db::test::GetTestItems(::db::test::TestItemQuery {
+                    id: None,
+                    parent_id: Some(None),
+                    with_children: true,
+                    with_full_path: true,
+                    with_traces: true,
+                    ..Default::default()
+                }),
+                _ => ::db::test::GetTestItems(::db::test::TestItemQuery {
+                    id: Some(test_id.to_string()),
+                    with_children: true,
+                    with_full_path: true,
+                    with_traces: true,
+                    ..Default::default()
+                }),
+            })
             .from_err()
             .and_then(|res| match res {
-                Ok(test_results) => match test_results.get(0) {
-                    Some(test_result) => Ok(httpcodes::HTTPOk.build().json(test_result)?),
-                    None => Err(super::errors::IkError::NotFound(
+                Ok(test_results) => match test_results.len() {
+                    0 => Err(super::errors::IkError::NotFound(
                         "testId not found".to_string(),
                     )),
+                    1 => Ok(httpcodes::HTTPOk.build().json(test_results.get(0))?),
+                    _ => Ok(httpcodes::HTTPOk.build().json(TestDetails {
+                        test_id: "root".to_string(),
+                        name: "".to_string(),
+                        path: vec![],
+                        children: test_results
+                            .iter()
+                            .map(|tr| TestItem {
+                                name: tr.name.clone(),
+                                id: tr.test_id.clone(),
+                            })
+                            .collect(),
+                        last_traces: vec![],
+                    })?),
                 },
                 Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
             })

@@ -154,6 +154,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
         }
 
         Ok(query
+            .order(name.asc())
             .load::<TestItemDb>(&self.0)
             .expect("error loading test items")
             .iter()
@@ -186,6 +187,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
                         use super::schema::test_item::dsl::*;
                         test_item
                             .filter(parent_id.eq(ti.id.clone()))
+                            .order(name.asc())
                             .load::<TestItemDb>(&self.0)
                             .ok()
                             .unwrap_or_else(|| vec![])

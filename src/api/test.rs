@@ -10,30 +10,6 @@ pub struct TestItem {
     pub name: String,
 }
 
-pub fn get_tests_by_parent(
-    req: HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    ::DB_EXECUTOR_POOL
-        .call_fut(::db::test::GetTestItems(::db::test::TestItemQuery {
-            parent_id: req.query().get("parentId").map(|s| s.to_string()),
-            ..Default::default()
-        }))
-        .from_err()
-        .and_then(|res| match res {
-            Ok(test_items) => Ok(httpcodes::HTTPOk.build().json(
-                test_items
-                    .iter()
-                    .map(|item| TestItem {
-                        id: item.test_id.clone(),
-                        name: item.name.clone(),
-                    })
-                    .collect::<Vec<TestItem>>(),
-            )?),
-            Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
-        })
-        .responder()
-}
-
 pub fn get_test_results(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {

@@ -8,3 +8,5 @@
 # Source file generated during builde
 src/build_info.rs
 
+.dockerignore
+TODO.md

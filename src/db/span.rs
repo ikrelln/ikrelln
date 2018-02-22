@@ -7,6 +7,7 @@ use actix_web;
 use std::str::FromStr;
 use chrono;
 
+static SPAN_QUERY_LIMIT: i64 = 500;
 use db::schema::span;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "span"]
@@ -24,6 +25,7 @@ pub struct SpanDb {
     remote_endpoint_id: Option<String>,
 }
 
+static ENDPOINT_QUERY_LIMIT: i64 = 1000;
 use db::schema::endpoint;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "endpoint"]
@@ -35,6 +37,7 @@ pub struct EndpointDb {
     port: Option<i32>,
 }
 
+static TAG_QUERY_LIMIT: i64 = 100;
 use db::schema::tag;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "tag"]
@@ -46,6 +49,7 @@ pub struct TagDb {
     value: String,
 }
 
+static ANNOTATION_QUERY_LIMIT: i64 = 100;
 use db::schema::annotation;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "annotation"]
@@ -275,6 +279,7 @@ impl Handler<GetServices> for super::DbExecutor {
         use super::schema::endpoint::dsl::*;
 
         Ok(endpoint
+            .limit(ENDPOINT_QUERY_LIMIT)
             .order(service_name.asc())
             .load::<EndpointDb>(&self.0)
             .ok()
@@ -310,7 +315,7 @@ impl Default for SpanQuery {
             max_duration: None,
             end_ts: chrono::Utc::now().naive_utc(),
             lookback: None,
-            limit: 1000,
+            limit: SPAN_QUERY_LIMIT,
             only_endpoint: false,
         }
     }
@@ -350,8 +355,14 @@ impl SpanQuery {
             limit: req.query()
                 .get("limit")
                 .and_then(|s| s.parse::<i64>().ok())
-                .map(|v| if v > 1000 { 1000 } else { v })
-                .unwrap_or(1000),
+                .map(|v| {
+                    if v > SPAN_QUERY_LIMIT {
+                        SPAN_QUERY_LIMIT
+                    } else {
+                        v
+                    }
+                })
+                .unwrap_or(SPAN_QUERY_LIMIT),
             only_endpoint: false,
         }
     }
@@ -503,6 +514,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                                 .eq(spandb.trace_id.clone())
                                 .and(span_id.eq(spandb.id.clone())),
                         )
+                        .limit(ANNOTATION_QUERY_LIMIT)
                         .load::<AnnotationDb>(&self.0)
                         .ok()
                         .unwrap_or_else(|| vec![])
@@ -526,7 +538,8 @@ impl Handler<GetSpans> for super::DbExecutor {
                         trace_id
                             .eq(spandb.trace_id.clone())
                             .and(span_id.eq(spandb.id.clone())),
-                    ).load::<TagDb>(&self.0)
+                    ).limit(TAG_QUERY_LIMIT)
+                        .load::<TagDb>(&self.0)
                         .ok()
                         .unwrap_or_else(|| vec![])
                         .iter()
@@ -584,6 +597,7 @@ impl Handler<SpanCleanup> for super::DbExecutor {
 
             span.filter(duration.is_not_null())
                 .filter(ts.lt(msg.0))
+                .limit(SPAN_QUERY_LIMIT)
                 .order(ts.asc())
                 .load::<SpanDb>(&self.0)
                 .ok()

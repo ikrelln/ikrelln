@@ -5,6 +5,7 @@ use uuid;
 use chrono;
 use actix_web;
 
+static TEST_ITEM_QUERY_LIMIT: i64 = 200;
 use db::schema::test_item;
 #[derive(Debug, Insertable, Queryable, Clone)]
 #[table_name = "test_item"]
@@ -15,6 +16,7 @@ pub struct TestItemDb {
     source: i32,
 }
 
+static TEST_RESULT_QUERY_LIMIT: i64 = 100;
 use db::schema::test_result;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "test_result"]
@@ -183,6 +185,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
                         test_item
                             .filter(parent_id.eq(ti.id.clone()))
                             .order(name.asc())
+                            .limit(TEST_ITEM_QUERY_LIMIT)
                             .load::<TestItemDb>(&self.0)
                             .ok()
                             .unwrap_or_else(|| vec![])
@@ -203,7 +206,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
                         test_result
                             .filter(test_id.eq(ti.id.clone()))
                             .order(date.desc())
-                            .limit(1000)
+                            .limit(TEST_RESULT_QUERY_LIMIT)
                             .load::<TestResultDb>(&self.0)
                             .ok()
                             .unwrap_or_else(|| vec![])
@@ -225,7 +228,6 @@ impl Handler<GetTestItems> for super::DbExecutor {
             .collect())
     }
 }
-
 #[derive(Debug)]
 pub struct TestResultQuery {
     pub trace_id: Option<String>,
@@ -246,14 +248,13 @@ impl Default for TestResultQuery {
             max_duration: None,
             end_ts: chrono::Utc::now().naive_utc(),
             lookback: None,
-            limit: 1000,
+            limit: TEST_RESULT_QUERY_LIMIT,
         }
     }
 }
 
 impl TestResultQuery {
     pub fn from_req(req: &actix_web::HttpRequest<::api::AppState>) -> Self {
-        let default = TestResultQuery::default();
         TestResultQuery {
             trace_id: req.query().get("traceId").map(|s| s.to_string()),
             status: req.query().get("status").and_then(|status| {
@@ -288,8 +289,14 @@ impl TestResultQuery {
             limit: req.query()
                 .get("limit")
                 .and_then(|s| s.parse::<i64>().ok())
-                .map(|v| if v > default.limit { default.limit } else { v })
-                .unwrap_or(default.limit),
+                .map(|v| {
+                    if v > TEST_RESULT_QUERY_LIMIT {
+                        TEST_RESULT_QUERY_LIMIT
+                    } else {
+                        v
+                    }
+                })
+                .unwrap_or(TEST_RESULT_QUERY_LIMIT),
         }
     }
 }

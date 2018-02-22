@@ -66,7 +66,7 @@ table! {
 table! {
     test_item (id) {
         id -> Varchar,
-        parent_id -> Nullable<Varchar>,
+        parent_id -> Varchar,
         name -> Varchar,
         source -> Int4,
     }

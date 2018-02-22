@@ -10,7 +10,7 @@ use db::schema::test_item;
 #[table_name = "test_item"]
 pub struct TestItemDb {
     pub id: String,
-    parent_id: Option<String>,
+    parent_id: String,
     pub name: String,
     source: i32,
 }
@@ -31,17 +31,12 @@ impl super::DbExecutor {
     fn find_test_item(&mut self, test_item_db: &TestItemDb) -> Option<TestItemDb> {
         use super::schema::test_item::dsl::*;
 
-        let mut query = test_item
+        test_item
             .filter(name.eq(test_item_db.name.clone()))
             .filter(source.eq(test_item_db.source))
-            .into_boxed();
-
-        query = match test_item_db.parent_id.clone() {
-            Some(filter_parent_id) => query.filter(parent_id.eq(filter_parent_id)),
-            None => query.filter(parent_id.is_null()),
-        };
-
-        query.first::<TestItemDb>(&self.0).ok()
+            .filter(parent_id.eq(test_item_db.parent_id.clone()))
+            .first::<TestItemDb>(&self.0)
+            .ok()
     }
 
     fn find_test_or_insert(&mut self, test_item_db: &TestItemDb) -> String {
@@ -78,27 +73,27 @@ impl Handler<::engine::test::TestResult> for super::DbExecutor {
     type Result = MessageResult<::engine::test::TestResult>;
 
     fn handle(&mut self, msg: ::engine::test::TestResult, _: &mut Self::Context) -> Self::Result {
-        let mut parent_id = None;
+        let mut parent_id = "root".to_string();
         for item in msg.path.clone() {
-            parent_id = Some(self.find_test_or_insert(&TestItemDb {
+            parent_id = self.find_test_or_insert(&TestItemDb {
                 id: "n/a".to_string(),
                 parent_id: parent_id,
                 name: item,
                 source: 0,
-            }));
+            });
         }
 
-        parent_id = Some(self.find_test_or_insert(&TestItemDb {
+        parent_id = self.find_test_or_insert(&TestItemDb {
             id: "n/a".to_string(),
             parent_id: parent_id,
             name: msg.name.clone(),
             source: 0,
-        }));
+        });
 
         use super::schema::test_result::dsl::*;
         diesel::insert_into(test_result)
             .values(&TestResultDb {
-                test_id: parent_id.unwrap(),
+                test_id: parent_id,
                 trace_id: msg.trace_id.clone(),
                 date: chrono::NaiveDateTime::from_timestamp(
                     msg.date / 1000 / 1000,
@@ -122,7 +117,7 @@ impl Handler<::engine::test::TestResult> for super::DbExecutor {
 #[derive(Default)]
 pub struct TestItemQuery {
     pub id: Option<String>,
-    pub parent_id: Option<Option<String>>,
+    pub parent_id: Option<String>,
     pub with_full_path: bool,
     pub with_children: bool,
     pub with_traces: bool,
@@ -142,11 +137,8 @@ impl Handler<GetTestItems> for super::DbExecutor {
 
         let mut query = test_item.into_boxed();
 
-        if let Some(has_parent_id) = msg.0.parent_id.clone() {
-            query = match has_parent_id.clone() {
-                Some(filter_parent_id) => query.filter(parent_id.eq(filter_parent_id)),
-                None => query.filter(parent_id.is_null()),
-            };
+        if let Some(filter_parent_id) = msg.0.parent_id.clone() {
+            query = query.filter(parent_id.eq(filter_parent_id));
         }
 
         if let Some(filter_id) = msg.0.id.clone() {
@@ -159,7 +151,10 @@ impl Handler<GetTestItems> for super::DbExecutor {
             .expect("error loading test items")
             .iter()
             .map(|ti| {
-                let mut test_item_to_get = ti.parent_id.clone();
+                let mut test_item_to_get = match ti.parent_id.as_ref() {
+                    "root" => None,
+                    item_id => Some(item_id.to_string()),
+                };
                 let mut path = vec![];
                 if msg.0.with_full_path {
                     while test_item_to_get.is_some() {
@@ -170,7 +165,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
                                 .first::<TestItemDb>(&self.0)
                                 .ok()
                         } {
-                            test_item_to_get = test.parent_id;
+                            test_item_to_get = Some(test.parent_id);
                             path.push(::api::test::TestItem {
                                 name: test.name,
                                 id: test.id,
@@ -369,7 +364,10 @@ impl Handler<GetTestResults> for super::DbExecutor {
                     })
                     .clone();
 
-                let mut test_item_to_get = test.clone().and_then(|t| t.parent_id);
+                let mut test_item_to_get = test.clone().and_then(|t| match t.parent_id.as_ref() {
+                    "root" => None,
+                    item_id => Some(item_id.to_string()),
+                });
                 let mut path = vec![];
                 while test_item_to_get.is_some() {
                     if let Some(test) = test_item_cache
@@ -382,7 +380,10 @@ impl Handler<GetTestResults> for super::DbExecutor {
                         })
                         .clone()
                     {
-                        test_item_to_get = test.parent_id;
+                        test_item_to_get = match test.parent_id.as_ref() {
+                            "root" => None,
+                            item_id => Some(item_id.to_string()),
+                        };
                         path.push(test.name);
                     } else {
                         test_item_to_get = None;

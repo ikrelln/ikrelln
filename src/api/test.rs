@@ -15,7 +15,7 @@ pub fn get_tests_by_parent(
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     ::DB_EXECUTOR_POOL
         .call_fut(::db::test::GetTestItems(::db::test::TestItemQuery {
-            parent_id: Some(req.query().get("parentId").map(|s| s.to_string())),
+            parent_id: req.query().get("parentId").map(|s| s.to_string()),
             ..Default::default()
         }))
         .from_err()
@@ -65,7 +65,7 @@ pub fn get_test(
             .call_fut(match test_id {
                 "root" => ::db::test::GetTestItems(::db::test::TestItemQuery {
                     id: None,
-                    parent_id: Some(None),
+                    parent_id: Some("root".to_string()),
                     with_children: true,
                     with_full_path: true,
                     with_traces: true,

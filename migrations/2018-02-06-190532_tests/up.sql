@@ -1,9 +1,10 @@
 CREATE TABLE test_item
 (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
-    parent_id VARCHAR(36),
+    parent_id VARCHAR(36) NOT NULL,
     name VARCHAR(255) NOT NULL,
-    source INT NOT NULL
+    source INT NOT NULL,
+    CONSTRAINT UC_TestItem UNIQUE (parent_id, name)
 );
 CREATE TABLE test_result
 (

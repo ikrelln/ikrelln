@@ -84,3 +84,16 @@ pub fn get_test(
         ))).responder(),
     }
 }
+
+pub fn get_environments(
+    _req: HttpRequest<AppState>,
+) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+    ::DB_EXECUTOR_POOL
+        .call_fut(::db::test::GetEnvironments)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(test_results) => Ok(httpcodes::HTTPOk.build().json(test_results)?),
+            Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
+        })
+        .responder()
+}

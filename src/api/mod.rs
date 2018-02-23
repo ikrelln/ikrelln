@@ -69,6 +69,9 @@ pub fn serve(host: &str, port: u16) {
             .resource("/api/v1/testresults", |r| {
                 r.method(Method::GET).f(test::get_test_results)
             })
+            .resource("/api/v1/environments", |r| {
+                r.method(Method::GET).f(test::get_environments)
+            })
             .resource("/api/v1/scripts", |r| {
                 r.method(Method::GET).f(script::list_scripts);
                 r.method(Method::POST).f(script::save_script);

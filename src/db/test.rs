@@ -442,3 +442,26 @@ impl Handler<GetTestResults> for super::DbExecutor {
             .collect::<Vec<::engine::test::TestResult>>())
     }
 }
+
+pub struct GetEnvironments;
+impl ResponseType for GetEnvironments {
+    type Item = Vec<String>;
+    type Error = ();
+}
+impl Handler<GetEnvironments> for super::DbExecutor {
+    type Result = MessageResult<GetEnvironments>;
+
+    fn handle(&mut self, _msg: GetEnvironments, _: &mut Self::Context) -> Self::Result {
+        use super::schema::test_result::dsl::*;
+
+        Ok(test_result
+            .select(environment)
+            .filter(environment.is_not_null())
+            .distinct()
+            .load::<Option<String>>(&self.0)
+            .expect("can load environments from test results")
+            .iter()
+            .map(|v| v.clone().unwrap())
+            .collect())
+    }
+}

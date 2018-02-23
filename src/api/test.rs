@@ -31,7 +31,7 @@ pub struct TestDetails {
     pub name: String,
     pub path: Vec<TestItem>,
     pub children: Vec<TestItem>,
-    pub last_traces: Vec<String>,
+    pub last_results: Vec<::engine::test::TestResult>,
 }
 pub fn get_test(
     req: HttpRequest<AppState>,
@@ -73,7 +73,7 @@ pub fn get_test(
                                 id: tr.test_id.clone(),
                             })
                             .collect(),
-                        last_traces: vec![],
+                        last_results: vec![],
                     })?),
                 },
                 Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),

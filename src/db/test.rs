@@ -206,12 +206,28 @@ impl Handler<GetTestItems> for super::DbExecutor {
                         test_result
                             .filter(test_id.eq(ti.id.clone()))
                             .order(date.desc())
-                            .limit(TEST_RESULT_QUERY_LIMIT)
+                            .limit(5)
                             .load::<TestResultDb>(&self.0)
                             .ok()
                             .unwrap_or_else(|| vec![])
                             .iter()
-                            .map(|tr| tr.trace_id.clone())
+                            .map(|tr| ::engine::test::TestResult {
+                                test_id: tr.test_id.clone(),
+                                path: path.iter().map(|ti| ti.name.clone()).collect(),
+                                name: ti.name.clone(),
+                                date: (((tr.date.timestamp() * 1000)
+                                    + i64::from(tr.date.timestamp_subsec_millis()))
+                                    * 1000),
+                                duration: tr.duration,
+                                environment: tr.environment.clone(),
+                                status: match tr.status {
+                                    0 => ::engine::test::TestStatus::Success,
+                                    1 => ::engine::test::TestStatus::Failure,
+                                    2 => ::engine::test::TestStatus::Skipped,
+                                    _ => ::engine::test::TestStatus::Failure,
+                                },
+                                trace_id: tr.trace_id.clone(),
+                            })
                             .collect()
                     }
                     false => vec![],
@@ -219,7 +235,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
 
                 ::api::test::TestDetails {
                     children: children,
-                    last_traces: traces,
+                    last_results: traces,
                     name: ti.name.clone(),
                     path: path,
                     test_id: ti.id.clone(),

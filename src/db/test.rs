@@ -248,6 +248,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
 pub struct TestResultQuery {
     pub trace_id: Option<String>,
     pub status: Option<i32>,
+    pub test_id: Option<String>,
     pub min_duration: Option<i64>,
     pub max_duration: Option<i64>,
     pub end_ts: chrono::NaiveDateTime,
@@ -260,6 +261,7 @@ impl Default for TestResultQuery {
         TestResultQuery {
             trace_id: None,
             status: None,
+            test_id: None,
             min_duration: None,
             max_duration: None,
             end_ts: chrono::Utc::now().naive_utc(),
@@ -281,6 +283,7 @@ impl TestResultQuery {
                     _ => None,
                 }
             }),
+            test_id: req.query().get("testId").map(|s| s.to_string()),
             min_duration: req.query()
                 .get("minDuration")
                 .and_then(|s| s.parse::<i64>().ok()),
@@ -336,6 +339,10 @@ impl Handler<GetTestResults> for super::DbExecutor {
 
         if let Some(query_status) = msg.0.status {
             query = query.filter(status.eq(query_status));
+        }
+
+        if let Some(query_test_id) = msg.0.test_id {
+            query = query.filter(test_id.eq(query_test_id));
         }
 
         if let Some(query_max_duration) = msg.0.max_duration {

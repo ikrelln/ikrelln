@@ -252,7 +252,7 @@ pub struct TestResultQuery {
     pub environment: Option<String>,
     pub min_duration: Option<i64>,
     pub max_duration: Option<i64>,
-    pub end_ts: chrono::NaiveDateTime,
+    pub ts: chrono::NaiveDateTime,
     pub lookback: Option<chrono::Duration>,
     pub limit: i64,
 }
@@ -266,7 +266,7 @@ impl Default for TestResultQuery {
             environment: None,
             min_duration: None,
             max_duration: None,
-            end_ts: chrono::Utc::now().naive_utc(),
+            ts: chrono::Utc::now().naive_utc(),
             lookback: None,
             limit: TEST_RESULT_QUERY_LIMIT,
         }
@@ -293,8 +293,8 @@ impl TestResultQuery {
             max_duration: req.query()
                 .get("maxDuration")
                 .and_then(|s| s.parse::<i64>().ok()),
-            end_ts: req.query()
-                .get("endTs")
+            ts: req.query()
+                .get("ts")
                 .and_then(|s| s.parse::<i64>().ok())
                 .map(|v| {
                     // query timestamp is in milliseconds
@@ -359,9 +359,9 @@ impl Handler<GetTestResults> for super::DbExecutor {
             query = query.filter(duration.ge(query_min_duration));
         }
 
-        query = query.filter(date.le(msg.0.end_ts));
+        query = query.filter(date.le(msg.0.ts));
         if let Some(query_lookback) = msg.0.lookback {
-            query = query.filter(date.ge(msg.0.end_ts - query_lookback));
+            query = query.filter(date.ge(msg.0.ts - query_lookback));
         }
 
         let test_results: Vec<TestResultDb> = query

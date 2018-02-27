@@ -9,8 +9,41 @@ use chrono;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum ScriptType {
-    Span,
-    Test,
+    StreamSpan,
+    StreamTest,
+    UITest,
+    UITestResult,
+}
+impl From<i32> for ScriptType {
+    fn from(val: i32) -> ScriptType {
+        match val {
+            0 => ScriptType::StreamSpan,
+            1 => ScriptType::StreamTest,
+            2 => ScriptType::UITest,
+            3 => ScriptType::UITestResult,
+            _ => ScriptType::StreamTest,
+        }
+    }
+}
+impl Into<i32> for ScriptType {
+    fn into(self) -> i32 {
+        match self {
+            ScriptType::StreamSpan => 0,
+            ScriptType::StreamTest => 1,
+            ScriptType::UITest => 2,
+            ScriptType::UITestResult => 3,
+        }
+    }
+}
+impl Into<String> for ScriptType {
+    fn into(self) -> String {
+        match self {
+            ScriptType::StreamSpan => "StreamSpan".to_string(),
+            ScriptType::StreamTest => "StreamTest".to_string(),
+            ScriptType::UITest => "UITest".to_string(),
+            ScriptType::UITestResult => "UITestResult".to_string(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]

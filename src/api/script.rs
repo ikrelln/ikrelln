@@ -14,15 +14,25 @@ pub fn save_script(
         .from_err()
         .and_then(move |script: ::engine::streams::Script| {
             let new_script = ::engine::streams::Script {
-                id: Some(uuid::Uuid::new_v4().hyphenated().to_string()),
+                id: match script.script_type {
+                    ::engine::streams::ScriptType::UITest => {
+                        Some(::engine::streams::ScriptType::UITest.into())
+                    }
+                    ::engine::streams::ScriptType::UITestResult => {
+                        Some(::engine::streams::ScriptType::UITestResult.into())
+                    }
+                    _ => Some(uuid::Uuid::new_v4().hyphenated().to_string()),
+                },
                 status: Some(::engine::streams::ScriptStatus::Enabled),
                 date_added: Some(chrono::Utc::now().naive_utc()),
                 ..script
             };
             ::DB_EXECUTOR_POOL.send(::db::scripts::SaveScript(new_script.clone()));
-            actix::Arbiter::system_registry()
-                .get::<::engine::streams::Streamer>()
-                .send(::engine::streams::AddScript(new_script.clone()));
+            if let ::engine::streams::ScriptType::StreamTest = new_script.script_type {
+                actix::Arbiter::system_registry()
+                    .get::<::engine::streams::Streamer>()
+                    .send(::engine::streams::AddScript(new_script.clone()));
+            }
             return Ok(httpcodes::HTTPOk.build().json(new_script)?);
         })
         .responder()
@@ -59,9 +69,11 @@ pub fn delete_script(
             .from_err()
             .and_then(|res| match res {
                 Ok(Some(script)) => {
-                    actix::Arbiter::system_registry()
-                        .get::<::engine::streams::Streamer>()
-                        .send(::engine::streams::RemoveScript(script.clone()));
+                    if let ::engine::streams::ScriptType::StreamTest = script.script_type {
+                        actix::Arbiter::system_registry()
+                            .get::<::engine::streams::Streamer>()
+                            .send(::engine::streams::RemoveScript(script.clone()));
+                    }
 
                     Ok(httpcodes::HTTPOk.build().json(script)?)
                 }

@@ -32,10 +32,7 @@ impl Handler<SaveScript> for super::DbExecutor {
                 id: msg.0.id.unwrap().clone(),
                 name: msg.0.name.clone(),
                 source: msg.0.source.clone(),
-                script_type: match msg.0.script_type {
-                    ::engine::streams::ScriptType::Test => 0,
-                    ::engine::streams::ScriptType::Span => 1,
-                },
+                script_type: msg.0.script_type.into(),
                 date_added: msg.0.date_added.unwrap(),
                 status: match msg.0.status.unwrap() {
                     ::engine::streams::ScriptStatus::Enabled => 0,
@@ -72,10 +69,7 @@ impl Handler<GetAll> for super::DbExecutor {
             .map(|script_from_db| ::engine::streams::Script {
                 id: Some(script_from_db.id.clone()),
                 date_added: Some(script_from_db.date_added),
-                script_type: match script_from_db.script_type {
-                    0 => ::engine::streams::ScriptType::Test,
-                    _ => ::engine::streams::ScriptType::Span,
-                },
+                script_type: script_from_db.script_type.into(),
                 name: script_from_db.name.clone(),
                 source: script_from_db.source.clone(),
                 status: Some(match script_from_db.status {
@@ -105,10 +99,7 @@ impl Handler<GetScript> for super::DbExecutor {
             script_found.map(|script_from_db| ::engine::streams::Script {
                 id: Some(script_from_db.id.clone()),
                 date_added: Some(script_from_db.date_added),
-                script_type: match script_from_db.script_type {
-                    0 => ::engine::streams::ScriptType::Test,
-                    _ => ::engine::streams::ScriptType::Span,
-                },
+                script_type: script_from_db.script_type.into(),
                 name: script_from_db.name.clone(),
                 source: script_from_db.source.clone(),
                 status: Some(match script_from_db.status {
@@ -145,10 +136,7 @@ impl Handler<DeleteScript> for super::DbExecutor {
             script_found.map(|script_from_db| ::engine::streams::Script {
                 id: Some(script_from_db.id.clone()),
                 date_added: Some(script_from_db.date_added),
-                script_type: match script_from_db.script_type {
-                    0 => ::engine::streams::ScriptType::Test,
-                    _ => ::engine::streams::ScriptType::Span,
-                },
+                script_type: script_from_db.script_type.into(),
                 name: script_from_db.name.clone(),
                 source: script_from_db.source.clone(),
                 status: Some(match script_from_db.status {

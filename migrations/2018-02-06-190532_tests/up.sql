@@ -15,6 +15,7 @@ CREATE TABLE test_result
     duration BIGINT NOT NULL,
     environment VARCHAR,
     components_called VARCHAR NOT NULL,
+    nb_spans INT NOT NULL,
     PRIMARY KEY (test_id, trace_id),
     FOREIGN KEY (test_id) REFERENCES test_item(id)
 );

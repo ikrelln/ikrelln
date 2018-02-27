@@ -258,6 +258,7 @@ pub struct TestResult {
     pub duration: i64,
     pub environment: Option<String>,
     pub components_called: HashMap<String, i32>,
+    pub nb_spans: i32,
 }
 
 #[cfg(feature = "python")]
@@ -365,6 +366,7 @@ impl TestResult {
             })?,
             environment: Self::value_from_tag(&main_span.tags, IkrellnTags::Environment).ok(),
             components_called: call_by_remote_endpoint,
+            nb_spans: spans.len() as i32,
         })
     }
 }

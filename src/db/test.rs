@@ -29,6 +29,7 @@ pub struct TestResultDb {
     pub duration: i64,
     pub environment: Option<String>,
     pub components_called: String,
+    pub nb_spans: i32,
 }
 
 impl super::DbExecutor {
@@ -111,6 +112,7 @@ impl Handler<::engine::test::TestResult> for super::DbExecutor {
                 duration: msg.duration,
                 environment: msg.environment.clone(),
                 components_called: serde_json::to_string(&msg.components_called).unwrap(),
+                nb_spans: msg.nb_spans,
             })
             .execute(&self.0)
             .unwrap();
@@ -232,6 +234,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
                                 trace_id: tr.trace_id.clone(),
                                 components_called: serde_json::from_str(&tr.components_called)
                                     .unwrap(),
+                                nb_spans: tr.nb_spans,
                             })
                             .collect()
                     }
@@ -450,6 +453,7 @@ impl Handler<GetTestResults> for super::DbExecutor {
                     },
                     trace_id: tr.trace_id.clone(),
                     components_called: serde_json::from_str(&tr.components_called).unwrap(),
+                    nb_spans: tr.nb_spans,
                 }
             })
             .collect::<Vec<::engine::test::TestResult>>())

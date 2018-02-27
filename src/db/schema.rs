@@ -81,6 +81,7 @@ table! {
         duration -> Int8,
         environment -> Nullable<Varchar>,
         components_called -> Varchar,
+        nb_spans -> Int4,
     }
 }
 

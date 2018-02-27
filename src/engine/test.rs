@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use std::collections::HashMap;
+use std::collections::hash_map::{Entry, HashMap};
 use std::time::Duration;
 
 use futures::{self, Future};
@@ -184,15 +184,14 @@ impl Handler<TraceDone> for TraceParser {
             .from_err()
             .and_then(|spans| {
                 if let Ok(spans) = spans {
-                    let mut _spans_processed: Vec<String> = vec![];
-                    let main_span = spans.iter().find(|span| span.parent_id.is_none()).unwrap();
-                    let te = TestResult::try_from(main_span);
+                    //                    let mut _spans_processed: Vec<String> = vec![];
+                    let te = TestResult::try_from(&spans);
                     match te {
                         Ok(te) => Ok(Some(te)),
                         Err(tag) => {
                             warn!(
-                                "missing / invalid tag {:?} in trace {:?} main span",
-                                tag, main_span.trace_id
+                                "missing / invalid tag {:?} in trace for spans {:?}",
+                                tag, spans
                             );
                             Ok(None)
                         }
@@ -258,6 +257,7 @@ pub struct TestResult {
     pub status: TestStatus,
     pub duration: i64,
     pub environment: Option<String>,
+    pub components_called: HashMap<String, i32>,
 }
 
 #[cfg(feature = "python")]
@@ -316,22 +316,40 @@ impl TestResult {
         }
     }
 
-    fn try_from(span: &::engine::span::Span) -> Result<Self, KnownTag> {
-        let suite = Self::value_from_tag_or(span, IkrellnTags::Suite, |span| {
+    fn try_from(spans: &Vec<::engine::span::Span>) -> Result<Self, KnownTag> {
+        let main_span = spans.iter().find(|span| span.parent_id.is_none()).unwrap();
+        let suite = Self::value_from_tag_or(main_span, IkrellnTags::Suite, |span| {
             span.local_endpoint.clone().and_then(|ep| ep.service_name)
         })?;
-        let class = Self::value_from_tag(&span.tags, IkrellnTags::Class)?;
+        let class = Self::value_from_tag(&main_span.tags, IkrellnTags::Class)?;
+
+        let remote_services: Vec<String> = spans
+            .iter()
+            .filter_map(|span| span.clone().remote_endpoint.and_then(|ep| ep.service_name))
+            .collect();
+        let mut call_by_remote_endpoint = HashMap::new();
+        for token in remote_services.into_iter() {
+            let item = call_by_remote_endpoint.entry(token);
+            match item {
+                Entry::Occupied(mut entry) => {
+                    *entry.get_mut() = entry.get() + 1;
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(1);
+                }
+            }
+        }
 
         Ok(TestResult {
             test_id: "n/a".to_string(),
             path: vec![suite, class],
-            name: Self::value_from_tag_or(span, IkrellnTags::Name, |span| span.name.clone())?,
-            trace_id: span.trace_id.clone(),
-            date: span.timestamp.ok_or(KnownTag {
+            name: Self::value_from_tag_or(main_span, IkrellnTags::Name, |span| span.name.clone())?,
+            trace_id: main_span.trace_id.clone(),
+            date: main_span.timestamp.ok_or(KnownTag {
                 tag: "ts".to_string(),
             })?,
             status: TestStatus::try_from(&Self::value_from_tag_or(
-                span,
+                main_span,
                 IkrellnTags::Result,
                 |span| {
                     Self::value_from_tag(&span.tags, OpenTracingTag::Error)
@@ -342,10 +360,11 @@ impl TestResult {
                         })
                 },
             )?)?,
-            duration: span.duration.ok_or(KnownTag {
+            duration: main_span.duration.ok_or(KnownTag {
                 tag: "duration".to_string(),
             })?,
-            environment: Self::value_from_tag(&span.tags, IkrellnTags::Environment).ok(),
+            environment: Self::value_from_tag(&main_span.tags, IkrellnTags::Environment).ok(),
+            components_called: call_by_remote_endpoint,
         })
     }
 }

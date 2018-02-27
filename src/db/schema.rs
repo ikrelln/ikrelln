@@ -80,6 +80,7 @@ table! {
         status -> Int4,
         duration -> Int8,
         environment -> Nullable<Varchar>,
+        components_called -> Varchar,
     }
 }
 

@@ -4,6 +4,7 @@ use diesel::prelude::*;
 use uuid;
 use chrono;
 use actix_web;
+use serde_json;
 
 static TEST_ITEM_QUERY_LIMIT: i64 = 200;
 use db::schema::test_item;
@@ -27,6 +28,7 @@ pub struct TestResultDb {
     pub status: i32,
     pub duration: i64,
     pub environment: Option<String>,
+    pub components_called: String,
 }
 
 impl super::DbExecutor {
@@ -108,6 +110,7 @@ impl Handler<::engine::test::TestResult> for super::DbExecutor {
                 },
                 duration: msg.duration,
                 environment: msg.environment.clone(),
+                components_called: serde_json::to_string(&msg.components_called).unwrap(),
             })
             .execute(&self.0)
             .unwrap();
@@ -227,6 +230,8 @@ impl Handler<GetTestItems> for super::DbExecutor {
                                     _ => ::engine::test::TestStatus::Failure,
                                 },
                                 trace_id: tr.trace_id.clone(),
+                                components_called: serde_json::from_str(&tr.components_called)
+                                    .unwrap(),
                             })
                             .collect()
                     }
@@ -444,6 +449,7 @@ impl Handler<GetTestResults> for super::DbExecutor {
                         _ => ::engine::test::TestStatus::Failure,
                     },
                     trace_id: tr.trace_id.clone(),
+                    components_called: serde_json::from_str(&tr.components_called).unwrap(),
                 }
             })
             .collect::<Vec<::engine::test::TestResult>>())

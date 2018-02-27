@@ -85,6 +85,35 @@ pub fn get_test(
     }
 }
 
+pub fn get_tests_by_parent(
+    req: HttpRequest<AppState>,
+) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+    match req.query().get("parentId") {
+        Some(test_id) => ::DB_EXECUTOR_POOL
+            .call_fut(::db::test::GetTestItems(::db::test::TestItemQuery {
+                parent_id: Some(test_id.to_string()),
+                with_children: true,
+                with_full_path: true,
+                with_traces: true,
+                ..Default::default()
+            }))
+            .from_err()
+            .and_then(|res| match res {
+                Ok(test_results) => match test_results.len() {
+                    0 => Err(super::errors::IkError::NotFound(
+                        "testId not found".to_string(),
+                    )),
+                    _ => Ok(httpcodes::HTTPOk.build().json(test_results)?),
+                },
+                Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
+            })
+            .responder(),
+        _ => result(Err(super::errors::IkError::BadRequest(
+            "missing parentId query parameter".to_string(),
+        ))).responder(),
+    }
+}
+
 pub fn get_environments(
     _req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {

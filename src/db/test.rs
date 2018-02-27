@@ -8,7 +8,7 @@ use serde_json;
 
 static TEST_ITEM_QUERY_LIMIT: i64 = 200;
 use db::schema::test_item;
-#[derive(Debug, Insertable, Queryable, Clone)]
+#[derive(Debug, Insertable, Queryable, Clone, Identifiable)]
 #[table_name = "test_item"]
 pub struct TestItemDb {
     pub id: String,
@@ -19,7 +19,9 @@ pub struct TestItemDb {
 
 static TEST_RESULT_QUERY_LIMIT: i64 = 100;
 use db::schema::test_result;
-#[derive(Debug, Insertable, Queryable)]
+#[derive(Debug, Insertable, Queryable, Associations, Identifiable)]
+#[belongs_to(TestItemDb, foreign_key = "test_id")]
+#[primary_key(test_id, trace_id)]
 #[table_name = "test_result"]
 pub struct TestResultDb {
     test_id: String,
@@ -152,6 +154,8 @@ impl Handler<GetTestItems> for super::DbExecutor {
             query = query.filter(id.eq(filter_id));
         }
 
+        let mut test_item_cache = super::helper::Cacher::new();
+
         Ok(query
             .order(name.asc())
             .load::<TestItemDb>(&self.0)
@@ -165,17 +169,23 @@ impl Handler<GetTestItems> for super::DbExecutor {
                 let mut path = vec![];
                 if msg.0.with_full_path {
                     while test_item_to_get.is_some() {
-                        if let Some(test) = {
-                            use super::schema::test_item::dsl::*;
-                            test_item
-                                .filter(id.eq(test_item_to_get.unwrap()))
-                                .first::<TestItemDb>(&self.0)
-                                .ok()
-                        } {
-                            test_item_to_get = Some(test.parent_id);
+                        if let Some(test) = test_item_cache
+                            .get(&test_item_to_get.unwrap(), |ti_id| {
+                                use super::schema::test_item::dsl::*;
+                                test_item
+                                    .filter(id.eq(ti_id))
+                                    .first::<TestItemDb>(&self.0)
+                                    .ok()
+                            })
+                            .clone()
+                        {
+                            test_item_to_get = match test.parent_id.as_ref() {
+                                "root" => None,
+                                item_id => Some(item_id.to_string()),
+                            };
                             path.push(::api::test::TestItem {
-                                name: test.name,
-                                id: test.id,
+                                id: test.id.clone(),
+                                name: test.name.clone(),
                             });
                         } else {
                             test_item_to_get = None;
@@ -208,10 +218,8 @@ impl Handler<GetTestItems> for super::DbExecutor {
                     true => {
                         use super::schema::test_result::dsl::*;
 
-                        test_result
-                            .filter(test_id.eq(ti.id.clone()))
-                            .order(date.desc())
-                            .limit(5)
+                        let query = TestResultDb::belonging_to(ti).order(date.desc()).limit(5);
+                        query
                             .load::<TestResultDb>(&self.0)
                             .ok()
                             .unwrap_or_else(|| vec![])

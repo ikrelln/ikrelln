@@ -63,6 +63,9 @@ pub fn serve(host: &str, port: u16) {
             .resource("/api/v1/dependencies", |r| {
                 r.method(Method::GET).f(span::get_dependencies)
             })
+            .resource("/api/v1/tests", |r| {
+                r.method(Method::GET).f(test::get_tests_by_parent)
+            })
             .resource("/api/v1/tests/{testId}", |r| {
                 r.method(Method::GET).f(test::get_test)
             })

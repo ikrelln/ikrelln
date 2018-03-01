@@ -2,7 +2,7 @@ use std::str::FromStr;
 use std::collections::hash_map::{Entry, HashMap};
 use std::time::Duration;
 
-use futures::{self, Future};
+use futures::{future, Future};
 use actix::prelude::*;
 
 #[cfg(feature = "python")]
@@ -161,72 +161,63 @@ impl actix::SystemService for TraceParser {
 #[derive(Message)]
 pub struct TraceDoneNow(pub String);
 impl Handler<TraceDoneNow> for TraceParser {
-    type Result = Result<(), ()>;
+    type Result = ();
 
     fn handle(&mut self, msg: TraceDoneNow, ctx: &mut Context<Self>) -> Self::Result {
         ctx.notify_later(TraceDone(msg.0), Duration::new(2, 0));
-        Ok(())
+        ()
     }
 }
 
 #[derive(Message)]
 pub struct TraceDone(pub String);
 impl Handler<TraceDone> for TraceParser {
-    type Result = Result<(), ()>;
+    type Result = ();
 
-    fn handle(&mut self, msg: TraceDone, ctx: &mut Context<Self>) -> Self::Result {
-        let trace_parser = ::DB_EXECUTOR_POOL
-            .call_fut(::db::span::GetSpans(
-                ::db::span::SpanQuery::default()
-                    .with_trace_id(msg.0)
-                    .with_limit(1000),
-            ))
-            .from_err()
-            .and_then(|spans| {
-                if let Ok(spans) = spans {
-                    //                    let mut _spans_processed: Vec<String> = vec![];
+    fn handle(&mut self, msg: TraceDone, _ctx: &mut Context<Self>) -> Self::Result {
+        Arbiter::handle().spawn(
+            ::DB_EXECUTOR_POOL
+                .send(::db::span::GetSpans(
+                    ::db::span::SpanQuery::default()
+                        .with_trace_id(msg.0)
+                        .with_limit(1000),
+                ))
+                .map(|spans| {
                     let te = TestResult::try_from(&spans);
                     match te {
-                        Ok(te) => Ok(Some(te)),
+                        Ok(te) => Some(te),
                         Err(tag) => {
                             warn!(
                                 "missing / invalid tag {:?} in trace for spans {:?}",
                                 tag, spans
                             );
-                            Ok(None)
+                            None
                         }
                     }
-                } else {
-                    Ok(None)
-                }
-            });
-        ctx.add_future(trace_parser.and_then(|test_exec| match test_exec {
-            Some(test_exec) => futures::future::result(Ok(TestExecutionToSave(test_exec))),
-            None => futures::future::result(Err(futures::Canceled)),
-        }));
-
-        Ok(())
+                })
+                .then(|test_exec| {
+                    if let Ok(Some(test_exec)) = test_exec {
+                        Arbiter::system_registry()
+                            .get::<super::test::TraceParser>()
+                            .do_send(TestExecutionToSave(test_exec));
+                    }
+                    future::result(Ok(()))
+                }),
+        )
     }
 }
 
 #[derive(Message, Debug)]
 pub struct TestExecutionToSave(TestResult);
-impl Handler<Result<TestExecutionToSave, futures::Canceled>> for TraceParser {
-    type Result = Result<(), ()>;
-    fn handle(
-        &mut self,
-        msg: Result<TestExecutionToSave, futures::Canceled>,
-        _ctx: &mut Context<Self>,
-    ) -> Self::Result {
-        if let Ok(test_execution) = msg {
-            info!("got a test execution parsed: {:?}", test_execution);
-            ::DB_EXECUTOR_POOL.send(test_execution.0.clone());
-            actix::Arbiter::system_registry()
-                .get::<::engine::streams::Streamer>()
-                .send(::engine::streams::Test(test_execution.0));
-        }
 
-        Ok(())
+impl Handler<TestExecutionToSave> for TraceParser {
+    type Result = ();
+
+    fn handle(&mut self, msg: TestExecutionToSave, _ctx: &mut Context<Self>) -> Self::Result {
+        ::DB_EXECUTOR_POOL.do_send(msg.0.clone());
+        actix::Arbiter::system_registry()
+            .get::<::engine::streams::Streamer>()
+            .do_send(::engine::streams::Test(msg.0));
     }
 }
 
@@ -259,6 +250,7 @@ pub struct TestResult {
     pub environment: Option<String>,
     pub components_called: HashMap<String, i32>,
     pub nb_spans: i32,
+    pub main_span: Option<::engine::span::Span>,
 }
 
 #[cfg(feature = "python")]
@@ -286,6 +278,9 @@ impl ToPyObject for TestResult {
         object.set_item(py, "duration", self.duration).unwrap();
         if let Some(environment) = self.environment.clone() {
             object.set_item(py, "environment", environment).unwrap();
+        }
+        if let Some(main_span) = self.main_span.clone() {
+            object.set_item(py, "main_span", main_span).unwrap();
         }
         object
     }
@@ -317,7 +312,7 @@ impl TestResult {
         }
     }
 
-    fn try_from(spans: &Vec<::engine::span::Span>) -> Result<Self, KnownTag> {
+    fn try_from(spans: &[::engine::span::Span]) -> Result<Self, KnownTag> {
         let main_span = spans.iter().find(|span| span.parent_id.is_none()).unwrap();
         let suite = Self::value_from_tag_or(main_span, IkrellnTags::Suite, |span| {
             span.local_endpoint.clone().and_then(|ep| ep.service_name)
@@ -329,7 +324,7 @@ impl TestResult {
             .filter_map(|span| span.clone().remote_endpoint.and_then(|ep| ep.service_name))
             .collect();
         let mut call_by_remote_endpoint = HashMap::new();
-        for token in remote_services.into_iter() {
+        for token in remote_services {
             let item = call_by_remote_endpoint.entry(token);
             match item {
                 Entry::Occupied(mut entry) => {
@@ -367,6 +362,7 @@ impl TestResult {
             environment: Self::value_from_tag(&main_span.tags, IkrellnTags::Environment).ok(),
             components_called: call_by_remote_endpoint,
             nb_spans: spans.len() as i32,
+            main_span: Some(main_span.clone()),
         })
     }
 }

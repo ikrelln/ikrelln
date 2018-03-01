@@ -1,4 +1,4 @@
-use actix_web::{httpcodes, AsyncResponder, HttpRequest, HttpResponse};
+use actix_web::*;
 use actix;
 use futures::Future;
 use futures::future::result;
@@ -27,13 +27,15 @@ pub fn save_script(
                 date_added: Some(chrono::Utc::now().naive_utc()),
                 ..script
             };
-            ::DB_EXECUTOR_POOL.send(::db::scripts::SaveScript(new_script.clone()));
+            ::DB_EXECUTOR_POOL.do_send(::db::scripts::SaveScript(new_script.clone()));
+            info!("new script ! {:?}", new_script);
             if let ::engine::streams::ScriptType::StreamTest = new_script.script_type {
+                info!("adding new ! {:?}", new_script);
                 actix::Arbiter::system_registry()
                     .get::<::engine::streams::Streamer>()
-                    .send(::engine::streams::AddScript(new_script.clone()));
+                    .do_send(::engine::streams::AddScript(new_script.clone()));
             }
-            return Ok(httpcodes::HTTPOk.build().json(new_script)?);
+            Ok(httpcodes::HTTPOk.build().json(new_script)?)
         })
         .responder()
 }
@@ -43,14 +45,13 @@ pub fn get_script(
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("scriptId") {
         Some(script_id) => ::DB_EXECUTOR_POOL
-            .call_fut(::db::scripts::GetScript(script_id.to_string()))
+            .send(::db::scripts::GetScript(script_id.to_string()))
             .from_err()
             .and_then(|res| match res {
-                Ok(Some(script)) => Ok(httpcodes::HTTPOk.build().json(script)?),
-                Ok(None) => Err(super::errors::IkError::NotFound(
+                Some(script) => Ok(httpcodes::HTTPOk.build().json(script)?),
+                None => Err(super::errors::IkError::NotFound(
                     "script not found".to_string(),
                 )),
-                Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
             })
             .responder(),
 
@@ -63,24 +64,24 @@ pub fn get_script(
 pub fn delete_script(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+    info!("{:?}", req.match_info());
     match req.match_info().get("scriptId") {
         Some(script_id) => ::DB_EXECUTOR_POOL
-            .call_fut(::db::scripts::DeleteScript(script_id.to_string()))
+            .send(::db::scripts::DeleteScript(script_id.to_string()))
             .from_err()
             .and_then(|res| match res {
-                Ok(Some(script)) => {
+                Some(script) => {
                     if let ::engine::streams::ScriptType::StreamTest = script.script_type {
                         actix::Arbiter::system_registry()
                             .get::<::engine::streams::Streamer>()
-                            .send(::engine::streams::RemoveScript(script.clone()));
+                            .do_send(::engine::streams::RemoveScript(script.clone()));
                     }
 
                     Ok(httpcodes::HTTPOk.build().json(script)?)
                 }
-                Ok(None) => Err(super::errors::IkError::NotFound(
+                None => Err(super::errors::IkError::NotFound(
                     "script not found".to_string(),
                 )),
-                Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
             })
             .responder(),
 
@@ -94,11 +95,8 @@ pub fn list_scripts(
     _req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     ::DB_EXECUTOR_POOL
-        .call_fut(::db::scripts::GetAll)
+        .send(::db::scripts::GetAll(None))
         .from_err()
-        .and_then(|res| match res {
-            Ok(scripts) => Ok(httpcodes::HTTPOk.build().json(scripts)?),
-            Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
-        })
+        .and_then(|res| Ok(httpcodes::HTTPOk.build().json(res)?))
         .responder()
 }

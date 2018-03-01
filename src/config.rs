@@ -79,10 +79,10 @@ impl Config {
             .to_string();
 
         Config {
-            host: host,
-            port: port,
-            db_nb_connection: db_nb_connection,
-            db_url: db_url,
+            host,
+            port,
+            db_nb_connection,
+            db_url,
         }
     }
 }

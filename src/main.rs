@@ -65,13 +65,13 @@ fn main() {
 
     actix::Arbiter::system_registry()
         .get::<::engine::streams::Streamer>()
-        .send(::engine::streams::LoadScripts);
+        .do_send(::engine::streams::LoadScripts);
 
     system.run();
 }
 
 lazy_static! {
-    static ref DB_EXECUTOR_POOL: actix::SyncAddress<db::DbExecutor> = {
+    static ref DB_EXECUTOR_POOL: actix::Addr<actix::Syn, db::DbExecutor> = {
         let config = ::config::Config::load();
         actix::SyncArbiter::start(config.db_nb_connection, move || {
             db::DbExecutor(db::establish_connection(&config.db_url))

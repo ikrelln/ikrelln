@@ -1,8 +1,10 @@
 use std;
-use actix::*;
+use actix::prelude::*;
 use futures::future::*;
-use futures;
 use std::collections::HashMap;
+
+#[cfg(feature = "python")]
+use cpython::{PyDict, Python, ToPyObject};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub enum Kind {
@@ -47,6 +49,35 @@ pub struct Span {
     #[serde(default)] pub binary_annotations: Vec<BinaryTag>,
 }
 
+#[cfg(feature = "python")]
+impl ToPyObject for Span {
+    type ObjectType = PyDict;
+    fn to_py_object(&self, py: Python) -> Self::ObjectType {
+        let object = PyDict::new(py);
+        object
+            .set_item(py, "trace_id", self.trace_id.clone())
+            .unwrap();
+        object.set_item(py, "id", self.id.clone()).unwrap();
+        if let Some(parent_id) = self.parent_id.clone() {
+            object.set_item(py, "parent_id", parent_id).unwrap();
+        }
+        if let Some(name) = self.name.clone() {
+            object.set_item(py, "name", name).unwrap();
+        }
+        if let Some(kind) = self.kind.clone() {
+            object.set_item(py, "kind", format!("{}", kind)).unwrap();
+        }
+        if let Some(duration) = self.duration.clone() {
+            object.set_item(py, "duration", duration).unwrap();
+        }
+        if let Some(timestamp) = self.timestamp.clone() {
+            object.set_item(py, "timestamp", timestamp).unwrap();
+        }
+        object.set_item(py, "tags", self.tags.clone()).unwrap();
+        object
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Endpoint {
@@ -72,33 +103,26 @@ pub struct BinaryTag {
 }
 
 impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor {
-    type Result = Result<(), ()>;
+    type Result = ();
 
     fn handle(
         &mut self,
         msg: super::ingestor::IngestEvents<Span>,
-        ctx: &mut Context<Self>,
+        _ctx: &mut Context<Self>,
     ) -> Self::Result {
-        ::DB_EXECUTOR_POOL.send(::db::ingest_event::IngestEventDb::from(&msg));
-        let msg_futures = msg.events
-            .iter()
-            .map(move |event: &Span| {
-                ::DB_EXECUTOR_POOL.call_fut(event.clone()).and_then(|span| {
-                    if let Ok(span) = span {
-                        if let (Some(_), None) = (span.duration, span.parent_id.clone()) {
-                            Arbiter::system_registry()
-                                .get::<super::test::TraceParser>()
-                                .send(super::test::TraceDoneNow(span.trace_id.clone()));
-                        }
+        for event in &msg.events {
+            let event = event.clone();
+            Arbiter::handle().spawn(::DB_EXECUTOR_POOL.send(event.clone()).then(|span| {
+                if let Ok(span) = span {
+                    if let (Some(_), None) = (span.duration, span.parent_id.clone()) {
+                        Arbiter::system_registry()
+                            .get::<super::test::TraceParser>()
+                            .do_send(super::test::TraceDoneNow(span.trace_id.clone()));
                     }
-                    futures::future::result(Ok(()))
-                })
-            })
-            .collect::<Vec<_>>();
-        let finishing = join_all(msg_futures)
-            .and_then(|_| futures::future::result(Ok(super::ingestor::FinishedIngest(msg))));
-        ctx.add_future(finishing);
-        Ok(())
+                }
+                result(Ok(()))
+            }));
+        }
     }
 }
 

@@ -15,15 +15,11 @@ struct ScriptDb {
     status: i32,
 }
 
+#[derive(Message)]
 pub struct SaveScript(pub ::engine::streams::Script);
 
-impl ResponseType for SaveScript {
-    type Item = ();
-    type Error = ();
-}
-
 impl Handler<SaveScript> for super::DbExecutor {
-    type Result = MessageResult<SaveScript>;
+    type Result = ();
 
     fn handle(&mut self, msg: SaveScript, _: &mut Self::Context) -> Self::Result {
         use super::schema::script::dsl::*;
@@ -41,51 +37,54 @@ impl Handler<SaveScript> for super::DbExecutor {
             })
             .execute(&self.0)
             .unwrap();
-
-        Ok(())
     }
 }
 
-pub struct GetAll;
+pub struct GetAll(pub Option<Vec<::engine::streams::ScriptType>>);
 
-impl ResponseType for GetAll {
-    type Item = Vec<::engine::streams::Script>;
-    type Error = ();
+impl Message for GetAll {
+    type Result = Vec<::engine::streams::Script>;
 }
 
 impl Handler<GetAll> for super::DbExecutor {
     type Result = MessageResult<GetAll>;
 
-    fn handle(&mut self, _msg: GetAll, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: GetAll, _: &mut Self::Context) -> Self::Result {
         use super::schema::script::dsl::*;
-        let scripts: Vec<ScriptDb> = script
+        let mut script_query = script.into_boxed();
+        if let Some(types) = msg.0 {
+            let types: Vec<i32> = types.iter().map(|ty| ty.clone().into()).collect();
+            script_query = script_query.filter(script_type.eq_any(types))
+        }
+        let scripts: Vec<ScriptDb> = script_query
             .order(script_type.asc())
             .order(name.asc())
             .load(&self.0)
             .expect("error loading scripts");
 
-        Ok(scripts
-            .iter()
-            .map(|script_from_db| ::engine::streams::Script {
-                id: Some(script_from_db.id.clone()),
-                date_added: Some(script_from_db.date_added),
-                script_type: script_from_db.script_type.into(),
-                name: script_from_db.name.clone(),
-                source: script_from_db.source.clone(),
-                status: Some(match script_from_db.status {
-                    0 => ::engine::streams::ScriptStatus::Enabled,
-                    _ => ::engine::streams::ScriptStatus::Disabled,
-                }),
-            })
-            .collect())
+        MessageResult(
+            scripts
+                .iter()
+                .map(|script_from_db| ::engine::streams::Script {
+                    id: Some(script_from_db.id.clone()),
+                    date_added: Some(script_from_db.date_added),
+                    script_type: script_from_db.script_type.into(),
+                    name: script_from_db.name.clone(),
+                    source: script_from_db.source.clone(),
+                    status: Some(match script_from_db.status {
+                        0 => ::engine::streams::ScriptStatus::Enabled,
+                        _ => ::engine::streams::ScriptStatus::Disabled,
+                    }),
+                })
+                .collect(),
+        )
     }
 }
 
 pub struct GetScript(pub String);
 
-impl ResponseType for GetScript {
-    type Item = Option<::engine::streams::Script>;
-    type Error = ();
+impl Message for GetScript {
+    type Result = Option<::engine::streams::Script>;
 }
 
 impl Handler<GetScript> for super::DbExecutor {
@@ -95,7 +94,7 @@ impl Handler<GetScript> for super::DbExecutor {
         use super::schema::script::dsl::*;
         let script_found = script.filter(id.eq(msg.0)).first::<ScriptDb>(&self.0).ok();
 
-        Ok(
+        MessageResult(
             script_found.map(|script_from_db| ::engine::streams::Script {
                 id: Some(script_from_db.id.clone()),
                 date_added: Some(script_from_db.date_added),
@@ -111,11 +110,11 @@ impl Handler<GetScript> for super::DbExecutor {
     }
 }
 
+#[derive(Debug)]
 pub struct DeleteScript(pub String);
 
-impl ResponseType for DeleteScript {
-    type Item = Option<::engine::streams::Script>;
-    type Error = ();
+impl Message for DeleteScript {
+    type Result = Option<::engine::streams::Script>;
 }
 
 impl Handler<DeleteScript> for super::DbExecutor {
@@ -132,7 +131,7 @@ impl Handler<DeleteScript> for super::DbExecutor {
             .execute(&self.0)
             .expect("Error deleting script");
 
-        Ok(
+        MessageResult(
             script_found.map(|script_from_db| ::engine::streams::Script {
                 id: Some(script_from_db.id.clone()),
                 date_added: Some(script_from_db.date_added),

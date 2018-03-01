@@ -19,10 +19,12 @@ impl<T> Cacher<T>
 where
     T: Clone,
 {
-    pub fn get<F>(&mut self, key: &String, req: F) -> &Option<T>
+    pub fn get<F>(&mut self, key: &str, req: F) -> &Option<T>
     where
-        F: Fn(&String) -> Option<T>,
+        F: Fn(&str) -> Option<T>,
     {
-        self.cache.entry(key.clone()).or_insert_with(|| req(key))
+        self.cache
+            .entry(key.to_string())
+            .or_insert_with(|| req(key))
     }
 }

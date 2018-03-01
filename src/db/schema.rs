@@ -19,14 +19,6 @@ table! {
 }
 
 table! {
-    ingest (id) {
-        id -> Varchar,
-        created_at -> Timestamp,
-        processed_at -> Nullable<Timestamp>,
-    }
-}
-
-table! {
     script (id) {
         id -> Varchar,
         name -> Varchar,
@@ -90,7 +82,6 @@ joinable!(test_result -> test_item (test_id));
 allow_tables_to_appear_in_same_query!(
     annotation,
     endpoint,
-    ingest,
     script,
     span,
     tag,

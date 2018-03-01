@@ -1,4 +1,4 @@
-use actix_web::{httpcodes, AsyncResponder, HttpRequest, HttpResponse};
+use actix_web::*;
 use futures::Future;
 use futures::future::result;
 use std::collections::HashMap;
@@ -25,9 +25,9 @@ pub fn ingest(
             let ingest = IngestEvents::new(val);
             let ingest_id = ingest.ingest_id.clone();
             debug!("ingesting {} event(s) as {}", nb_spans, ingest_id,);
-            ingestor.send(ingest);
+            ingestor.do_send(ingest);
             Ok(httpcodes::HTTPOk.build().json(IngestResponse {
-                ingest_id: ingest_id,
+                ingest_id,
                 nb_events: nb_spans,
             })?)
         })
@@ -38,14 +38,11 @@ pub fn get_services(
     _req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     ::DB_EXECUTOR_POOL
-        .call_fut(::db::span::GetServices)
+        .send(::db::span::GetServices)
         .from_err()
-        .and_then(|res| match res {
-            Ok(mut services) => {
-                services.dedup();
-                Ok(httpcodes::HTTPOk.build().json(services)?)
-            }
-            Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
+        .and_then(|mut services| {
+            services.dedup();
+            Ok(httpcodes::HTTPOk.build().json(services)?)
         })
         .responder()
 }
@@ -55,19 +52,16 @@ pub fn get_spans_by_service(
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.query().get("serviceName") {
         Some(_) => ::DB_EXECUTOR_POOL
-            .call_fut(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
+            .send(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
             .from_err()
-            .and_then(|res| match res {
-                Ok(spans) => {
-                    let mut span_names = spans
-                        .iter()
-                        .map(|span| span.name.clone().unwrap_or_else(|| "n/a".to_string()))
-                        .collect::<Vec<String>>();
-                    span_names.sort_unstable();
-                    span_names.dedup();
-                    Ok(httpcodes::HTTPOk.build().json(span_names)?)
-                }
-                Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
+            .and_then(|res| {
+                let mut span_names = res
+                    .iter()
+                    .map(|span| span.name.clone().unwrap_or_else(|| "n/a".to_string()))
+                    .collect::<Vec<String>>();
+                span_names.sort_unstable();
+                span_names.dedup();
+                Ok(httpcodes::HTTPOk.build().json(span_names)?)
             })
             .responder(),
 
@@ -82,14 +76,11 @@ pub fn get_spans_by_trace_id(
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("traceId") {
         Some(trace_id) => ::DB_EXECUTOR_POOL
-            .call_fut(::db::span::GetSpans(
+            .send(::db::span::GetSpans(
                 ::db::span::SpanQuery::from_req(&req).with_trace_id(trace_id.to_string()),
             ))
             .from_err()
-            .and_then(|res| match res {
-                Ok(spans) => Ok(httpcodes::HTTPOk.build().json(spans)?),
-                Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
-            })
+            .and_then(|res| Ok(httpcodes::HTTPOk.build().json(res)?))
             .responder(),
 
         _ => result(Err(super::errors::IkError::BadRequest(
@@ -102,12 +93,12 @@ pub fn get_traces(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     ::DB_EXECUTOR_POOL
-        .call_fut(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
+        .send(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
         .from_err()
-        .and_then(|res| match res {
-            Ok(spans) => Ok(httpcodes::HTTPOk.build().json({
+        .and_then(|res| {
+            Ok(httpcodes::HTTPOk.build().json({
                 let mut by_trace_with_key = HashMap::new();
-                for span in spans {
+                for span in res {
                     by_trace_with_key
                         .entry(span.trace_id.clone())
                         .or_insert_with(Vec::new)
@@ -118,8 +109,7 @@ pub fn get_traces(
                     by_trace.push(spans);
                 }
                 by_trace
-            })?),
-            Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
+            })?)
         })
         .responder()
 }
@@ -147,15 +137,15 @@ pub fn get_dependencies(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     ::DB_EXECUTOR_POOL
-        .call_fut(::db::span::GetSpans(
+        .send(::db::span::GetSpans(
             ::db::span::SpanQuery::from_req(&req)
                 .with_limit(100_000)
                 .only_endpoint(),
         ))
         .from_err()
-        .and_then(|res| match res {
-            Ok(spans) => Ok(httpcodes::HTTPOk.build().json({
-                let by_services = spans.into_iter().fold(HashMap::new(), |mut map, elt| {
+        .and_then(|res| {
+            Ok(httpcodes::HTTPOk.build().json({
+                let by_services = res.into_iter().fold(HashMap::new(), |mut map, elt| {
                     let local_service = elt.local_endpoint
                         .and_then(|ep| ep.service_name)
                         .unwrap_or_else(|| "n/a".to_string());
@@ -182,8 +172,7 @@ pub fn get_dependencies(
                     by_trace.push(spans);
                 }
                 by_trace
-            })?),
-            Err(_) => Ok(httpcodes::HTTPInternalServerError.into()),
+            })?)
         })
         .responder()
 }

@@ -1,5 +1,5 @@
 use diesel;
-use actix::{Handler, MessageResult, ResponseType};
+use actix::{Handler, Message, MessageResult};
 use diesel::prelude::*;
 use uuid;
 use chrono;
@@ -71,9 +71,8 @@ impl super::DbExecutor {
     }
 }
 
-impl ResponseType for ::engine::test::TestResult {
-    type Item = ::engine::test::TestResult;
-    type Error = ();
+impl Message for ::engine::test::TestResult {
+    type Result = ::engine::test::TestResult;
 }
 
 impl Handler<::engine::test::TestResult> for super::DbExecutor {
@@ -84,7 +83,7 @@ impl Handler<::engine::test::TestResult> for super::DbExecutor {
         for item in msg.path.clone() {
             parent_id = self.find_test_or_insert(&TestItemDb {
                 id: "n/a".to_string(),
-                parent_id: parent_id,
+                parent_id,
                 name: item,
                 source: 0,
             });
@@ -92,7 +91,7 @@ impl Handler<::engine::test::TestResult> for super::DbExecutor {
 
         parent_id = self.find_test_or_insert(&TestItemDb {
             id: "n/a".to_string(),
-            parent_id: parent_id,
+            parent_id,
             name: msg.name.clone(),
             source: 0,
         });
@@ -119,7 +118,7 @@ impl Handler<::engine::test::TestResult> for super::DbExecutor {
             .execute(&self.0)
             .unwrap();
 
-        Ok(msg)
+        MessageResult(msg)
     }
 }
 
@@ -133,9 +132,8 @@ pub struct TestItemQuery {
 }
 
 pub struct GetTestItems(pub TestItemQuery);
-impl ResponseType for GetTestItems {
-    type Item = Vec<::api::test::TestDetails>;
-    type Error = ();
+impl Message for GetTestItems {
+    type Result = Vec<::api::test::TestDetails>;
 }
 
 impl Handler<GetTestItems> for super::DbExecutor {
@@ -156,46 +154,46 @@ impl Handler<GetTestItems> for super::DbExecutor {
 
         let mut test_item_cache = super::helper::Cacher::new();
 
-        Ok(query
-            .order(name.asc())
-            .load::<TestItemDb>(&self.0)
-            .expect("error loading test items")
-            .iter()
-            .map(|ti| {
-                let mut test_item_to_get = match ti.parent_id.as_ref() {
-                    "root" => None,
-                    item_id => Some(item_id.to_string()),
-                };
-                let mut path = vec![];
-                if msg.0.with_full_path {
-                    while test_item_to_get.is_some() {
-                        if let Some(test) = test_item_cache
-                            .get(&test_item_to_get.unwrap(), |ti_id| {
-                                use super::schema::test_item::dsl::*;
-                                test_item
-                                    .filter(id.eq(ti_id))
-                                    .first::<TestItemDb>(&self.0)
-                                    .ok()
-                            })
-                            .clone()
-                        {
-                            test_item_to_get = match test.parent_id.as_ref() {
-                                "root" => None,
-                                item_id => Some(item_id.to_string()),
-                            };
-                            path.push(::api::test::TestItem {
-                                id: test.id.clone(),
-                                name: test.name.clone(),
-                            });
-                        } else {
-                            test_item_to_get = None;
+        MessageResult(
+            query
+                .order(name.asc())
+                .load::<TestItemDb>(&self.0)
+                .expect("error loading test items")
+                .iter()
+                .map(|ti| {
+                    let mut test_item_to_get = match ti.parent_id.as_ref() {
+                        "root" => None,
+                        item_id => Some(item_id.to_string()),
+                    };
+                    let mut path = vec![];
+                    if msg.0.with_full_path {
+                        while test_item_to_get.is_some() {
+                            if let Some(test) = test_item_cache
+                                .get(&test_item_to_get.unwrap(), |ti_id| {
+                                    use super::schema::test_item::dsl::*;
+                                    test_item
+                                        .filter(id.eq(ti_id))
+                                        .first::<TestItemDb>(&self.0)
+                                        .ok()
+                                })
+                                .clone()
+                            {
+                                test_item_to_get = match test.parent_id.as_ref() {
+                                    "root" => None,
+                                    item_id => Some(item_id.to_string()),
+                                };
+                                path.push(::api::test::TestItem {
+                                    id: test.id.clone(),
+                                    name: test.name.clone(),
+                                });
+                            } else {
+                                test_item_to_get = None;
+                            }
                         }
+                        path.reverse();
                     }
-                    path.reverse();
-                }
 
-                let children = match msg.0.with_children {
-                    true => {
+                    let children = if msg.0.with_children {
                         use super::schema::test_item::dsl::*;
                         test_item
                             .filter(parent_id.eq(ti.id.clone()))
@@ -210,12 +208,11 @@ impl Handler<GetTestItems> for super::DbExecutor {
                                 id: ti.id.clone(),
                             })
                             .collect()
-                    }
-                    false => vec![],
-                };
+                    } else {
+                        vec![]
+                    };
 
-                let traces = match msg.0.with_traces {
-                    true => {
+                    let traces = if msg.0.with_traces {
                         use super::schema::test_result::dsl::*;
 
                         let query = TestResultDb::belonging_to(ti).order(date.desc()).limit(5);
@@ -243,21 +240,23 @@ impl Handler<GetTestItems> for super::DbExecutor {
                                 components_called: serde_json::from_str(&tr.components_called)
                                     .unwrap(),
                                 nb_spans: tr.nb_spans,
+                                main_span: None,
                             })
                             .collect()
-                    }
-                    false => vec![],
-                };
+                    } else {
+                        vec![]
+                    };
 
-                ::api::test::TestDetails {
-                    children: children,
-                    last_results: traces,
-                    name: ti.name.clone(),
-                    path: path,
-                    test_id: ti.id.clone(),
-                }
-            })
-            .collect())
+                    ::api::test::TestDetails {
+                        children,
+                        last_results: traces,
+                        name: ti.name.clone(),
+                        path,
+                        test_id: ti.id.clone(),
+                    }
+                })
+                .collect(),
+        )
     }
 }
 #[derive(Debug)]
@@ -340,9 +339,8 @@ impl TestResultQuery {
 }
 
 pub struct GetTestResults(pub TestResultQuery);
-impl ResponseType for GetTestResults {
-    type Item = Vec<::engine::test::TestResult>;
-    type Error = ();
+impl Message for GetTestResults {
+    type Result = Vec<::engine::test::TestResult>;
 }
 impl Handler<GetTestResults> for super::DbExecutor {
     type Result = MessageResult<GetTestResults>;
@@ -391,7 +389,7 @@ impl Handler<GetTestResults> for super::DbExecutor {
             use super::schema::test_item::dsl::*;
 
             let mut query = test_item.into_boxed();
-            for tr in test_results.iter() {
+            for tr in &test_results {
                 query = query.or_filter(id.eq(tr.test_id.clone()));
             }
             query
@@ -403,75 +401,78 @@ impl Handler<GetTestResults> for super::DbExecutor {
                 .collect()
         });
 
-        Ok(test_results
-            .iter()
-            .map(|tr| {
-                let test = test_item_cache
-                    .get(&tr.test_id, |ti_id| {
-                        use super::schema::test_item::dsl::*;
-
-                        test_item
-                            .filter(id.eq(ti_id))
-                            .first::<TestItemDb>(&self.0)
-                            .ok()
-                    })
-                    .clone();
-
-                let mut test_item_to_get = test.clone().and_then(|t| match t.parent_id.as_ref() {
-                    "root" => None,
-                    item_id => Some(item_id.to_string()),
-                });
-                let mut path = vec![];
-                while test_item_to_get.is_some() {
-                    if let Some(test) = test_item_cache
-                        .get(&test_item_to_get.unwrap(), |ti_id| {
+        MessageResult(
+            test_results
+                .iter()
+                .map(|tr| {
+                    let test = test_item_cache
+                        .get(&tr.test_id, |ti_id| {
                             use super::schema::test_item::dsl::*;
+
                             test_item
                                 .filter(id.eq(ti_id))
                                 .first::<TestItemDb>(&self.0)
                                 .ok()
                         })
-                        .clone()
-                    {
-                        test_item_to_get = match test.parent_id.as_ref() {
+                        .clone();
+
+                    let mut test_item_to_get =
+                        test.clone().and_then(|t| match t.parent_id.as_ref() {
                             "root" => None,
                             item_id => Some(item_id.to_string()),
-                        };
-                        path.push(test.name);
-                    } else {
-                        test_item_to_get = None;
+                        });
+                    let mut path = vec![];
+                    while test_item_to_get.is_some() {
+                        if let Some(test) = test_item_cache
+                            .get(&test_item_to_get.unwrap(), |ti_id| {
+                                use super::schema::test_item::dsl::*;
+                                test_item
+                                    .filter(id.eq(ti_id))
+                                    .first::<TestItemDb>(&self.0)
+                                    .ok()
+                            })
+                            .clone()
+                        {
+                            test_item_to_get = match test.parent_id.as_ref() {
+                                "root" => None,
+                                item_id => Some(item_id.to_string()),
+                            };
+                            path.push(test.name);
+                        } else {
+                            test_item_to_get = None;
+                        }
                     }
-                }
-                path.reverse();
+                    path.reverse();
 
-                ::engine::test::TestResult {
-                    test_id: tr.test_id.clone(),
-                    path: path,
-                    name: test.unwrap().name,
-                    date: (((tr.date.timestamp() * 1000)
-                        + i64::from(tr.date.timestamp_subsec_millis()))
-                        * 1000),
-                    duration: tr.duration,
-                    environment: tr.environment.clone(),
-                    status: match tr.status {
-                        0 => ::engine::test::TestStatus::Success,
-                        1 => ::engine::test::TestStatus::Failure,
-                        2 => ::engine::test::TestStatus::Skipped,
-                        _ => ::engine::test::TestStatus::Failure,
-                    },
-                    trace_id: tr.trace_id.clone(),
-                    components_called: serde_json::from_str(&tr.components_called).unwrap(),
-                    nb_spans: tr.nb_spans,
-                }
-            })
-            .collect::<Vec<::engine::test::TestResult>>())
+                    ::engine::test::TestResult {
+                        test_id: tr.test_id.clone(),
+                        path,
+                        name: test.unwrap().name,
+                        date: (((tr.date.timestamp() * 1000)
+                            + i64::from(tr.date.timestamp_subsec_millis()))
+                            * 1000),
+                        duration: tr.duration,
+                        environment: tr.environment.clone(),
+                        status: match tr.status {
+                            0 => ::engine::test::TestStatus::Success,
+                            1 => ::engine::test::TestStatus::Failure,
+                            2 => ::engine::test::TestStatus::Skipped,
+                            _ => ::engine::test::TestStatus::Failure,
+                        },
+                        trace_id: tr.trace_id.clone(),
+                        components_called: serde_json::from_str(&tr.components_called).unwrap(),
+                        nb_spans: tr.nb_spans,
+                        main_span: None,
+                    }
+                })
+                .collect::<Vec<::engine::test::TestResult>>(),
+        )
     }
 }
 
 pub struct GetEnvironments;
-impl ResponseType for GetEnvironments {
-    type Item = Vec<String>;
-    type Error = ();
+impl Message for GetEnvironments {
+    type Result = Vec<String>;
 }
 impl Handler<GetEnvironments> for super::DbExecutor {
     type Result = MessageResult<GetEnvironments>;
@@ -479,14 +480,16 @@ impl Handler<GetEnvironments> for super::DbExecutor {
     fn handle(&mut self, _msg: GetEnvironments, _: &mut Self::Context) -> Self::Result {
         use super::schema::test_result::dsl::*;
 
-        Ok(test_result
-            .select(environment)
-            .filter(environment.is_not_null())
-            .distinct()
-            .load::<Option<String>>(&self.0)
-            .expect("can load environments from test results")
-            .iter()
-            .map(|v| v.clone().unwrap())
-            .collect())
+        MessageResult(
+            test_result
+                .select(environment)
+                .filter(environment.is_not_null())
+                .distinct()
+                .load::<Option<String>>(&self.0)
+                .expect("can load environments from test results")
+                .iter()
+                .map(|v| v.clone().unwrap())
+                .collect(),
+        )
     }
 }

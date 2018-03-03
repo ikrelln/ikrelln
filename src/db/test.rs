@@ -99,7 +99,7 @@ impl Handler<::engine::test::TestResult> for super::DbExecutor {
         use super::schema::test_result::dsl::*;
         diesel::insert_into(test_result)
             .values(&TestResultDb {
-                test_id: parent_id,
+                test_id: parent_id.clone(),
                 trace_id: msg.trace_id.clone(),
                 date: chrono::NaiveDateTime::from_timestamp(
                     msg.date / 1000 / 1000,
@@ -118,7 +118,10 @@ impl Handler<::engine::test::TestResult> for super::DbExecutor {
             .execute(&self.0)
             .unwrap();
 
-        MessageResult(msg)
+        MessageResult(::engine::test::TestResult {
+            test_id: parent_id,
+            ..msg
+        })
     }
 }
 

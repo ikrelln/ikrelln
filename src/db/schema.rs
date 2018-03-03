@@ -19,6 +19,15 @@ table! {
 }
 
 table! {
+    report (id) {
+        id -> Varchar,
+        name -> Varchar,
+        created_on -> Timestamp,
+        last_update -> Timestamp,
+    }
+}
+
+table! {
     script (id) {
         id -> Varchar,
         name -> Varchar,
@@ -77,14 +86,26 @@ table! {
     }
 }
 
+table! {
+    test_result_in_report (report_id, test_id, trace_id) {
+        report_id -> Varchar,
+        test_id -> Varchar,
+        trace_id -> Varchar,
+        category -> Nullable<Varchar>,
+    }
+}
+
 joinable!(test_result -> test_item (test_id));
+joinable!(test_result_in_report -> report (report_id));
 
 allow_tables_to_appear_in_same_query!(
     annotation,
     endpoint,
+    report,
     script,
     span,
     tag,
     test_item,
     test_result,
+    test_result_in_report,
 );

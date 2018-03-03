@@ -5,6 +5,7 @@ pub mod schema;
 pub mod span;
 pub mod test;
 pub mod scripts;
+pub mod reports;
 
 mod helper;
 

@@ -214,10 +214,17 @@ impl Handler<TestExecutionToSave> for TraceParser {
     type Result = ();
 
     fn handle(&mut self, msg: TestExecutionToSave, _ctx: &mut Context<Self>) -> Self::Result {
-        ::DB_EXECUTOR_POOL.do_send(msg.0.clone());
-        actix::Arbiter::system_registry()
-            .get::<::engine::streams::Streamer>()
-            .do_send(::engine::streams::Test(msg.0));
+        Arbiter::handle().spawn(::DB_EXECUTOR_POOL.send(msg.0.clone()).then(|test_result| {
+            if let Ok(test_result) = test_result {
+                actix::Arbiter::system_registry()
+                    .get::<::engine::streams::Streamer>()
+                    .do_send(::engine::streams::Test(test_result.clone()));
+                actix::Arbiter::system_registry()
+                    .get::<::engine::report::Reporter>()
+                    .do_send(::engine::report::ComputeReportsForResult(test_result));
+            }
+            future::result(Ok(()))
+        }))
     }
 }
 
@@ -258,6 +265,9 @@ impl ToPyObject for TestResult {
     type ObjectType = PyDict;
     fn to_py_object(&self, py: Python) -> Self::ObjectType {
         let object = PyDict::new(py);
+        object
+            .set_item(py, "test_id", self.test_id.clone())
+            .unwrap();
         object.set_item(py, "path", self.path.clone()).unwrap();
         object.set_item(py, "name", self.name.clone()).unwrap();
         object

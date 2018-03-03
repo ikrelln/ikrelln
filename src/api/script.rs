@@ -28,9 +28,7 @@ pub fn save_script(
                 ..script
             };
             ::DB_EXECUTOR_POOL.do_send(::db::scripts::SaveScript(new_script.clone()));
-            info!("new script ! {:?}", new_script);
             if let ::engine::streams::ScriptType::StreamTest = new_script.script_type {
-                info!("adding new ! {:?}", new_script);
                 actix::Arbiter::system_registry()
                     .get::<::engine::streams::Streamer>()
                     .do_send(::engine::streams::AddScript(new_script.clone()));

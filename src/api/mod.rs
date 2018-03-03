@@ -10,6 +10,7 @@ mod errors;
 mod span;
 pub mod test;
 mod script;
+pub mod report;
 
 fn index(_req: HttpRequest<AppState>) -> String {
     String::from(engine::hello())
@@ -82,6 +83,12 @@ pub fn serve(host: &str, port: u16) {
             .resource("/api/v1/scripts/{scriptId}", |r| {
                 r.method(Method::GET).f(script::get_script);
                 r.method(Method::DELETE).f(script::delete_script);
+            })
+            .resource("/api/v1/reports", |r| {
+                r.method(Method::GET).f(report::get_reports)
+            })
+            .resource("/api/v1/reports/{reportName}", |r| {
+                r.method(Method::GET).f(report::get_report)
             })
     }).bind(format!("{}:{}", host, port))
         .unwrap()

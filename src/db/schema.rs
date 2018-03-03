@@ -87,11 +87,11 @@ table! {
 }
 
 table! {
-    test_result_in_report (report_id, test_id, trace_id) {
+    test_result_in_report (report_id, test_id, trace_id, category) {
         report_id -> Varchar,
         test_id -> Varchar,
         trace_id -> Varchar,
-        category -> Nullable<Varchar>,
+        category -> Varchar,
     }
 }
 

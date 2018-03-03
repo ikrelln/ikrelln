@@ -12,7 +12,7 @@ use db::schema::test_item;
 #[table_name = "test_item"]
 pub struct TestItemDb {
     pub id: String,
-    parent_id: String,
+    pub parent_id: String,
     pub name: String,
     source: i32,
 }
@@ -24,7 +24,7 @@ use db::schema::test_result;
 #[primary_key(test_id, trace_id)]
 #[table_name = "test_result"]
 pub struct TestResultDb {
-    test_id: String,
+    pub test_id: String,
     pub trace_id: String,
     pub date: chrono::NaiveDateTime,
     pub status: i32,
@@ -489,7 +489,7 @@ impl Handler<GetEnvironments> for super::DbExecutor {
                 .filter(environment.is_not_null())
                 .distinct()
                 .load::<Option<String>>(&self.0)
-                .expect("can load environments from test results")
+                .expect("can't load environments from test results")
                 .iter()
                 .map(|v| v.clone().unwrap())
                 .collect(),

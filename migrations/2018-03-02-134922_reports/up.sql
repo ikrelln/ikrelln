@@ -11,6 +11,7 @@ CREATE TABLE test_result_in_report
     test_id VARCHAR(36) NOT NULL,
     trace_id VARCHAR(36) NOT NULL,
     category VARCHAR NOT NULL,
+    environment VARCHAR,
     PRIMARY KEY (report_id, test_id, trace_id, category),
     FOREIGN KEY (report_id) REFERENCES report(id),
     FOREIGN KEY (test_id, trace_id) REFERENCES test_result (test_id, trace_id)

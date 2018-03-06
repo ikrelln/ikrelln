@@ -25,6 +25,7 @@ struct TestResultInReportDb {
     test_id: String,
     trace_id: String,
     category: String,
+    environment: Option<String>,
 }
 
 impl super::DbExecutor {
@@ -101,6 +102,11 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
         } else {
             find_tr = find_tr.filter(category.eq(msg.report_name.clone()));
         }
+        if let Some(environment_from_input) = msg.result.environment.clone() {
+            find_tr = find_tr.filter(environment.eq(environment_from_input));
+        } else {
+            find_tr = find_tr.filter(environment.is_null());
+        }
         if find_tr
             .first::<TestResultInReportDb>(&self.0)
             .ok()
@@ -112,20 +118,22 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                         test_result_in_report
                             .filter(report_id.eq(found_report_id))
                             .filter(test_id.eq(msg.result.test_id))
-                            .filter(category.eq(category_from_input)),
+                            .filter(category.eq(category_from_input))
+                            .filter(environment.eq(msg.result.environment)),
                     ).set(trace_id.eq(msg.result.trace_id))
                         .execute(&self.0)
-                        .expect("error updating report trace");
+                        .ok();
                 }
                 None => {
                     diesel::update(
                         test_result_in_report
                             .filter(report_id.eq(found_report_id))
                             .filter(test_id.eq(msg.result.test_id))
-                            .filter(category.eq(msg.report_name)),
+                            .filter(category.eq(msg.report_name))
+                            .filter(environment.eq(msg.result.environment)),
                     ).set(trace_id.eq(msg.result.trace_id))
                         .execute(&self.0)
-                        .expect("error updating report trace");
+                        .ok();
                 }
             };
         } else {
@@ -135,6 +143,7 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                     trace_id: msg.result.trace_id,
                     report_id: found_report_id,
                     category: msg.category.unwrap_or(msg.report_name),
+                    environment: msg.result.environment,
                 })
                 .execute(&self.0)
                 .ok();
@@ -172,7 +181,10 @@ impl Handler<GetAll> for super::DbExecutor {
     }
 }
 
-pub struct GetReport(pub String);
+pub struct GetReport {
+    pub report_name: String,
+    pub environment: Option<String>,
+}
 impl Message for GetReport {
     type Result = Option<::api::report::Report>;
 }
@@ -183,13 +195,15 @@ impl Handler<GetReport> for super::DbExecutor {
     fn handle(&mut self, msg: GetReport, _ctx: &mut Self::Context) -> Self::Result {
         use super::schema::report::dsl::*;
 
-        let report_from_db: Option<ReportDb> = report.filter(name.eq(msg.0)).first(&self.0).ok();
+        let report_from_db: Option<ReportDb> =
+            report.filter(name.eq(msg.report_name.clone())).first(&self.0).ok();
 
         MessageResult(report_from_db.map(|report_from_db| {
             use super::schema::test_result_in_report::dsl::*;
             let categories: Vec<String> = test_result_in_report
                 .select(category)
                 .filter(report_id.eq(report_from_db.id.clone()))
+                .order(category.asc())
                 .distinct()
                 .load::<String>(&self.0)
                 .expect("can load environments from test results");
@@ -208,6 +222,8 @@ impl Handler<GetReport> for super::DbExecutor {
 
                     test_result
                         .filter(trace_id.eq_any(traces))
+                        .filter(environment.eq(msg.environment.clone()))
+                        .order(date.desc())
                         .load::<::db::test::TestResultDb>(&self.0)
                         .expect("can load test results")
                         .iter()

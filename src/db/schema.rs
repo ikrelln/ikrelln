@@ -92,6 +92,7 @@ table! {
         test_id -> Varchar,
         trace_id -> Varchar,
         category -> Varchar,
+        environment -> Nullable<Varchar>,
     }
 }
 

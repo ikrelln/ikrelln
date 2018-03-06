@@ -31,7 +31,10 @@ pub fn get_report(
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("reportName") {
         Some(report_name) => ::DB_EXECUTOR_POOL
-            .send(::db::reports::GetReport(report_name.to_string()))
+            .send(::db::reports::GetReport {
+                report_name: report_name.to_string().replace("%20", " "),
+                environment: req.query().get("environment").map(|v| v.to_string()),
+            })
             .from_err()
             .and_then(|res| match res {
                 Some(report) => Ok(httpcodes::HTTPOk.build().json(report)?),

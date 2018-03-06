@@ -3,7 +3,7 @@ use actix::registry::SystemService;
 use futures::future::*;
 
 #[cfg(feature = "python")]
-use cpython::{PyDict, Python};
+use cpython::{FromPyObject, PyDict, PyObject, PyResult, Python};
 use chrono;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -16,6 +16,11 @@ pub enum ScriptType {
     //     import json
     //     requests.post("https://requestb.in/XXXXXXX", data=json.dumps(test))
     StreamTest,
+
+    // Python function that can act on a test
+    // def reports_for_test(test):
+    //     return [{'name': test.tags['test.class'], 'category': None}]
+    ReportFilterTestResult,
 
     // JS script that returns HTML that will be displayed on each test in test detail view
     // (test) => '<a href="http://google.com">' + test.name + '</a>'
@@ -32,6 +37,7 @@ impl From<i32> for ScriptType {
             1 => ScriptType::StreamTest,
             2 => ScriptType::UITest,
             3 => ScriptType::UITestResult,
+            4 => ScriptType::ReportFilterTestResult,
             _ => ScriptType::StreamTest,
         }
     }
@@ -43,6 +49,7 @@ impl Into<i32> for ScriptType {
             ScriptType::StreamTest => 1,
             ScriptType::UITest => 2,
             ScriptType::UITestResult => 3,
+            ScriptType::ReportFilterTestResult => 4,
         }
     }
 }
@@ -53,6 +60,7 @@ impl Into<String> for ScriptType {
             ScriptType::StreamTest => "StreamTest".to_string(),
             ScriptType::UITest => "UITest".to_string(),
             ScriptType::UITestResult => "UITestResult".to_string(),
+            ScriptType::ReportFilterTestResult => "ReportFilterTestResult".to_string(),
         }
     }
 }
@@ -103,8 +111,8 @@ impl Handler<LoadScripts> for Streamer {
         Arbiter::handle().spawn_fn(move || {
             ::DB_EXECUTOR_POOL
                 .send(::db::scripts::GetAll(Some(vec![
-                    ScriptType::StreamSpan,
                     ScriptType::StreamTest,
+                    ScriptType::ReportFilterTestResult,
                 ])))
                 .then(|scripts| {
                     if let Ok(scripts) = scripts {
@@ -153,6 +161,26 @@ impl Handler<RemoveScript> for Streamer {
     }
 }
 
+#[cfg(feature = "python")]
+#[derive(Debug)]
+struct ReportTarget {
+    name: String,
+    category: Option<String>,
+}
+#[cfg(feature = "python")]
+impl<'a> FromPyObject<'a> for ReportTarget {
+    fn extract(py: Python, obj: &'a PyObject) -> PyResult<Self> {
+        let locals = PyDict::new(py);
+        locals.set_item(py, "obj", obj).unwrap();
+
+        Ok(ReportTarget {
+            name: py.eval("obj['name']", None, Some(&locals))?.extract(py)?,
+            category: py.eval("obj['category']", None, Some(&locals))?
+                .extract(py)?,
+        })
+    }
+}
+
 #[derive(Message, Debug)]
 pub struct Test(pub ::engine::test::TestResult);
 impl Handler<Test> for Streamer {
@@ -160,24 +188,58 @@ impl Handler<Test> for Streamer {
 
     #[cfg(feature = "python")]
     fn handle(&mut self, msg: Test, _ctx: &mut Context<Self>) -> Self::Result {
-        let scripts: Vec<&Script> = self.scripts
-            .iter()
-            .filter(|script| match script.script_type {
-                ScriptType::StreamTest => true,
-                _ => false,
-            })
-            .collect();
-        if scripts.len() > 0 {
+        if self.scripts.len() > 0 {
             let gil = Python::acquire_gil();
             let py = gil.python();
 
             let locals = PyDict::new(py);
-            locals.set_item(py, "test", msg.0).unwrap();
+            locals.set_item(py, "test", msg.0.clone()).unwrap();
 
-            for script in scripts.clone() {
+            let stream_test_script: Vec<&Script> = self.scripts
+                .iter()
+                .filter(|script| match script.script_type {
+                    ScriptType::StreamTest => true,
+                    _ => false,
+                })
+                .collect();
+            for script in stream_test_script {
                 match py.run(script.source.as_ref(), None, Some(&locals)) {
                     Ok(_) => match py.eval("on_test(test)", None, Some(&locals)) {
                         Ok(_) => (),
+                        Err(err) => warn!(
+                            "error executing python script {}: {:?}",
+                            script.id.clone().unwrap(),
+                            err
+                        ), // TODO disable script after failure
+                    },
+                    _ => (),
+                }
+            }
+
+            let report_filter_test_script: Vec<&Script> = self.scripts
+                .iter()
+                .filter(|script| match script.script_type {
+                    ScriptType::ReportFilterTestResult => true,
+                    _ => false,
+                })
+                .collect();
+            for script in report_filter_test_script {
+                match py.run(script.source.as_ref(), None, Some(&locals)) {
+                    Ok(_) => match py.eval("reports_for_test(test)", None, Some(&locals)) {
+                        Ok(py_reports) => {
+                            let reports = py_reports.extract::<Vec<ReportTarget>>(py);
+                            if let Ok(reports) = reports {
+                                for report in reports {
+                                    actix::Arbiter::system_registry()
+                                        .get::<::engine::report::Reporter>()
+                                        .do_send(::engine::report::ResultForReport {
+                                            report_name: report.name,
+                                            category: report.category,
+                                            result: msg.0.clone(),
+                                        })
+                                }
+                            }
+                        }
                         Err(err) => warn!(
                             "error executing python script {}: {:?}",
                             script.id.clone().unwrap(),

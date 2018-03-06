@@ -28,10 +28,14 @@ pub fn save_script(
                 ..script
             };
             ::DB_EXECUTOR_POOL.do_send(::db::scripts::SaveScript(new_script.clone()));
-            if let ::engine::streams::ScriptType::StreamTest = new_script.script_type {
-                actix::Arbiter::system_registry()
-                    .get::<::engine::streams::Streamer>()
-                    .do_send(::engine::streams::AddScript(new_script.clone()));
+            match new_script.script_type {
+                ::engine::streams::ScriptType::StreamTest
+                | ::engine::streams::ScriptType::ReportFilterTestResult => {
+                    actix::Arbiter::system_registry()
+                        .get::<::engine::streams::Streamer>()
+                        .do_send(::engine::streams::AddScript(new_script.clone()))
+                }
+                _ => (),
             }
             Ok(httpcodes::HTTPOk.build().json(new_script)?)
         })
@@ -69,10 +73,14 @@ pub fn delete_script(
             .from_err()
             .and_then(|res| match res {
                 Some(script) => {
-                    if let ::engine::streams::ScriptType::StreamTest = script.script_type {
-                        actix::Arbiter::system_registry()
-                            .get::<::engine::streams::Streamer>()
-                            .do_send(::engine::streams::RemoveScript(script.clone()));
+                    match script.script_type {
+                        ::engine::streams::ScriptType::StreamTest
+                        | ::engine::streams::ScriptType::ReportFilterTestResult => {
+                            actix::Arbiter::system_registry()
+                                .get::<::engine::streams::Streamer>()
+                                .do_send(::engine::streams::RemoveScript(script.clone()))
+                        }
+                        _ => (),
                     }
 
                     Ok(httpcodes::HTTPOk.build().json(script)?)

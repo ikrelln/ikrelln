@@ -20,6 +20,16 @@ fn commit_hash() -> Result<String, Ignore> {
     )))
 }
 
+fn commit_describe() -> Result<String, Ignore> {
+    Ok(try!(String::from_utf8(
+        try!(
+            Command::new("git")
+                .args(&["describe", "--all", "--dirty", "--long"])
+                .output()
+        ).stdout
+    )))
+}
+
 fn commit_date() -> Result<String, Ignore> {
     Ok(try!(String::from_utf8(
         try!(
@@ -39,6 +49,10 @@ fn main() {
         Ok(v) => v.trim_right().to_string(),
         Err(_) => "N/A".to_string(),
     };
+    let gitdescribe = match commit_describe() {
+        Ok(v) => v.trim_right().to_string(),
+        Err(_) => "N/A".to_string(),
+    };
     let version = env!("CARGO_PKG_VERSION");
 
     let new_content = format!(
@@ -48,15 +62,17 @@ pub struct BuildInfo {{
     pub version: &'static str,
     pub commit_hash: &'static str,
     pub commit_date: &'static str,
+    pub commit_describe: &'static str,
 }}
 
 pub static BUILD_INFO: BuildInfo = BuildInfo {{
     version: \"{}\",
     commit_hash: \"{}\",
     commit_date: \"{}\",
+    commit_describe: \"{}\",
 }};
 ",
-        version, gitref, gitdate
+        version, gitref, gitdate, gitdescribe
     );
 
     let update = File::open("src/build_info.rs")

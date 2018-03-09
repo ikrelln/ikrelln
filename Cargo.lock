@@ -604,7 +604,7 @@ dependencies = [
 
 [[package]]
 name = "ikrelln"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "actix 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-web 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -52,7 +52,8 @@ impl Handler<ComputeReportsForResult> for Reporter {
                                         report_name: span.remote_endpoint
                                             .clone()
                                             .and_then(|ep| ep.service_name)
-                                            .unwrap_or_else(|| "service".to_string()),
+                                            .unwrap_or_else(|| "service".to_string())
+                                            + " - coverage",
                                         category: span.name.clone(),
                                         result: msg.0.clone(),
                                     },

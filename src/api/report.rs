@@ -14,6 +14,7 @@ pub struct Report {
     pub last_update: chrono::NaiveDateTime,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub categories: Option<HashMap<String, Vec<::engine::test::TestResult>>>,
+    pub environments: Vec<String>,
 }
 
 pub fn get_reports(

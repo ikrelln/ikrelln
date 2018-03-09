@@ -122,10 +122,7 @@ impl Handler<DeleteScript> for super::DbExecutor {
 
     fn handle(&mut self, msg: DeleteScript, _: &mut Self::Context) -> Self::Result {
         use super::schema::script::dsl::*;
-        let script_found = script
-            .filter(id.eq(msg.0.clone()))
-            .first::<ScriptDb>(&self.0)
-            .ok();
+        let script_found = script.filter(id.eq(&msg.0)).first::<ScriptDb>(&self.0).ok();
 
         diesel::delete(script.filter(id.eq(msg.0)))
             .execute(&self.0)

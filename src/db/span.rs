@@ -222,16 +222,16 @@ impl Handler<::engine::span::Span> for super::DbExecutor {
         {
             use super::schema::span::dsl::*;
             match span.filter(
-                id.eq(to_upsert.span_db.id.clone())
-                    .and(trace_id.eq(to_upsert.span_db.trace_id.clone())),
+                id.eq(&to_upsert.span_db.id)
+                    .and(trace_id.eq(&to_upsert.span_db.trace_id)),
             ).first::<SpanDb>(&self.0)
             {
                 Ok(_) => {
                     //TODO: manage more update cases than duration
                     diesel::update(
                         span.filter(
-                            id.eq(to_upsert.span_db.id.clone())
-                                .and(trace_id.eq(to_upsert.span_db.trace_id.clone())),
+                            id.eq(&to_upsert.span_db.id)
+                                .and(trace_id.eq(&to_upsert.span_db.trace_id)),
                         ),
                     ).set(duration.eq(to_upsert.span_db.duration))
                         .execute(&self.0)
@@ -507,11 +507,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                         use super::schema::annotation::dsl::*;
 
                         annotation
-                            .filter(
-                                trace_id
-                                    .eq(spandb.trace_id.clone())
-                                    .and(span_id.eq(spandb.id.clone())),
-                            )
+                            .filter(trace_id.eq(&spandb.trace_id).and(span_id.eq(&spandb.id)))
                             .limit(ANNOTATION_QUERY_LIMIT)
                             .load::<AnnotationDb>(&self.0)
                             .ok()
@@ -532,11 +528,8 @@ impl Handler<GetSpans> for super::DbExecutor {
                     let tags: HashMap<String, String> = if !without_tags {
                         use super::schema::tag::dsl::*;
 
-                        tag.filter(
-                            trace_id
-                                .eq(spandb.trace_id.clone())
-                                .and(span_id.eq(spandb.id.clone())),
-                        ).limit(TAG_QUERY_LIMIT)
+                        tag.filter(trace_id.eq(&spandb.trace_id).and(span_id.eq(&spandb.id)))
+                            .limit(TAG_QUERY_LIMIT)
                             .load::<TagDb>(&self.0)
                             .ok()
                             .unwrap_or_else(|| vec![])
@@ -609,11 +602,7 @@ impl Handler<SpanCleanup> for super::DbExecutor {
                 use super::schema::annotation::dsl::*;
 
                 diesel::delete(
-                    annotation.filter(
-                        trace_id
-                            .eq(spandb.trace_id.clone())
-                            .and(span_id.eq(spandb.id.clone())),
-                    ),
+                    annotation.filter(trace_id.eq(&spandb.trace_id).and(span_id.eq(&spandb.id))),
                 ).execute(&self.0)
                     .expect("Error deleting Annotation");
             }
@@ -621,13 +610,9 @@ impl Handler<SpanCleanup> for super::DbExecutor {
             {
                 use super::schema::tag::dsl::*;
 
-                diesel::delete(
-                    tag.filter(
-                        trace_id
-                            .eq(spandb.trace_id.clone())
-                            .and(span_id.eq(spandb.id.clone())),
-                    ),
-                ).execute(&self.0)
+                diesel::delete(tag.filter(
+                    trace_id.eq(&spandb.trace_id).and(span_id.eq(&spandb.id)),
+                )).execute(&self.0)
                     .expect("Error deleting Tag");
             }
         });

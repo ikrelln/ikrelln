@@ -39,9 +39,9 @@ impl super::DbExecutor {
         use super::schema::test_item::dsl::*;
 
         test_item
-            .filter(name.eq(test_item_db.name.clone()))
+            .filter(name.eq(&test_item_db.name))
             .filter(source.eq(test_item_db.source))
-            .filter(parent_id.eq(test_item_db.parent_id.clone()))
+            .filter(parent_id.eq(&test_item_db.parent_id))
             .first::<TestItemDb>(&self.0)
             .ok()
     }
@@ -199,7 +199,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
                     let children = if msg.0.with_children {
                         use super::schema::test_item::dsl::*;
                         test_item
-                            .filter(parent_id.eq(ti.id.clone()))
+                            .filter(parent_id.eq(&ti.id))
                             .order(name.asc())
                             .limit(TEST_ITEM_QUERY_LIMIT)
                             .load::<TestItemDb>(&self.0)
@@ -393,7 +393,7 @@ impl Handler<GetTestResults> for super::DbExecutor {
 
             let mut query = test_item.into_boxed();
             for tr in &test_results {
-                query = query.or_filter(id.eq(tr.test_id.clone()));
+                query = query.or_filter(id.eq(&tr.test_id));
             }
             query
                 .load::<TestItemDb>(&self.0)

@@ -61,7 +61,10 @@ fn main() {
 
     let system = actix::System::new("i'Krelln");
 
-    api::serve(&config.host, config.port);
+    match std::env::var("LISTEN_FD") {
+        Ok(fd) => api::serve_from_fd(fd),
+        _ => api::serve(&config.host, config.port),
+    }
 
     actix::Arbiter::system_registry()
         .get::<::engine::streams::Streamer>()

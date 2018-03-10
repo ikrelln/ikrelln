@@ -14,6 +14,7 @@ mod span;
 pub mod test;
 mod script;
 pub mod report;
+mod grafana;
 
 fn index(_req: HttpRequest<AppState>) -> String {
     String::from(engine::hello())
@@ -91,6 +92,13 @@ fn http_application() -> Application<AppState> {
         })
         .resource("/api/v1/reports/{reportName}", |r| {
             r.method(Method::GET).f(report::get_report)
+        })
+        .resource("/api/grafana/", |r| r.method(Method::GET).f(grafana::setup))
+        .resource("/api/grafana/search", |r| {
+            r.method(Method::POST).f(grafana::search)
+        })
+        .resource("/api/grafana/query", |r| {
+            r.method(Method::POST).f(grafana::query)
         })
 }
 

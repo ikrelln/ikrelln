@@ -263,10 +263,22 @@ impl TestStatus {
             &::engine::test::TestStatus::Skipped => 2,
         }
     }
+    pub fn into_str(&self) -> &'static str {
+        match self {
+            &::engine::test::TestStatus::Success => "Success",
+            &::engine::test::TestStatus::Failure => "Failure",
+            &::engine::test::TestStatus::Skipped => "Skipped",
+        }
+    }
 }
 impl Into<i32> for TestStatus {
     fn into(self) -> i32 {
         self.into_i32()
+    }
+}
+impl Into<&'static str> for TestStatus {
+    fn into(self) -> &'static str {
+        self.into_str()
     }
 }
 

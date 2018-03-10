@@ -7,6 +7,9 @@ use uuid;
 use diesel;
 use serde_json;
 
+use engine::test::TestStatus;
+
+static REPORT_QUERY_LIMIT: i64 = 200;
 use db::schema::report;
 #[derive(Debug, Insertable, Queryable, Clone)]
 #[table_name = "report"]
@@ -26,6 +29,7 @@ struct TestResultInReportDb {
     trace_id: String,
     category: String,
     environment: Option<String>,
+    status: i32,
 }
 
 impl super::DbExecutor {
@@ -112,26 +116,61 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
             .ok()
             .is_some()
         {
-            match msg.category.clone() {
-                Some(category_from_input) => {
+            match (msg.category, msg.result.environment) {
+                (Some(category_from_input), Some(environment_from_input)) => {
                     diesel::update(
                         test_result_in_report
                             .filter(report_id.eq(&found_report_id))
                             .filter(test_id.eq(&msg.result.test_id))
                             .filter(category.eq(category_from_input))
-                            .filter(environment.eq(msg.result.environment)),
-                    ).set(trace_id.eq(msg.result.trace_id))
+                            .filter(environment.eq(environment_from_input)),
+                    ).set((
+                        trace_id.eq(msg.result.trace_id),
+                        status.eq(msg.result.status.into_i32()),
+                    ))
                         .execute(&self.0)
                         .ok();
                 }
-                None => {
+                (Some(category_from_input), None) => {
+                    diesel::update(
+                        test_result_in_report
+                            .filter(report_id.eq(&found_report_id))
+                            .filter(test_id.eq(&msg.result.test_id))
+                            .filter(category.eq(category_from_input))
+                            .filter(environment.is_null()),
+                    ).set((
+                        trace_id.eq(msg.result.trace_id),
+                        status.eq(msg.result.status.into_i32()),
+                    ))
+                        .execute(&self.0)
+                        .ok();
+                }
+
+                (None, Some(environment_from_input)) => {
                     diesel::update(
                         test_result_in_report
                             .filter(report_id.eq(&found_report_id))
                             .filter(test_id.eq(&msg.result.test_id))
                             .filter(category.eq(&msg.report_name))
-                            .filter(environment.eq(msg.result.environment)),
-                    ).set(trace_id.eq(msg.result.trace_id))
+                            .filter(environment.eq(environment_from_input)),
+                    ).set((
+                        trace_id.eq(msg.result.trace_id),
+                        status.eq(msg.result.status.into_i32()),
+                    ))
+                        .execute(&self.0)
+                        .ok();
+                }
+                (None, None) => {
+                    diesel::update(
+                        test_result_in_report
+                            .filter(report_id.eq(&found_report_id))
+                            .filter(test_id.eq(&msg.result.test_id))
+                            .filter(category.eq(&msg.report_name))
+                            .filter(environment.is_null()),
+                    ).set((
+                        trace_id.eq(msg.result.trace_id),
+                        status.eq(msg.result.status.into_i32()),
+                    ))
                         .execute(&self.0)
                         .ok();
                 }
@@ -144,6 +183,7 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                     report_id: found_report_id.clone(),
                     category: msg.category.unwrap_or(msg.report_name.clone()),
                     environment: msg.result.environment,
+                    status: msg.result.status.into(),
                 })
                 .execute(&self.0)
                 .ok();
@@ -164,6 +204,7 @@ impl Handler<GetAll> for super::DbExecutor {
 
         let reports: Vec<ReportDb> = report
             .order(last_update.desc())
+            .limit(REPORT_QUERY_LIMIT)
             .load(&self.0)
             .expect("error loading reports");
 
@@ -187,6 +228,32 @@ impl Handler<GetAll> for super::DbExecutor {
                             })
                             .collect()
                     };
+                    let statuses = [
+                        TestStatus::Success,
+                        TestStatus::Failure,
+                        TestStatus::Skipped,
+                    ];
+                    let summary: HashMap<TestStatus, usize> = {
+                        use super::schema::test_result_in_report::dsl::*;
+
+                        let mut summary = HashMap::new();
+                        for one_status in &statuses {
+                            let query = test_result_in_report
+                                .select(test_id)
+                                .distinct()
+                                .filter(report_id.eq(&report_from_db.id))
+                                .filter(status.eq(one_status.into_i32()));
+
+                            summary.insert(
+                                one_status.clone(),
+                                query
+                                    .load(&self.0)
+                                    .map(|v: Vec<String>| v.len())
+                                    .unwrap_or(0),
+                            );
+                        }
+                        summary
+                    };
 
                     ::api::report::Report {
                         name: report_from_db.name.clone(),
@@ -194,6 +261,7 @@ impl Handler<GetAll> for super::DbExecutor {
                         last_update: report_from_db.last_update,
                         categories: None,
                         environments: environments,
+                        summary: Some(summary),
                     }
                 })
                 .collect(),
@@ -301,12 +369,7 @@ impl Handler<GetReport> for super::DbExecutor {
                                     * 1000),
                                 duration: tr.duration,
                                 environment: tr.environment.clone(),
-                                status: match tr.status {
-                                    0 => ::engine::test::TestStatus::Success,
-                                    1 => ::engine::test::TestStatus::Failure,
-                                    2 => ::engine::test::TestStatus::Skipped,
-                                    _ => ::engine::test::TestStatus::Failure,
-                                },
+                                status: tr.status.into(),
                                 trace_id: tr.trace_id.clone(),
                                 components_called: serde_json::from_str(&tr.components_called)
                                     .unwrap(),
@@ -342,6 +405,7 @@ impl Handler<GetReport> for super::DbExecutor {
                 last_update: report_from_db.last_update,
                 categories: Some(test_results),
                 environments: environments,
+                summary: None,
             }
         }))
     }

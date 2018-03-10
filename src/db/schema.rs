@@ -93,6 +93,7 @@ table! {
         trace_id -> Varchar,
         category -> Varchar,
         environment -> Nullable<Varchar>,
+        status -> Int4,
     }
 }
 

@@ -15,6 +15,8 @@ pub struct Report {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub categories: Option<HashMap<String, Vec<::engine::test::TestResult>>>,
     pub environments: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub summary: Option<HashMap<::engine::test::TestStatus, usize>>,
 }
 
 pub fn get_reports(

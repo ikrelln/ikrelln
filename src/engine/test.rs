@@ -228,12 +228,13 @@ impl Handler<TestExecutionToSave> for TraceParser {
     }
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, PartialEq, Hash)]
 pub enum TestStatus {
     Success,
     Failure,
     Skipped,
 }
+impl Eq for TestStatus {}
 impl TestStatus {
     fn try_from(s: &str) -> Result<Self, KnownTag> {
         match s.to_lowercase().as_ref() {
@@ -242,6 +243,30 @@ impl TestStatus {
             "skipped" => Ok(TestStatus::Skipped),
             _ => Err(IkrellnTags::Result.into()),
         }
+    }
+}
+impl From<i32> for TestStatus {
+    fn from(v: i32) -> Self {
+        match v {
+            0 => ::engine::test::TestStatus::Success,
+            1 => ::engine::test::TestStatus::Failure,
+            2 => ::engine::test::TestStatus::Skipped,
+            _ => ::engine::test::TestStatus::Failure,
+        }
+    }
+}
+impl TestStatus {
+    pub fn into_i32(&self) -> i32 {
+        match self {
+            &::engine::test::TestStatus::Success => 0,
+            &::engine::test::TestStatus::Failure => 1,
+            &::engine::test::TestStatus::Skipped => 2,
+        }
+    }
+}
+impl Into<i32> for TestStatus {
+    fn into(self) -> i32 {
+        self.into_i32()
     }
 }
 
@@ -257,8 +282,7 @@ pub struct TestResult {
     pub environment: Option<String>,
     pub components_called: HashMap<String, i32>,
     pub nb_spans: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub main_span: Option<::engine::span::Span>,
+    #[serde(skip_serializing_if = "Option::is_none")] pub main_span: Option<::engine::span::Span>,
 }
 
 #[cfg(feature = "python")]

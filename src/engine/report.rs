@@ -53,7 +53,7 @@ impl Handler<ComputeReportsForResult> for Reporter {
                                             .clone()
                                             .and_then(|ep| ep.service_name)
                                             .unwrap_or_else(|| "service".to_string())
-                                            + " - coverage",
+                                            + " - endpoints",
                                         category: span.name.clone(),
                                         result: msg.0.clone(),
                                     },

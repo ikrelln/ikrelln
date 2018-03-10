@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use actix_web::*;
-//use actix;
 use futures::Future;
 use futures::future::result;
 use chrono;
@@ -10,6 +9,7 @@ use super::{errors, AppState};
 #[derive(Serialize, Debug)]
 pub struct Report {
     pub name: String,
+    pub group: String,
     pub created_on: chrono::NaiveDateTime,
     pub last_update: chrono::NaiveDateTime,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -32,9 +32,13 @@ pub fn get_reports(
 pub fn get_report(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    match req.match_info().get("reportName") {
-        Some(report_name) => ::DB_EXECUTOR_POOL
+    match (
+        req.match_info().get("reportGroup"),
+        req.match_info().get("reportName"),
+    ) {
+        (Some(report_group), Some(report_name)) => ::DB_EXECUTOR_POOL
             .send(::db::reports::GetReport {
+                report_group: report_group.to_string().replace("%20", " "),
                 report_name: report_name.to_string().replace("%20", " "),
                 environment: req.query().get("environment").map(|v| v.to_string()),
             })
@@ -47,8 +51,8 @@ pub fn get_report(
             })
             .responder(),
 
-        _ => result(Err(super::errors::IkError::BadRequest(
-            "missing reportName path parameter".to_string(),
+        (_, _) => result(Err(super::errors::IkError::BadRequest(
+            "missing path parameter".to_string(),
         ))).responder(),
     }
 }

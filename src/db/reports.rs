@@ -16,6 +16,7 @@ use db::schema::report;
 struct ReportDb {
     id: String,
     name: String,
+    folder: String,
     created_on: chrono::NaiveDateTime,
     last_update: chrono::NaiveDateTime,
 }
@@ -37,6 +38,7 @@ impl super::DbExecutor {
         use super::schema::report::dsl::*;
 
         report
+            .filter(folder.eq(&report_db.folder))
             .filter(name.eq(&report_db.name))
             .first::<ReportDb>(&self.0)
             .ok()
@@ -90,6 +92,7 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
         let report = ReportDb {
             id: "n/a".to_string(),
             name: msg.report_name.clone(),
+            folder: msg.report_group.clone(),
             created_on: chrono::Utc::now().naive_utc(),
             last_update: chrono::Utc::now().naive_utc(),
         };
@@ -257,6 +260,7 @@ impl Handler<GetAll> for super::DbExecutor {
 
                     ::api::report::Report {
                         name: report_from_db.name.clone(),
+                        group: report_from_db.folder.clone(),
                         created_on: report_from_db.created_on,
                         last_update: report_from_db.last_update,
                         categories: None,
@@ -270,6 +274,7 @@ impl Handler<GetAll> for super::DbExecutor {
 }
 
 pub struct GetReport {
+    pub report_group: String,
     pub report_name: String,
     pub environment: Option<String>,
 }
@@ -283,8 +288,11 @@ impl Handler<GetReport> for super::DbExecutor {
     fn handle(&mut self, msg: GetReport, _ctx: &mut Self::Context) -> Self::Result {
         use super::schema::report::dsl::*;
 
-        let report_from_db: Option<ReportDb> =
-            report.filter(name.eq(&msg.report_name)).first(&self.0).ok();
+        let report_from_db: Option<ReportDb> = report
+            .filter(folder.eq(&msg.report_group))
+            .filter(name.eq(&msg.report_name))
+            .first(&self.0)
+            .ok();
 
         MessageResult(report_from_db.map(|report_from_db| {
             use super::schema::test_result_in_report::dsl::*;
@@ -401,6 +409,7 @@ impl Handler<GetReport> for super::DbExecutor {
 
             ::api::report::Report {
                 name: report_from_db.name.clone(),
+                group: report_from_db.folder.clone(),
                 created_on: report_from_db.created_on,
                 last_update: report_from_db.last_update,
                 categories: Some(test_results),

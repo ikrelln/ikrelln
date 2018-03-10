@@ -19,7 +19,7 @@ pub enum ScriptType {
 
     // Python function that can act on a test
     // def reports_for_test(test):
-    //     return [{'name': test.tags['test.class'], 'category': None}]
+    //     return [{'group': 'TestClass', ''name': test.tags['test.class'], 'category': None}]
     ReportFilterTestResult,
 
     // JS script that returns HTML that will be displayed on each test in test detail view
@@ -164,6 +164,7 @@ impl Handler<RemoveScript> for Streamer {
 #[cfg(feature = "python")]
 #[derive(Debug)]
 struct ReportTarget {
+    group: String,
     name: String,
     category: Option<String>,
 }
@@ -174,6 +175,7 @@ impl<'a> FromPyObject<'a> for ReportTarget {
         locals.set_item(py, "obj", obj).unwrap();
 
         Ok(ReportTarget {
+            group: py.eval("obj['group']", None, Some(&locals))?.extract(py)?,
             name: py.eval("obj['name']", None, Some(&locals))?.extract(py)?,
             category: py.eval("obj['category']", None, Some(&locals))?
                 .extract(py)?,
@@ -233,6 +235,7 @@ impl Handler<Test> for Streamer {
                                     actix::Arbiter::system_registry()
                                         .get::<::engine::report::Reporter>()
                                         .do_send(::engine::report::ResultForReport {
+                                            report_group: report.group,
                                             report_name: report.name,
                                             category: report.category,
                                             result: msg.0.clone(),

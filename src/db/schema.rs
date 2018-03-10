@@ -22,6 +22,7 @@ table! {
     report (id) {
         id -> Varchar,
         name -> Varchar,
+        folder -> Varchar,
         created_on -> Timestamp,
         last_update -> Timestamp,
     }

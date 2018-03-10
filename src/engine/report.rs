@@ -14,6 +14,7 @@ impl actix::SystemService for Reporter {
 
 #[derive(Message)]
 pub struct ResultForReport {
+    pub report_group: String,
     pub report_name: String,
     pub category: Option<String>,
     pub result: ::engine::test::TestResult,
@@ -52,8 +53,8 @@ impl Handler<ComputeReportsForResult> for Reporter {
                                         report_name: span.remote_endpoint
                                             .clone()
                                             .and_then(|ep| ep.service_name)
-                                            .unwrap_or_else(|| "service".to_string())
-                                            + " - endpoints",
+                                            .unwrap_or_else(|| "service".to_string()),
+                                        report_group: "endpoints".to_string(),
                                         category: span.name.clone(),
                                         result: msg.0.clone(),
                                     },

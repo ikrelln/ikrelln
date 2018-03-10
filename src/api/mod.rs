@@ -90,7 +90,7 @@ fn http_application() -> Application<AppState> {
         .resource("/api/v1/reports", |r| {
             r.method(Method::GET).f(report::get_reports)
         })
-        .resource("/api/v1/reports/{reportName}", |r| {
+        .resource("/api/v1/reports/{reportGroup}/{reportName}", |r| {
             r.method(Method::GET).f(report::get_report)
         })
         .resource("/api/grafana/", |r| r.method(Method::GET).f(grafana::setup))

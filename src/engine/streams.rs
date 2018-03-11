@@ -161,6 +161,21 @@ impl Handler<RemoveScript> for Streamer {
     }
 }
 
+#[derive(Message)]
+pub struct UpdateScript(pub Script);
+impl Handler<UpdateScript> for Streamer {
+    type Result = ();
+
+    fn handle(&mut self, msg: UpdateScript, _ctx: &mut Context<Self>) -> Self::Result {
+        let index = self.scripts
+            .iter()
+            .position(|x| (*x.id.clone().unwrap()) == msg.0.id.clone().unwrap())
+            .unwrap();
+        self.scripts.remove(index);
+        self.scripts.push(msg.0);
+    }
+}
+
 #[cfg(feature = "python")]
 #[derive(Debug)]
 struct ReportTarget {

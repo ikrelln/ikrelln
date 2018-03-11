@@ -143,3 +143,25 @@ impl Handler<DeleteScript> for super::DbExecutor {
         )
     }
 }
+
+#[derive(Message)]
+pub struct UpdateScript(pub ::engine::streams::Script);
+
+impl Handler<UpdateScript> for super::DbExecutor {
+    type Result = ();
+
+    fn handle(&mut self, msg: UpdateScript, _: &mut Self::Context) -> Self::Result {
+        use super::schema::script::dsl::*;
+        diesel::update(script.filter(id.eq(&msg.0.id.unwrap())))
+            .set((
+                name.eq(&msg.0.name),
+                source.eq(&msg.0.source),
+                status.eq(match msg.0.status.unwrap() {
+                    ::engine::streams::ScriptStatus::Enabled => 0,
+                    ::engine::streams::ScriptStatus::Disabled => 1,
+                }),
+            ))
+            .execute(&self.0)
+            .unwrap();
+    }
+}

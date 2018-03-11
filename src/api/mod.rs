@@ -85,6 +85,7 @@ fn http_application() -> Application<AppState> {
         })
         .resource("/api/v1/scripts/{scriptId}", |r| {
             r.method(Method::GET).f(script::get_script);
+            r.method(Method::PUT).f(script::update_script);
             r.method(Method::DELETE).f(script::delete_script);
         })
         .resource("/api/v1/reports", |r| {

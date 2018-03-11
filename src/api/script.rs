@@ -66,7 +66,6 @@ pub fn get_script(
 pub fn delete_script(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    info!("{:?}", req.match_info());
     match req.match_info().get("scriptId") {
         Some(script_id) => ::DB_EXECUTOR_POOL
             .send(::db::scripts::DeleteScript(script_id.to_string()))
@@ -104,5 +103,38 @@ pub fn list_scripts(
         .send(::db::scripts::GetAll(None))
         .from_err()
         .and_then(|res| Ok(httpcodes::HTTPOk.build().json(res)?))
+        .responder()
+}
+
+pub fn update_script(
+    req: HttpRequest<AppState>,
+) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+    req.clone()
+        .json()
+        .from_err()
+        .and_then(
+            move |script: ::engine::streams::Script| match req.match_info().get("scriptId") {
+                Some(script_id) => {
+                    let new_script = ::engine::streams::Script {
+                        id: Some(script_id.to_string()),
+                        ..script
+                    };
+                    ::DB_EXECUTOR_POOL.do_send(::db::scripts::UpdateScript(new_script.clone()));
+                    match new_script.script_type {
+                        ::engine::streams::ScriptType::StreamTest
+                        | ::engine::streams::ScriptType::ReportFilterTestResult => {
+                            actix::Arbiter::system_registry()
+                                .get::<::engine::streams::Streamer>()
+                                .do_send(::engine::streams::UpdateScript(new_script.clone()))
+                        }
+                        _ => (),
+                    }
+                    Ok(httpcodes::HTTPOk.build().json(new_script)?)
+                }
+                _ => Err(super::errors::IkError::BadRequest(
+                    "missing scriptId path parameter".to_string(),
+                )),
+            },
+        )
         .responder()
 }

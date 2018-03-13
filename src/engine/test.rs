@@ -228,7 +228,7 @@ impl Handler<TestExecutionToSave> for TraceParser {
     }
 }
 
-#[derive(Debug, Serialize, Clone, PartialEq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Hash)]
 pub enum TestStatus {
     Success,
     Failure,
@@ -282,7 +282,7 @@ impl Into<&'static str> for TestStatus {
     }
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TestResult {
     pub test_id: String,
     pub path: Vec<String>,

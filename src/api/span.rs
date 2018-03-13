@@ -8,10 +8,10 @@ use engine::ingestor::IngestEvents;
 use engine::span::Span;
 use actix::Arbiter;
 
-#[derive(Debug, Serialize)]
-struct IngestResponse {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IngestResponse {
     ingest_id: ::engine::IngestId,
-    nb_events: usize,
+    pub nb_events: usize,
 }
 
 pub fn ingest(
@@ -55,8 +55,7 @@ pub fn get_spans_by_service(
             .send(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
             .from_err()
             .and_then(|res| {
-                let mut span_names = res
-                    .iter()
+                let mut span_names = res.iter()
                     .map(|span| span.name.clone().unwrap_or_else(|| "n/a".to_string()))
                     .collect::<Vec<String>>();
                 span_names.sort_unstable();

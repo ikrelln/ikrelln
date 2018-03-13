@@ -10,7 +10,7 @@ use chrono;
 
 mod healthcheck;
 mod errors;
-mod span;
+pub mod span;
 pub mod test;
 mod script;
 pub mod report;
@@ -24,7 +24,7 @@ pub struct AppState {
     start_time: chrono::DateTime<chrono::Utc>,
 }
 
-fn http_application() -> Application<AppState> {
+pub fn http_application() -> Application<AppState> {
     Application::with_state(AppState {
         start_time: chrono::Utc::now(),
     }).middleware(

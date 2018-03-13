@@ -4,6 +4,14 @@ version = "0.2.0"
 authors = ["François Mockers <mockersf@gmail.com>"]
 build = "build.rs"
 
+[lib]
+name = "ikrelln"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ikrelln"
+path = "src/bin.rs"
+
 [dependencies]
 log = "0.4"
 fern = "0.5"

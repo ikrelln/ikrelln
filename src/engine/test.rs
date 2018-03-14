@@ -105,7 +105,7 @@ impl FromStr for OpenTracingTag {
 }
 
 #[derive(Clone)]
-enum IkrellnTags {
+pub enum IkrellnTags {
     Class,
     Environment,
     Name,
@@ -129,7 +129,7 @@ impl From<IkrellnTags> for &'static str {
         }
     }
 }
-struct NonIkrellnTag;
+pub struct NonIkrellnTag;
 impl FromStr for IkrellnTags {
     type Err = NonIkrellnTag;
     fn from_str(s: &str) -> Result<Self, Self::Err> {

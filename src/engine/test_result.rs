@@ -1,4 +1,3 @@
-use std::str::FromStr;
 use std::collections::hash_map::{Entry, HashMap};
 use std::time::Duration;
 
@@ -8,144 +7,7 @@ use actix::prelude::*;
 #[cfg(feature = "python")]
 use cpython::{PyDict, Python, ToPyObject};
 
-#[derive(Debug)]
-struct KnownTag {
-    tag: String,
-}
-impl From<OpenTracingTag> for KnownTag {
-    fn from(tag: OpenTracingTag) -> KnownTag {
-        let tag_str: &'static str = tag.into();
-        KnownTag {
-            tag: format!("{}", tag_str),
-        }
-    }
-}
-impl From<IkrellnTags> for KnownTag {
-    fn from(tag: IkrellnTags) -> KnownTag {
-        let tag_str: &'static str = tag.into();
-        KnownTag {
-            tag: format!("{}", tag_str),
-        }
-    }
-}
-
-// OpenTracing semantics v1.1
-// https://github.com/opentracing/specification/blob/master/semantic_conventions.md#span-tags-table
-#[derive(Clone)]
-enum OpenTracingTag {
-    Component,
-    DbInstance,
-    DbStatement,
-    DbType,
-    DbUser,
-    Error,
-    HttpMethod,
-    HttpStatusCode,
-    HttpUrl,
-    MessageBusDestination,
-    PeerAddress,
-    PeerHostname,
-    PeerIpv4,
-    PeerIpv6,
-    PeerPort,
-    PeerService,
-    SamplingPriority,
-    SpanKind,
-}
-impl From<OpenTracingTag> for &'static str {
-    fn from(tag: OpenTracingTag) -> &'static str {
-        match tag {
-            OpenTracingTag::Component => "component",
-            OpenTracingTag::DbInstance => "db.instance",
-            OpenTracingTag::DbStatement => "db.statement",
-            OpenTracingTag::DbType => "db.type",
-            OpenTracingTag::DbUser => "db.user",
-            OpenTracingTag::Error => "error",
-            OpenTracingTag::HttpMethod => "http.method",
-            OpenTracingTag::HttpStatusCode => "http.status_code",
-            OpenTracingTag::HttpUrl => "http.url",
-            OpenTracingTag::MessageBusDestination => "message_bus.destination",
-            OpenTracingTag::PeerAddress => "peer.address",
-            OpenTracingTag::PeerHostname => "peer.hostname",
-            OpenTracingTag::PeerIpv4 => "peer.ipv4",
-            OpenTracingTag::PeerIpv6 => "peer.ipv6",
-            OpenTracingTag::PeerPort => "peer.port",
-            OpenTracingTag::PeerService => "peer.service",
-            OpenTracingTag::SamplingPriority => "sampling.priority",
-            OpenTracingTag::SpanKind => "span.kind",
-        }
-    }
-}
-struct NonOpenTracingTag;
-impl FromStr for OpenTracingTag {
-    type Err = NonOpenTracingTag;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "component" => Ok(OpenTracingTag::Component),
-            "db.instance" => Ok(OpenTracingTag::DbInstance),
-            "db.statement" => Ok(OpenTracingTag::DbStatement),
-            "db.type" => Ok(OpenTracingTag::DbType),
-            "db.user" => Ok(OpenTracingTag::DbUser),
-            "error" => Ok(OpenTracingTag::Error),
-            "http.method" => Ok(OpenTracingTag::HttpMethod),
-            "http.status_code" => Ok(OpenTracingTag::HttpStatusCode),
-            "http.url" => Ok(OpenTracingTag::HttpUrl),
-            "message_bus.destination" => Ok(OpenTracingTag::MessageBusDestination),
-            "peer.address" => Ok(OpenTracingTag::PeerAddress),
-            "peer.hostname" => Ok(OpenTracingTag::PeerHostname),
-            "peer.ipv4" => Ok(OpenTracingTag::PeerIpv4),
-            "peer.ipv6" => Ok(OpenTracingTag::PeerIpv6),
-            "peer.port" => Ok(OpenTracingTag::PeerPort),
-            "peer.service" => Ok(OpenTracingTag::PeerService),
-            "sampling.priority" => Ok(OpenTracingTag::SamplingPriority),
-            "span.kind" => Ok(OpenTracingTag::SpanKind),
-            &_ => Err(NonOpenTracingTag),
-        }
-    }
-}
-
-#[derive(Clone)]
-pub enum IkrellnTags {
-    Class,
-    Environment,
-    Name,
-    Result,
-    StepParameters,
-    StepStatus,
-    StepType,
-    Suite,
-}
-impl From<IkrellnTags> for &'static str {
-    fn from(tag: IkrellnTags) -> &'static str {
-        match tag {
-            IkrellnTags::Class => "test.class",
-            IkrellnTags::Environment => "test.environment",
-            IkrellnTags::Name => "test.name",
-            IkrellnTags::Result => "test.result",
-            IkrellnTags::StepParameters => "test.step_parameters",
-            IkrellnTags::StepStatus => "test.step_status",
-            IkrellnTags::StepType => "test.step_type",
-            IkrellnTags::Suite => "test.suite",
-        }
-    }
-}
-pub struct NonIkrellnTag;
-impl FromStr for IkrellnTags {
-    type Err = NonIkrellnTag;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "test.class" => Ok(IkrellnTags::Class),
-            "test.environment" => Ok(IkrellnTags::Environment),
-            "test.name" => Ok(IkrellnTags::Name),
-            "test.result" => Ok(IkrellnTags::Result),
-            "test.step_parameters" => Ok(IkrellnTags::StepParameters),
-            "test.step_status" => Ok(IkrellnTags::StepStatus),
-            "test.step_type" => Ok(IkrellnTags::StepType),
-            "test.suite" => Ok(IkrellnTags::Suite),
-            &_ => Err(NonIkrellnTag),
-        }
-    }
-}
+use opentracing::tags::{IkrellnTags, KnownTag, OpenTracingTag};
 
 #[derive(Default)]
 pub struct TraceParser;
@@ -198,7 +60,7 @@ impl Handler<TraceDone> for TraceParser {
                 .then(|test_exec| {
                     if let Ok(Some(test_exec)) = test_exec {
                         Arbiter::system_registry()
-                            .get::<super::test::TraceParser>()
+                            .get::<super::test_result::TraceParser>()
                             .do_send(TestExecutionToSave(test_exec));
                     }
                     future::result(Ok(()))
@@ -233,6 +95,7 @@ pub enum TestStatus {
     Success,
     Failure,
     Skipped,
+    Any,
 }
 impl Eq for TestStatus {}
 impl TestStatus {
@@ -248,26 +111,28 @@ impl TestStatus {
 impl From<i32> for TestStatus {
     fn from(v: i32) -> Self {
         match v {
-            0 => ::engine::test::TestStatus::Success,
-            1 => ::engine::test::TestStatus::Failure,
-            2 => ::engine::test::TestStatus::Skipped,
-            _ => ::engine::test::TestStatus::Failure,
+            0 => ::engine::test_result::TestStatus::Success,
+            1 => ::engine::test_result::TestStatus::Failure,
+            2 => ::engine::test_result::TestStatus::Skipped,
+            _ => ::engine::test_result::TestStatus::Failure,
         }
     }
 }
 impl TestStatus {
     pub fn into_i32(&self) -> i32 {
         match self {
-            &::engine::test::TestStatus::Success => 0,
-            &::engine::test::TestStatus::Failure => 1,
-            &::engine::test::TestStatus::Skipped => 2,
+            &::engine::test_result::TestStatus::Success => 0,
+            &::engine::test_result::TestStatus::Failure => 1,
+            &::engine::test_result::TestStatus::Skipped => 2,
+            &::engine::test_result::TestStatus::Any => 3,
         }
     }
     pub fn into_str(&self) -> &'static str {
         match self {
-            &::engine::test::TestStatus::Success => "Success",
-            &::engine::test::TestStatus::Failure => "Failure",
-            &::engine::test::TestStatus::Skipped => "Skipped",
+            &::engine::test_result::TestStatus::Success => "Success",
+            &::engine::test_result::TestStatus::Failure => "Failure",
+            &::engine::test_result::TestStatus::Skipped => "Skipped",
+            &::engine::test_result::TestStatus::Any => "Any",
         }
     }
 }
@@ -294,7 +159,7 @@ pub struct TestResult {
     pub environment: Option<String>,
     pub components_called: HashMap<String, i32>,
     pub nb_spans: i32,
-    #[serde(skip_serializing_if = "Option::is_none")] pub main_span: Option<::engine::span::Span>,
+    #[serde(skip_serializing_if = "Option::is_none")] pub main_span: Option<::opentracing::Span>,
 }
 
 #[cfg(feature = "python")]
@@ -312,15 +177,7 @@ impl ToPyObject for TestResult {
             .unwrap();
         object.set_item(py, "date", self.date).unwrap();
         object
-            .set_item(
-                py,
-                "status",
-                match self.status {
-                    TestStatus::Success => "Success",
-                    TestStatus::Failure => "Failure",
-                    TestStatus::Skipped => "Skipped",
-                },
-            )
+            .set_item(py, "status", self.status.into_str())
             .unwrap();
         object.set_item(py, "duration", self.duration).unwrap();
         if let Some(environment) = self.environment.clone() {
@@ -345,9 +202,9 @@ impl TestResult {
             .map(|v| v.to_string())
     }
     fn value_from_tag_or(
-        span: &::engine::span::Span,
+        span: &::opentracing::Span,
         tag: IkrellnTags,
-        f: fn(&::engine::span::Span) -> Option<String>,
+        f: fn(&::opentracing::Span) -> Option<String>,
     ) -> Result<String, KnownTag> {
         match span.tags
             .get(tag.clone().into())
@@ -359,7 +216,7 @@ impl TestResult {
         }
     }
 
-    fn try_from(spans: &[::engine::span::Span]) -> Result<Self, KnownTag> {
+    fn try_from(spans: &[::opentracing::Span]) -> Result<Self, KnownTag> {
         let main_span = spans.iter().find(|span| span.parent_id.is_none()).unwrap();
         let suite = Self::value_from_tag_or(main_span, IkrellnTags::Suite, |span| {
             span.local_endpoint.clone().and_then(|ep| ep.service_name)
@@ -412,4 +269,67 @@ impl TestResult {
             main_span: Some(main_span.clone()),
         })
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use uuid;
+
+    use opentracing::Span;
+    use opentracing::span::Kind;
+    use opentracing::tags::IkrellnTags;
+
+    use super::*;
+
+    #[test]
+    fn can_get_test_result_from_span() {
+        let trace_id = uuid::Uuid::new_v4().to_string();
+
+        let mut tags: HashMap<String, String> = HashMap::new();
+        tags.insert(
+            String::from({
+                let tag: &str = IkrellnTags::Suite.into();
+                tag
+            }),
+            "test_suite".to_string(),
+        );
+        tags.insert(
+            String::from({
+                let tag: &str = IkrellnTags::Class.into();
+                tag
+            }),
+            "test_class".to_string(),
+        );
+        tags.insert(
+            String::from({
+                let tag: &str = IkrellnTags::Result.into();
+                tag
+            }),
+            "success".to_string(),
+        );
+
+        let spans = vec![
+            Span {
+                trace_id: trace_id.to_string(),
+                id: trace_id.clone(),
+                parent_id: None,
+                name: Some("span_name".to_string()),
+                kind: Some(Kind::CLIENT),
+                duration: Some(25),
+                timestamp: Some(50),
+                debug: false,
+                shared: false,
+                local_endpoint: None,
+                remote_endpoint: None,
+                annotations: vec![],
+                tags,
+                binary_annotations: vec![],
+            },
+        ];
+
+        let tr = TestResult::try_from(&spans);
+        assert!(tr.is_ok());
+    }
+
 }

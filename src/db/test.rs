@@ -3,7 +3,6 @@ use actix::{Handler, Message, MessageResult};
 use diesel::prelude::*;
 use uuid;
 use chrono;
-use actix_web;
 use serde_json;
 
 static TEST_ITEM_QUERY_LIMIT: i64 = 200;
@@ -71,14 +70,18 @@ impl super::DbExecutor {
     }
 }
 
-impl Message for ::engine::test::TestResult {
-    type Result = ::engine::test::TestResult;
+impl Message for ::engine::test_result::TestResult {
+    type Result = ::engine::test_result::TestResult;
 }
 
-impl Handler<::engine::test::TestResult> for super::DbExecutor {
-    type Result = MessageResult<::engine::test::TestResult>;
+impl Handler<::engine::test_result::TestResult> for super::DbExecutor {
+    type Result = MessageResult<::engine::test_result::TestResult>;
 
-    fn handle(&mut self, msg: ::engine::test::TestResult, _: &mut Self::Context) -> Self::Result {
+    fn handle(
+        &mut self,
+        msg: ::engine::test_result::TestResult,
+        _: &mut Self::Context,
+    ) -> Self::Result {
         let mut parent_id = "root".to_string();
         for item in msg.path.clone() {
             parent_id = self.find_test_or_insert(&TestItemDb {
@@ -114,7 +117,7 @@ impl Handler<::engine::test::TestResult> for super::DbExecutor {
             .execute(&self.0)
             .unwrap();
 
-        MessageResult(::engine::test::TestResult {
+        MessageResult(::engine::test_result::TestResult {
             test_id: parent_id,
             ..msg
         })
@@ -220,7 +223,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
                             .ok()
                             .unwrap_or_else(|| vec![])
                             .iter()
-                            .map(|tr| ::engine::test::TestResult {
+                            .map(|tr| ::engine::test_result::TestResult {
                                 test_id: tr.test_id.clone(),
                                 path: path.iter().map(|ti| ti.name.clone()).collect(),
                                 name: ti.name.clone(),
@@ -229,12 +232,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
                                     * 1000),
                                 duration: tr.duration,
                                 environment: tr.environment.clone(),
-                                status: match tr.status {
-                                    0 => ::engine::test::TestStatus::Success,
-                                    1 => ::engine::test::TestStatus::Failure,
-                                    2 => ::engine::test::TestStatus::Skipped,
-                                    _ => ::engine::test::TestStatus::Failure,
-                                },
+                                status: tr.status.into(),
                                 trace_id: tr.trace_id.clone(),
                                 components_called: serde_json::from_str(&tr.components_called)
                                     .unwrap(),
@@ -287,29 +285,20 @@ impl Default for TestResultQuery {
     }
 }
 
-impl TestResultQuery {
-    pub fn from_req(req: &actix_web::HttpRequest<::api::AppState>) -> Self {
+impl From<::api::test::TestResultsQueryParams> for TestResultQuery {
+    fn from(params: ::api::test::TestResultsQueryParams) -> Self {
         TestResultQuery {
-            trace_id: req.query().get("traceId").map(|s| s.to_string()),
-            status: req.query().get("status").and_then(|status| {
-                match status.to_lowercase().as_ref() {
-                    "success" => Some(0),
-                    "failure" => Some(1),
-                    "skipped" => Some(2),
-                    _ => None,
-                }
+            trace_id: params.trace_id,
+            status: params.status.and_then(|v| match v {
+                ::engine::test_result::TestStatus::Any => None,
+                v => Some(v.into()),
             }),
-            test_id: req.query().get("testId").map(|s| s.to_string()),
-            environment: req.query().get("environment").map(|s| s.to_string()),
-            min_duration: req.query()
-                .get("minDuration")
-                .and_then(|s| s.parse::<i64>().ok()),
-            max_duration: req.query()
-                .get("maxDuration")
-                .and_then(|s| s.parse::<i64>().ok()),
-            ts: req.query()
-                .get("ts")
-                .and_then(|s| s.parse::<i64>().ok())
+            test_id: params.test_id,
+            environment: params.environment,
+            min_duration: params.min_duration,
+            max_duration: params.max_duration,
+            ts: params
+                .ts
                 .map(|v| {
                     // query timestamp is in milliseconds
                     chrono::NaiveDateTime::from_timestamp(
@@ -318,13 +307,9 @@ impl TestResultQuery {
                     )
                 })
                 .unwrap_or_else(|| chrono::Utc::now().naive_utc()),
-            lookback: req.query()
-                .get("lookback")
-                .and_then(|s| s.parse::<i64>().ok())
-                .map(chrono::Duration::milliseconds),
-            limit: req.query()
-                .get("limit")
-                .and_then(|s| s.parse::<i64>().ok())
+            lookback: params.lookback.map(chrono::Duration::milliseconds),
+            limit: params
+                .limit
                 .map(|v| {
                     if v > TEST_RESULT_QUERY_LIMIT {
                         TEST_RESULT_QUERY_LIMIT
@@ -339,7 +324,7 @@ impl TestResultQuery {
 
 pub struct GetTestResults(pub TestResultQuery);
 impl Message for GetTestResults {
-    type Result = Vec<::engine::test::TestResult>;
+    type Result = Vec<::engine::test_result::TestResult>;
 }
 impl Handler<GetTestResults> for super::DbExecutor {
     type Result = MessageResult<GetTestResults>;
@@ -443,7 +428,7 @@ impl Handler<GetTestResults> for super::DbExecutor {
                     }
                     path.reverse();
 
-                    ::engine::test::TestResult {
+                    ::engine::test_result::TestResult {
                         test_id: tr.test_id.clone(),
                         path,
                         name: test.unwrap().name,
@@ -459,7 +444,7 @@ impl Handler<GetTestResults> for super::DbExecutor {
                         main_span: None,
                     }
                 })
-                .collect::<Vec<::engine::test::TestResult>>(),
+                .collect::<Vec<::engine::test_result::TestResult>>(),
         )
     }
 }

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use super::{errors, AppState};
 use engine::ingestor::IngestEvents;
-use engine::span::Span;
+use opentracing::Span;
 use actix::Arbiter;
 
 #[derive(Debug, Serialize, Deserialize)]

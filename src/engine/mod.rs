@@ -4,7 +4,7 @@ use std::fmt;
 
 pub mod ingestor;
 pub mod span;
-pub mod test;
+pub mod test_result;
 pub mod streams;
 pub mod report;
 

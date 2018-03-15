@@ -14,6 +14,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate serde_urlencoded;
 extern crate uuid;
 
 extern crate actix;
@@ -28,6 +29,7 @@ extern crate diesel;
 #[cfg(feature = "python")]
 extern crate cpython;
 
+pub mod opentracing;
 mod build_info;
 mod config;
 pub mod engine;

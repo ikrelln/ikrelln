@@ -11,8 +11,11 @@ use std::collections::HashMap;
 
 use actix_web::*;
 
-use ikrelln::engine::span::Span;
+use ikrelln::opentracing::Span;
+use ikrelln::opentracing::span::Kind;
 use ikrelln::api::span::IngestResponse;
+
+const DELAY_SPAN_SAVED_MILLISECONDS: u64 = 200;
 
 #[test]
 fn can_receive_span() {
@@ -27,7 +30,7 @@ fn can_receive_span() {
                 id: trace_id.clone(),
                 parent_id: None,
                 name: Some(trace_id.clone()),
-                kind: Some(ikrelln::engine::span::Kind::CLIENT),
+                kind: Some(Kind::CLIENT),
                 duration: Some(25),
                 timestamp: Some(50),
                 debug: false,
@@ -47,7 +50,7 @@ fn can_receive_span() {
     assert!(data.is_ok());
     assert_eq!(data.unwrap().nb_events, 1);
 
-    thread::sleep(time::Duration::from_millis(100));
+    thread::sleep(time::Duration::from_millis(DELAY_SPAN_SAVED_MILLISECONDS));
 
     let req_trace = srv.client(Method::GET, &format!("/api/v1/trace/{}", &trace_id))
         .finish()
@@ -63,6 +66,7 @@ fn can_receive_span() {
 #[test]
 fn can_receive_spans() {
     let mut srv = helpers::setup_server();
+    helpers::setup_logger();
 
     let trace_id = uuid::Uuid::new_v4().to_string();
 
@@ -73,7 +77,7 @@ fn can_receive_spans() {
                 id: trace_id.clone(),
                 parent_id: None,
                 name: Some(trace_id.clone()),
-                kind: Some(ikrelln::engine::span::Kind::CLIENT),
+                kind: Some(Kind::CLIENT),
                 duration: Some(25),
                 timestamp: Some(50),
                 debug: false,
@@ -89,7 +93,7 @@ fn can_receive_spans() {
                 id: uuid::Uuid::new_v4().to_string(),
                 parent_id: Some(trace_id.clone()),
                 name: Some(uuid::Uuid::new_v4().to_string()),
-                kind: Some(ikrelln::engine::span::Kind::CLIENT),
+                kind: Some(Kind::CLIENT),
                 duration: Some(25),
                 timestamp: Some(50),
                 debug: false,
@@ -105,7 +109,7 @@ fn can_receive_spans() {
                 id: uuid::Uuid::new_v4().to_string(),
                 parent_id: Some(trace_id.clone()),
                 name: Some(uuid::Uuid::new_v4().to_string()),
-                kind: Some(ikrelln::engine::span::Kind::CLIENT),
+                kind: Some(Kind::CLIENT),
                 duration: Some(25),
                 timestamp: Some(50),
                 debug: false,
@@ -125,7 +129,7 @@ fn can_receive_spans() {
     assert!(data.is_ok());
     assert_eq!(data.unwrap().nb_events, 3);
 
-    thread::sleep(time::Duration::from_millis(100));
+    thread::sleep(time::Duration::from_millis(DELAY_SPAN_SAVED_MILLISECONDS));
 
     let req_trace = srv.client(Method::GET, &format!("/api/v1/trace/{}", &trace_id))
         .finish()

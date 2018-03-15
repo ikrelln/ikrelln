@@ -11,9 +11,13 @@ use std::collections::HashMap;
 
 use actix_web::*;
 
-use ikrelln::engine::span::Span;
+use ikrelln::opentracing::Span;
+use ikrelln::opentracing::span::Kind;
+use ikrelln::opentracing::tags::IkrellnTags;
 use ikrelln::api::span::IngestResponse;
-use ikrelln::engine::test::TestResult;
+use ikrelln::engine::test_result::TestResult;
+
+const DELAY_REPORT_SAVED_MILLISECONDS: u64 = 2200;
 
 #[test]
 fn should_not_have_test_result_from_span_without_tags() {
@@ -28,7 +32,7 @@ fn should_not_have_test_result_from_span_without_tags() {
                 id: trace_id.clone(),
                 parent_id: None,
                 name: Some(trace_id.clone()),
-                kind: Some(ikrelln::engine::span::Kind::CLIENT),
+                kind: Some(Kind::CLIENT),
                 duration: Some(25),
                 timestamp: Some(50),
                 debug: false,
@@ -48,16 +52,19 @@ fn should_not_have_test_result_from_span_without_tags() {
     assert!(data.is_ok());
     assert_eq!(data.unwrap().nb_events, 1);
 
-    thread::sleep(time::Duration::from_millis(100));
+    thread::sleep(time::Duration::from_millis(DELAY_REPORT_SAVED_MILLISECONDS));
 
     let req_tr = srv.client(
         Method::GET,
-        &format!("/api/v1/testresult?traceId={}", &trace_id),
+        &format!("/api/v1/testresults?traceId={}", &trace_id),
     ).finish()
         .unwrap();
     let response_tr = srv.execute(req_tr.send()).unwrap();
-    println!("{:?}", response_tr);
-    assert!(response_tr.status().is_client_error());
+    assert!(response_tr.status().is_success());
+    let data_tr: Result<Vec<TestResult>, _> =
+        serde_json::from_slice(&*srv.execute(response_tr.body()).unwrap());
+    assert!(data_tr.is_ok());
+    assert_eq!(data_tr.unwrap().len(), 0);
 }
 
 #[test]
@@ -69,21 +76,21 @@ fn should_create_test_result() {
     let mut tags: HashMap<String, String> = HashMap::new();
     tags.insert(
         String::from({
-            let tag: &str = ikrelln::engine::test::IkrellnTags::Suite.into();
+            let tag: &str = IkrellnTags::Suite.into();
             tag
         }),
         "test_suite".to_string(),
     );
     tags.insert(
         String::from({
-            let tag: &str = ikrelln::engine::test::IkrellnTags::Class.into();
+            let tag: &str = IkrellnTags::Class.into();
             tag
         }),
         "test_class".to_string(),
     );
     tags.insert(
         String::from({
-            let tag: &str = ikrelln::engine::test::IkrellnTags::Result.into();
+            let tag: &str = IkrellnTags::Result.into();
             tag
         }),
         "success".to_string(),
@@ -96,7 +103,7 @@ fn should_create_test_result() {
                 id: trace_id.clone(),
                 parent_id: None,
                 name: Some("span_name".to_string()),
-                kind: Some(ikrelln::engine::span::Kind::CLIENT),
+                kind: Some(Kind::CLIENT),
                 duration: Some(25),
                 timestamp: Some(50),
                 debug: false,
@@ -116,17 +123,17 @@ fn should_create_test_result() {
     assert!(data.is_ok());
     assert_eq!(data.unwrap().nb_events, 1);
 
-    thread::sleep(time::Duration::from_millis(100));
+    thread::sleep(time::Duration::from_millis(DELAY_REPORT_SAVED_MILLISECONDS));
 
     let req_tr = srv.client(
         Method::GET,
-        &format!("/api/v1/testresult?traceId={}", &trace_id),
+        &format!("/api/v1/testresults?traceId={}", &trace_id),
     ).finish()
         .unwrap();
     let response_tr = srv.execute(req_tr.send()).unwrap();
-    println!("{:?}", response_tr);
     assert!(response_tr.status().is_success());
     let data_tr: Result<Vec<TestResult>, _> =
         serde_json::from_slice(&*srv.execute(response_tr.body()).unwrap());
     assert!(data_tr.is_ok());
+    assert_eq!(data_tr.unwrap().len(), 1);
 }

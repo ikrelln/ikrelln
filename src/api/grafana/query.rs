@@ -103,7 +103,7 @@ pub fn query(
                                     columns.push(span.as_columns());
                                 }
                                 let response = QueryResponse::Table {
-                                    columns: ::engine::span::Span::as_column_types(),
+                                    columns: ::opentracing::Span::as_column_types(),
                                     rows: columns,
                                 };
                                 responses.push(response);
@@ -114,7 +114,7 @@ pub fn query(
                                     columns.push(test_result.as_columns());
                                 }
                                 let response = QueryResponse::Table {
-                                    columns: ::engine::test::TestResult::as_column_types(),
+                                    columns: ::engine::test_result::TestResult::as_column_types(),
                                     rows: columns,
                                 };
                                 responses.push(response);

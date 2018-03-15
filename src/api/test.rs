@@ -1,6 +1,7 @@
 use actix_web::{httpcodes, AsyncResponder, HttpRequest, HttpResponse};
 use futures::Future;
 use futures::future::result;
+use serde_urlencoded;
 
 use super::{errors, AppState};
 
@@ -10,16 +11,34 @@ pub struct TestItem {
     pub name: String,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TestResultsQueryParams {
+    pub trace_id: Option<String>,
+    pub status: Option<::engine::test_result::TestStatus>,
+    pub test_id: Option<String>,
+    pub environment: Option<String>,
+    pub min_duration: Option<i64>,
+    pub max_duration: Option<i64>,
+    pub ts: Option<i64>,
+    pub lookback: Option<i64>,
+    pub limit: Option<i64>,
+}
+
 pub fn get_test_results(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    ::DB_EXECUTOR_POOL
-        .send(::db::test::GetTestResults(
-            ::db::test::TestResultQuery::from_req(&req),
-        ))
-        .from_err()
-        .and_then(|res| Ok(httpcodes::HTTPOk.build().json(res)?))
-        .responder()
+    match serde_urlencoded::from_str::<TestResultsQueryParams>(req.query_string()) {
+        Ok(query_params) => ::DB_EXECUTOR_POOL
+            .send(::db::test::GetTestResults(query_params.into()))
+            .from_err()
+            .and_then(|res| Ok(httpcodes::HTTPOk.build().json(res)?))
+            .responder(),
+        Err(err) => result(Err(super::errors::IkError::BadRequest(format!(
+            "invalid query parameters: '{}'",
+            err
+        )))).responder(),
+    }
 }
 
 #[derive(Serialize)]
@@ -28,7 +47,7 @@ pub struct TestDetails {
     pub name: String,
     pub path: Vec<TestItem>,
     pub children: Vec<TestItem>,
-    pub last_results: Vec<::engine::test::TestResult>,
+    pub last_results: Vec<::engine::test_result::TestResult>,
 }
 pub fn get_test(
     req: HttpRequest<AppState>,
@@ -77,13 +96,19 @@ pub fn get_test(
     }
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GetTestQueryParams {
+    parent_id: String,
+}
+
 pub fn get_tests_by_parent(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    match req.query().get("parentId") {
-        Some(test_id) => ::DB_EXECUTOR_POOL
+    match serde_urlencoded::from_str::<GetTestQueryParams>(req.query_string()) {
+        Ok(params) => ::DB_EXECUTOR_POOL
             .send(::db::test::GetTestItems(::db::test::TestItemQuery {
-                parent_id: Some(test_id.to_string()),
+                parent_id: Some(params.parent_id),
                 with_children: true,
                 with_full_path: true,
                 with_traces: true,

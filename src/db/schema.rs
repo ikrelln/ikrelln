@@ -56,9 +56,7 @@ table! {
 }
 
 table! {
-    tag (tag_id) {
-        tag_id -> Varchar,
-        trace_id -> Varchar,
+    tag (span_id, name) {
         span_id -> Varchar,
         name -> Varchar,
         value -> Varchar,

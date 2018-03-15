@@ -43,8 +43,6 @@ use db::schema::tag;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "tag"]
 pub struct TagDb {
-    tag_id: String,
-    trace_id: String,
     span_id: String,
     name: String,
     value: String,
@@ -70,7 +68,7 @@ struct FromSpan {
     annotations: Vec<AnnotationDb>,
 }
 
-fn get_all_from_span(span: &::engine::span::Span) -> FromSpan {
+fn get_all_from_span(span: &::opentracing::Span) -> FromSpan {
     let trace_id = span.trace_id.clone();
     let span_id = span.id.clone();
 
@@ -138,9 +136,7 @@ fn get_all_from_span(span: &::engine::span::Span) -> FromSpan {
     let tags = span.tags
         .iter()
         .map(|(key, value)| TagDb {
-            trace_id: trace_id.clone(),
             span_id: span_id.clone(),
-            tag_id: uuid::Uuid::new_v4().hyphenated().to_string(),
             name: key.clone().to_lowercase(),
             value: value.clone(),
         })
@@ -155,8 +151,8 @@ fn get_all_from_span(span: &::engine::span::Span) -> FromSpan {
     }
 }
 
-impl Message for ::engine::span::Span {
-    type Result = ::engine::span::Span;
+impl Message for ::opentracing::Span {
+    type Result = ::opentracing::Span;
 }
 
 impl super::DbExecutor {
@@ -210,10 +206,10 @@ impl super::DbExecutor {
     }
 }
 
-impl Handler<::engine::span::Span> for super::DbExecutor {
-    type Result = MessageResult<::engine::span::Span>;
+impl Handler<::opentracing::Span> for super::DbExecutor {
+    type Result = MessageResult<::opentracing::Span>;
 
-    fn handle(&mut self, msg: ::engine::span::Span, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: ::opentracing::Span, _: &mut Self::Context) -> Self::Result {
         let mut to_upsert = get_all_from_span(&msg);
 
         to_upsert.span_db.local_endpoint_id = self.upsert_endpoint(to_upsert.local_endpoint);
@@ -387,7 +383,7 @@ impl SpanQuery {
 
 pub struct GetSpans(pub SpanQuery);
 impl Message for GetSpans {
-    type Result = Vec<::engine::span::Span>;
+    type Result = Vec<::opentracing::Span>;
 }
 
 impl Handler<GetSpans> for super::DbExecutor {
@@ -475,7 +471,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                                     .filter(endpoint_id.eq(id))
                                     .first::<EndpointDb>(&self.0)
                                     .ok()
-                                    .map(|ep| ::engine::span::Endpoint {
+                                    .map(|ep| ::opentracing::span::Endpoint {
                                         service_name: ep.service_name,
                                         ipv4: ep.ipv4,
                                         ipv6: ep.ipv6,
@@ -493,7 +489,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                                     .filter(endpoint_id.eq(id))
                                     .first::<EndpointDb>(&self.0)
                                     .ok()
-                                    .map(|ep| ::engine::span::Endpoint {
+                                    .map(|ep| ::opentracing::span::Endpoint {
                                         service_name: ep.service_name,
                                         ipv4: ep.ipv4,
                                         ipv6: ep.ipv6,
@@ -513,7 +509,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                             .ok()
                             .unwrap_or_else(|| vec![])
                             .iter()
-                            .map(|an| ::engine::span::Annotation {
+                            .map(|an| ::opentracing::span::Annotation {
                                 timestamp: ((an.ts.timestamp() * 1000)
                                     + i64::from(an.ts.timestamp_subsec_millis()))
                                     * 1000,
@@ -528,7 +524,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                     let tags: HashMap<String, String> = if !without_tags {
                         use super::schema::tag::dsl::*;
 
-                        tag.filter(trace_id.eq(&spandb.trace_id).and(span_id.eq(&spandb.id)))
+                        tag.filter(span_id.eq(&spandb.id))
                             .limit(TAG_QUERY_LIMIT)
                             .load::<TagDb>(&self.0)
                             .ok()
@@ -543,7 +539,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                     let binary_annotation_endpoint =
                         remote_endpoint.clone().or_else(|| local_endpoint.clone());
 
-                    ::engine::span::Span {
+                    ::opentracing::Span {
                         trace_id: spandb.trace_id.clone(),
                         id: spandb.id.clone(),
                         parent_id: spandb.parent_id.clone(),
@@ -561,7 +557,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                         annotations,
                         tags: tags.clone(),
                         binary_annotations: tags.iter()
-                            .map(|(k, v)| ::engine::span::BinaryTag {
+                            .map(|(k, v)| ::opentracing::span::BinaryTag {
                                 key: k.clone(),
                                 value: v.clone(),
                                 endpoint: binary_annotation_endpoint.clone(),
@@ -610,9 +606,8 @@ impl Handler<SpanCleanup> for super::DbExecutor {
             {
                 use super::schema::tag::dsl::*;
 
-                diesel::delete(tag.filter(
-                    trace_id.eq(&spandb.trace_id).and(span_id.eq(&spandb.id)),
-                )).execute(&self.0)
+                diesel::delete(tag.filter(span_id.eq(&spandb.id)))
+                    .execute(&self.0)
                     .expect("Error deleting Tag");
             }
         });

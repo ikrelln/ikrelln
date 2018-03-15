@@ -199,7 +199,7 @@ impl<'a> FromPyObject<'a> for ReportTarget {
 }
 
 #[derive(Message, Debug)]
-pub struct Test(pub ::engine::test::TestResult);
+pub struct Test(pub ::engine::test_result::TestResult);
 impl Handler<Test> for Streamer {
     type Result = ();
 

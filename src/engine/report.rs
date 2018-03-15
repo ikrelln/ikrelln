@@ -17,7 +17,7 @@ pub struct ResultForReport {
     pub report_group: String,
     pub report_name: String,
     pub category: Option<String>,
-    pub result: ::engine::test::TestResult,
+    pub result: ::engine::test_result::TestResult,
 }
 
 impl Handler<ResultForReport> for Reporter {
@@ -29,7 +29,7 @@ impl Handler<ResultForReport> for Reporter {
 }
 
 #[derive(Message)]
-pub struct ComputeReportsForResult(pub ::engine::test::TestResult);
+pub struct ComputeReportsForResult(pub ::engine::test_result::TestResult);
 
 impl Handler<ComputeReportsForResult> for Reporter {
     type Result = ();

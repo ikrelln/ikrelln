@@ -13,10 +13,10 @@ pub struct Report {
     pub created_on: chrono::NaiveDateTime,
     pub last_update: chrono::NaiveDateTime,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub categories: Option<HashMap<String, Vec<::engine::test::TestResult>>>,
+    pub categories: Option<HashMap<String, Vec<::engine::test_result::TestResult>>>,
     pub environments: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub summary: Option<HashMap<::engine::test::TestStatus, usize>>,
+    pub summary: Option<HashMap<::engine::test_result::TestStatus, usize>>,
 }
 
 pub fn get_reports(

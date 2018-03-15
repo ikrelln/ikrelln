@@ -10,7 +10,7 @@ CREATE TABLE endpoint
 CREATE TABLE span
 (
     trace_id VARCHAR(36) NOT NULL,
-    id VARCHAR(36) NOT NULL,
+    id VARCHAR(36) NOT NULL UNIQUE,
     parent_id VARCHAR(36),
     name VARCHAR(255),
     kind VARCHAR(10),
@@ -35,10 +35,9 @@ CREATE TABLE annotation
 );
 CREATE TABLE tag
 (
-    tag_id VARCHAR(36) NOT NULL PRIMARY KEY,
-    trace_id VARCHAR(36) NOT NULL,
     span_id VARCHAR(36) NOT NULL,
     name VARCHAR(255) NOT NULL,
     value VARCHAR NOT NULL,
-    FOREIGN KEY (trace_id, span_id) REFERENCES span (trace_id, id)
+    PRIMARY KEY (span_id, name),
+    FOREIGN KEY (span_id) REFERENCES span (id)
 );

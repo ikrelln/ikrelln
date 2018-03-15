@@ -7,7 +7,7 @@ use uuid;
 use diesel;
 use serde_json;
 
-use engine::test::TestStatus;
+use engine::test_result::TestStatus;
 
 static REPORT_QUERY_LIMIT: i64 = 200;
 use db::schema::report;
@@ -304,7 +304,10 @@ impl Handler<GetReport> for super::DbExecutor {
                 .load::<String>(&self.0)
                 .expect("can load categories from test results");
 
-            let mut test_results: HashMap<String, Vec<::engine::test::TestResult>> = HashMap::new();
+            let mut test_results: HashMap<
+                String,
+                Vec<::engine::test_result::TestResult>,
+            > = HashMap::new();
             categories.iter().for_each(|category_found| {
                 let traces: Vec<_> = test_result_in_report
                     .select(trace_id)
@@ -368,7 +371,7 @@ impl Handler<GetReport> for super::DbExecutor {
                             }
                             path.reverse();
 
-                            ::engine::test::TestResult {
+                            ::engine::test_result::TestResult {
                                 test_id: tr.test_id.clone(),
                                 path,
                                 name: test.unwrap().name,
@@ -385,7 +388,7 @@ impl Handler<GetReport> for super::DbExecutor {
                                 main_span: None,
                             }
                         })
-                        .collect::<Vec<::engine::test::TestResult>>()
+                        .collect::<Vec<::engine::test_result::TestResult>>()
                 };
                 test_results.insert(category_found.clone(), results);
             });

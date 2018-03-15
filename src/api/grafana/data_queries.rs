@@ -3,7 +3,7 @@ use actix::MailboxError;
 
 use super::query::{Column, ToGrafana, Value};
 
-impl ToGrafana for ::engine::span::Span {
+impl ToGrafana for ::opentracing::Span {
     fn as_column_types() -> Vec<Column> {
         vec![
             Column {
@@ -37,7 +37,7 @@ impl ToGrafana for ::engine::span::Span {
         column
     }
 }
-impl ToGrafana for ::engine::test::TestResult {
+impl ToGrafana for ::engine::test_result::TestResult {
     fn as_column_types() -> Vec<Column> {
         vec![
             Column {
@@ -117,7 +117,7 @@ impl ToGrafana for ::api::report::Report {
             .clone()
             .and_then(|summary| {
                 summary
-                    .get(&::engine::test::TestStatus::Success)
+                    .get(&::engine::test_result::TestStatus::Success)
                     .map(|v| *v)
             })
             .unwrap_or(0) as i64));
@@ -125,7 +125,7 @@ impl ToGrafana for ::api::report::Report {
             .clone()
             .and_then(|summary| {
                 summary
-                    .get(&::engine::test::TestStatus::Failure)
+                    .get(&::engine::test_result::TestStatus::Failure)
                     .map(|v| *v)
             })
             .unwrap_or(0) as i64));
@@ -133,7 +133,7 @@ impl ToGrafana for ::api::report::Report {
             .clone()
             .and_then(|summary| {
                 summary
-                    .get(&::engine::test::TestStatus::Skipped)
+                    .get(&::engine::test_result::TestStatus::Skipped)
                     .map(|v| *v)
             })
             .unwrap_or(0) as i64));
@@ -142,9 +142,9 @@ impl ToGrafana for ::api::report::Report {
 }
 
 pub enum DataQuery {
-    FutureSpans(Box<futures::Future<Item = Vec<::engine::span::Span>, Error = MailboxError>>),
+    FutureSpans(Box<futures::Future<Item = Vec<::opentracing::Span>, Error = MailboxError>>),
     FutureTestResults(
-        Box<futures::Future<Item = Vec<::engine::test::TestResult>, Error = MailboxError>>,
+        Box<futures::Future<Item = Vec<::engine::test_result::TestResult>, Error = MailboxError>>,
     ),
     FutureReports(Box<futures::Future<Item = Vec<::api::report::Report>, Error = MailboxError>>),
 }
@@ -171,17 +171,17 @@ impl futures::Future for DataQuery {
 }
 
 pub enum FutureData {
-    FutureSpans(Vec<::engine::span::Span>),
-    FutureTestResults(Vec<::engine::test::TestResult>),
+    FutureSpans(Vec<::opentracing::Span>),
+    FutureTestResults(Vec<::engine::test_result::TestResult>),
     FutureReports(Vec<::api::report::Report>),
 }
-impl From<Vec<::engine::span::Span>> for FutureData {
-    fn from(value: Vec<::engine::span::Span>) -> FutureData {
+impl From<Vec<::opentracing::Span>> for FutureData {
+    fn from(value: Vec<::opentracing::Span>) -> FutureData {
         FutureData::FutureSpans(value)
     }
 }
-impl From<Vec<::engine::test::TestResult>> for FutureData {
-    fn from(value: Vec<::engine::test::TestResult>) -> FutureData {
+impl From<Vec<::engine::test_result::TestResult>> for FutureData {
+    fn from(value: Vec<::engine::test_result::TestResult>) -> FutureData {
         FutureData::FutureTestResults(value)
     }
 }

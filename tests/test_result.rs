@@ -17,7 +17,7 @@ use ikrelln::opentracing::tags::IkrellnTags;
 use ikrelln::api::span::IngestResponse;
 use ikrelln::engine::test_result::TestResult;
 
-const DELAY_REPORT_SAVED_MILLISECONDS: u64 = 2200;
+const DELAY_REPORT_SAVED_MILLISECONDS: u64 = 200;
 
 #[test]
 fn should_not_have_test_result_from_span_without_tags() {

@@ -1,5 +1,4 @@
 use std::collections::hash_map::{Entry, HashMap};
-use std::time::Duration;
 
 use futures::{future, Future};
 use actix::prelude::*;
@@ -18,17 +17,6 @@ impl actix::Supervised for TraceParser {}
 
 impl actix::SystemService for TraceParser {
     fn service_started(&mut self, _ctx: &mut Context<Self>) {}
-}
-
-#[derive(Message)]
-pub struct TraceDoneNow(pub String);
-impl Handler<TraceDoneNow> for TraceParser {
-    type Result = ();
-
-    fn handle(&mut self, msg: TraceDoneNow, ctx: &mut Context<Self>) -> Self::Result {
-        ctx.notify_later(TraceDone(msg.0), Duration::new(2, 0));
-        ()
-    }
 }
 
 #[derive(Message)]

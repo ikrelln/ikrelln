@@ -18,7 +18,7 @@ impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor 
                     if let (Some(_), None) = (span.duration, span.parent_id.clone()) {
                         Arbiter::system_registry()
                             .get::<super::test_result::TraceParser>()
-                            .do_send(super::test_result::TraceDoneNow(span.trace_id.clone()));
+                            .do_send(super::test_result::TraceDone(span.trace_id.clone()));
                     }
                 }
                 result(Ok(()))

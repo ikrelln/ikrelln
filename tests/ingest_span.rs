@@ -66,7 +66,6 @@ fn can_receive_span() {
 #[test]
 fn can_receive_spans() {
     let mut srv = helpers::setup_server();
-    helpers::setup_logger();
 
     let trace_id = uuid::Uuid::new_v4().to_string();
 

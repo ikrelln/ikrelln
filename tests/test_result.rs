@@ -17,7 +17,7 @@ use ikrelln::opentracing::tags::IkrellnTags;
 use ikrelln::api::span::IngestResponse;
 use ikrelln::engine::test_result::TestResult;
 
-const DELAY_REPORT_SAVED_MILLISECONDS: u64 = 200;
+const DELAY_RESULT_SAVED_MILLISECONDS: u64 = 200;
 
 #[test]
 fn should_not_have_test_result_from_span_without_tags() {
@@ -52,7 +52,7 @@ fn should_not_have_test_result_from_span_without_tags() {
     assert!(data.is_ok());
     assert_eq!(data.unwrap().nb_events, 1);
 
-    thread::sleep(time::Duration::from_millis(DELAY_REPORT_SAVED_MILLISECONDS));
+    thread::sleep(time::Duration::from_millis(DELAY_RESULT_SAVED_MILLISECONDS));
 
     let req_tr = srv.client(
         Method::GET,
@@ -123,7 +123,7 @@ fn should_create_test_result() {
     assert!(data.is_ok());
     assert_eq!(data.unwrap().nb_events, 1);
 
-    thread::sleep(time::Duration::from_millis(DELAY_REPORT_SAVED_MILLISECONDS));
+    thread::sleep(time::Duration::from_millis(DELAY_RESULT_SAVED_MILLISECONDS));
 
     let req_tr = srv.client(
         Method::GET,

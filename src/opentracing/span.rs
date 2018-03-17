@@ -76,7 +76,7 @@ impl ToPyObject for Span {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Endpoint {
     pub service_name: Option<String>,

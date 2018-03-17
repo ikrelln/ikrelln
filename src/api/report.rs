@@ -6,7 +6,7 @@ use chrono;
 
 use super::{errors, AppState};
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Report {
     pub name: String,
     pub group: String,

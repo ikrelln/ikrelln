@@ -40,7 +40,7 @@ impl super::DbExecutor {
         report
             .filter(folder.eq(&report_db.folder))
             .filter(name.eq(&report_db.name))
-            .first::<ReportDb>(&self.0)
+            .first::<ReportDb>(self.0.as_ref().unwrap())
             .ok()
     }
 
@@ -51,8 +51,8 @@ impl super::DbExecutor {
             Some(existing) => {
                 diesel::update(report.filter(id.eq(&existing.id)))
                     .set(last_update.eq(report_db.last_update))
-                    .execute(&self.0)
-                    .expect("error updating report last update date");
+                    .execute(self.0.as_ref().unwrap())
+                    .ok();
                 existing.id
             }
             None => {
@@ -62,14 +62,14 @@ impl super::DbExecutor {
                         id: new_id.clone(),
                         ..(*report_db).clone()
                     })
-                    .execute(&self.0);
+                    .execute(self.0.as_ref().unwrap());
                 if could_insert.is_err() {
                     self.find_report(report_db)
                         .map(|existing| {
                             diesel::update(report.filter(id.eq(&existing.id)))
                                 .set(last_update.eq(report_db.last_update))
-                                .execute(&self.0)
-                                .expect("error updating report last update date");
+                                .execute(self.0.as_ref().unwrap())
+                                .ok();
                             existing.id
                         })
                         .unwrap()
@@ -115,7 +115,7 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
             find_tr = find_tr.filter(environment.is_null());
         }
         if find_tr
-            .first::<TestResultInReportDb>(&self.0)
+            .first::<TestResultInReportDb>(self.0.as_ref().unwrap())
             .ok()
             .is_some()
         {
@@ -131,7 +131,7 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                         trace_id.eq(msg.result.trace_id),
                         status.eq(msg.result.status.into_i32()),
                     ))
-                        .execute(&self.0)
+                        .execute(self.0.as_ref().unwrap())
                         .ok();
                 }
                 (Some(category_from_input), None) => {
@@ -145,7 +145,7 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                         trace_id.eq(msg.result.trace_id),
                         status.eq(msg.result.status.into_i32()),
                     ))
-                        .execute(&self.0)
+                        .execute(self.0.as_ref().unwrap())
                         .ok();
                 }
 
@@ -160,7 +160,7 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                         trace_id.eq(msg.result.trace_id),
                         status.eq(msg.result.status.into_i32()),
                     ))
-                        .execute(&self.0)
+                        .execute(self.0.as_ref().unwrap())
                         .ok();
                 }
                 (None, None) => {
@@ -174,7 +174,7 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                         trace_id.eq(msg.result.trace_id),
                         status.eq(msg.result.status.into_i32()),
                     ))
-                        .execute(&self.0)
+                        .execute(self.0.as_ref().unwrap())
                         .ok();
                 }
             };
@@ -188,7 +188,7 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                     environment: msg.result.environment,
                     status: msg.result.status.into(),
                 })
-                .execute(&self.0)
+                .execute(self.0.as_ref().unwrap())
                 .ok();
         }
     }
@@ -208,8 +208,11 @@ impl Handler<GetAll> for super::DbExecutor {
         let reports: Vec<ReportDb> = report
             .order(last_update.desc())
             .limit(REPORT_QUERY_LIMIT)
-            .load(&self.0)
-            .expect("error loading reports");
+            .load(self.0.as_ref().unwrap())
+            .unwrap_or_else(|err| {
+                error!("error loading reports: {:?}", err);
+                vec![]
+            });
 
         MessageResult(
             reports
@@ -222,8 +225,11 @@ impl Handler<GetAll> for super::DbExecutor {
                             .filter(report_id.eq(&report_from_db.id))
                             .order(environment.asc())
                             .distinct()
-                            .load::<Option<String>>(&self.0)
-                            .expect("can load environments from test results")
+                            .load::<Option<String>>(self.0.as_ref().unwrap())
+                            .unwrap_or_else(|err| {
+                                error!("error loading environment from reports: {:?}", err);
+                                vec![]
+                            })
                             .iter()
                             .map(|vo| match vo {
                                 &Some(ref v) => v.clone(),
@@ -250,7 +256,7 @@ impl Handler<GetAll> for super::DbExecutor {
                             summary.insert(
                                 one_status.clone(),
                                 query
-                                    .load(&self.0)
+                                    .load(self.0.as_ref().unwrap())
                                     .map(|v: Vec<String>| v.len())
                                     .unwrap_or(0),
                             );
@@ -291,7 +297,7 @@ impl Handler<GetReport> for super::DbExecutor {
         let report_from_db: Option<ReportDb> = report
             .filter(folder.eq(&msg.report_group))
             .filter(name.eq(&msg.report_name))
-            .first(&self.0)
+            .first(self.0.as_ref().unwrap())
             .ok();
 
         MessageResult(report_from_db.map(|report_from_db| {
@@ -301,8 +307,11 @@ impl Handler<GetReport> for super::DbExecutor {
                 .filter(report_id.eq(&report_from_db.id))
                 .order(category.asc())
                 .distinct()
-                .load::<String>(&self.0)
-                .expect("can load categories from test results");
+                .load::<String>(self.0.as_ref().unwrap())
+                .unwrap_or_else(|err| {
+                    error!("error loading categories for report: {:?}", err);
+                    vec![]
+                });
 
             let mut test_results: HashMap<
                 String,
@@ -313,8 +322,11 @@ impl Handler<GetReport> for super::DbExecutor {
                     .select(trace_id)
                     .filter(report_id.eq(&report_from_db.id))
                     .filter(category.eq(category_found))
-                    .load::<String>(&self.0)
-                    .expect("can load test results");
+                    .load::<String>(self.0.as_ref().unwrap())
+                    .unwrap_or_else(|err| {
+                        error!("error loading test results from category: {:?}", err);
+                        vec![]
+                    });
                 let results = {
                     use super::schema::test_result::dsl::*;
                     let mut test_item_cache = super::helper::Cacher::new();
@@ -328,8 +340,11 @@ impl Handler<GetReport> for super::DbExecutor {
 
                     tr_query
                         .order(date.desc())
-                        .load::<::db::test::TestResultDb>(&self.0)
-                        .expect("can load test results")
+                        .load::<::db::test::TestResultDb>(self.0.as_ref().unwrap())
+                        .unwrap_or_else(|err| {
+                            error!("error loading test results: {:?}", err);
+                            vec![]
+                        })
                         .iter()
                         .map(|tr| {
                             let test = test_item_cache
@@ -338,7 +353,7 @@ impl Handler<GetReport> for super::DbExecutor {
 
                                     test_item
                                         .filter(id.eq(ti_id))
-                                        .first::<::db::test::TestItemDb>(&self.0)
+                                        .first::<::db::test::TestItemDb>(self.0.as_ref().unwrap())
                                         .ok()
                                 })
                                 .clone();
@@ -355,7 +370,9 @@ impl Handler<GetReport> for super::DbExecutor {
                                         use super::schema::test_item::dsl::*;
                                         test_item
                                             .filter(id.eq(ti_id))
-                                            .first::<::db::test::TestItemDb>(&self.0)
+                                            .first::<::db::test::TestItemDb>(
+                                                self.0.as_ref().unwrap(),
+                                            )
                                             .ok()
                                     })
                                     .clone()
@@ -400,8 +417,11 @@ impl Handler<GetReport> for super::DbExecutor {
                     .filter(report_id.eq(&report_from_db.id))
                     .order(environment.asc())
                     .distinct()
-                    .load::<Option<String>>(&self.0)
-                    .expect("can load environments from test results")
+                    .load::<Option<String>>(self.0.as_ref().unwrap())
+                    .unwrap_or_else(|err| {
+                        error!("error loading environments from report: {:?}", err);
+                        vec![]
+                    })
                     .iter()
                     .map(|vo| match vo {
                         &Some(ref v) => v.clone(),

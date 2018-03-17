@@ -40,7 +40,12 @@ lazy_static! {
     static ref DB_EXECUTOR_POOL: actix::Addr<actix::Syn, db::DbExecutor> = {
         let config = ::config::Config::load();
         actix::SyncArbiter::start(config.db_nb_connection, move || {
-            db::DbExecutor(db::establish_connection(&config.db_url))
+            if let Ok(connection) = db::establish_connection(&config.db_url) {
+                return db::DbExecutor(Some(connection));
+            } else {
+                error!("error opening connection to DB");
+                return db::DbExecutor(None);
+            }
         })
     };
 }

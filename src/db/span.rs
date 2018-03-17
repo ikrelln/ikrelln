@@ -173,7 +173,7 @@ impl super::DbExecutor {
             query = query.filter(port.eq(query_port));
         }
 
-        query.first::<EndpointDb>(&self.0).ok()
+        query.first::<EndpointDb>(self.0.as_ref().unwrap()).ok()
     }
 
     fn upsert_endpoint(&mut self, ep: Option<EndpointDb>) -> Option<String> {
@@ -192,7 +192,7 @@ impl super::DbExecutor {
                             ipv6: le.ipv6.clone(),
                             port: le.port,
                         })
-                        .execute(&self.0);
+                        .execute(self.0.as_ref().unwrap());
                     if could_insert.is_err() {
                         self.find_endpoint(&le).map(|existing| existing.endpoint_id)
                     } else {
@@ -209,18 +209,20 @@ impl super::DbExecutor {
 impl Handler<::opentracing::Span> for super::DbExecutor {
     type Result = MessageResult<::opentracing::Span>;
 
-    fn handle(&mut self, msg: ::opentracing::Span, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: ::opentracing::Span, ctx: &mut Self::Context) -> Self::Result {
+        self.check_db_connection(ctx);
+
         let mut to_upsert = get_all_from_span(&msg);
 
         to_upsert.span_db.local_endpoint_id = self.upsert_endpoint(to_upsert.local_endpoint);
         to_upsert.span_db.remote_endpoint_id = self.upsert_endpoint(to_upsert.remote_endpoint);
 
-        {
+        let _span_in_db = {
             use super::schema::span::dsl::*;
             match span.filter(
                 id.eq(&to_upsert.span_db.id)
                     .and(trace_id.eq(&to_upsert.span_db.trace_id)),
-            ).first::<SpanDb>(&self.0)
+            ).first::<SpanDb>(self.0.as_ref().unwrap())
             {
                 Ok(_) => {
                     //TODO: manage more update cases than duration
@@ -230,32 +232,30 @@ impl Handler<::opentracing::Span> for super::DbExecutor {
                                 .and(trace_id.eq(&to_upsert.span_db.trace_id)),
                         ),
                     ).set(duration.eq(to_upsert.span_db.duration))
-                        .execute(&self.0)
-                        .expect(&format!("Error updating Span for {:?}", to_upsert.span_db));
+                        .execute(self.0.as_ref().unwrap())
+                        .map_err(|err| self.reconnect_if_needed(ctx, err))
                 }
-                Err(_) => {
-                    diesel::insert_into(span)
-                        .values(&to_upsert.span_db)
-                        .execute(&self.0)
-                        .expect(&format!("Error inserting Span for {:?}", to_upsert.span_db));
-                }
-            };
-        }
+                Err(_) => diesel::insert_into(span)
+                    .values(&to_upsert.span_db)
+                    .execute(self.0.as_ref().unwrap())
+                    .map_err(|err| self.reconnect_if_needed(ctx, err)),
+            }
+        };
 
         use super::schema::annotation::dsl::*;
         to_upsert.annotations.iter().for_each(|item| {
             diesel::insert_into(annotation)
                 .values(item)
-                .execute(&self.0)
-                .expect(&format!("Error inserting annotation {:?}", item));
+                .execute(self.0.as_ref().unwrap())
+                .ok();
         });
 
         use super::schema::tag::dsl::*;
         to_upsert.tags.iter().for_each(|item| {
             diesel::insert_into(tag)
                 .values(item)
-                .execute(&self.0)
-                .expect(&format!("Error inserting tag {:?}", item));
+                .execute(self.0.as_ref().unwrap())
+                .ok();
         });
 
         MessageResult(msg)
@@ -277,7 +277,7 @@ impl Handler<GetServices> for super::DbExecutor {
             endpoint
                 .limit(ENDPOINT_QUERY_LIMIT)
                 .order(service_name.asc())
-                .load::<EndpointDb>(&self.0)
+                .load::<EndpointDb>(self.0.as_ref().unwrap())
                 .ok()
                 .unwrap_or_else(|| vec![])
                 .iter()
@@ -396,7 +396,7 @@ impl Handler<GetSpans> for super::DbExecutor {
             msg.0.service_name.map(|query_service_name| {
                 endpoint
                     .filter(service_name.eq(query_service_name.to_lowercase()))
-                    .first::<EndpointDb>(&self.0)
+                    .first::<EndpointDb>(self.0.as_ref().unwrap())
             })
         };
         if let Some(Err(_err)) = query_endpoint {
@@ -448,7 +448,7 @@ impl Handler<GetSpans> for super::DbExecutor {
             query
                 .order(ts.asc())
                 .limit(msg.0.limit)
-                .load::<SpanDb>(&self.0)
+                .load::<SpanDb>(self.0.as_ref().unwrap())
                 .ok()
                 .unwrap_or_else(|| vec![])
         };
@@ -469,7 +469,7 @@ impl Handler<GetSpans> for super::DbExecutor {
 
                                 endpoint
                                     .filter(endpoint_id.eq(id))
-                                    .first::<EndpointDb>(&self.0)
+                                    .first::<EndpointDb>(self.0.as_ref().unwrap())
                                     .ok()
                                     .map(|ep| ::opentracing::span::Endpoint {
                                         service_name: ep.service_name,
@@ -487,7 +487,7 @@ impl Handler<GetSpans> for super::DbExecutor {
 
                                 endpoint
                                     .filter(endpoint_id.eq(id))
-                                    .first::<EndpointDb>(&self.0)
+                                    .first::<EndpointDb>(self.0.as_ref().unwrap())
                                     .ok()
                                     .map(|ep| ::opentracing::span::Endpoint {
                                         service_name: ep.service_name,
@@ -505,7 +505,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                         annotation
                             .filter(trace_id.eq(&spandb.trace_id).and(span_id.eq(&spandb.id)))
                             .limit(ANNOTATION_QUERY_LIMIT)
-                            .load::<AnnotationDb>(&self.0)
+                            .load::<AnnotationDb>(self.0.as_ref().unwrap())
                             .ok()
                             .unwrap_or_else(|| vec![])
                             .iter()
@@ -526,7 +526,7 @@ impl Handler<GetSpans> for super::DbExecutor {
 
                         tag.filter(span_id.eq(&spandb.id))
                             .limit(TAG_QUERY_LIMIT)
-                            .load::<TagDb>(&self.0)
+                            .load::<TagDb>(self.0.as_ref().unwrap())
                             .ok()
                             .unwrap_or_else(|| vec![])
                             .iter()
@@ -588,7 +588,7 @@ impl Handler<SpanCleanup> for super::DbExecutor {
                 .filter(ts.lt(msg.0))
                 .limit(SPAN_QUERY_LIMIT)
                 .order(ts.asc())
-                .load::<SpanDb>(&self.0)
+                .load::<SpanDb>(self.0.as_ref().unwrap())
                 .ok()
                 .unwrap_or_else(|| vec![])
         };
@@ -599,21 +599,21 @@ impl Handler<SpanCleanup> for super::DbExecutor {
 
                 diesel::delete(
                     annotation.filter(trace_id.eq(&spandb.trace_id).and(span_id.eq(&spandb.id))),
-                ).execute(&self.0)
-                    .expect("Error deleting Annotation");
+                ).execute(self.0.as_ref().unwrap())
+                    .ok();
             }
 
             {
                 use super::schema::tag::dsl::*;
 
                 diesel::delete(tag.filter(span_id.eq(&spandb.id)))
-                    .execute(&self.0)
-                    .expect("Error deleting Tag");
+                    .execute(self.0.as_ref().unwrap())
+                    .ok();
             }
         });
 
         diesel::delete(span.filter(ts.lt(msg.0)))
-            .execute(&self.0)
-            .expect("Error cleaning up Span");
+            .execute(self.0.as_ref().unwrap())
+            .ok();
     }
 }

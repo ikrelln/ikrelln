@@ -1,5 +1,6 @@
 use diesel::prelude::*;
-use actix::{Actor, SyncContext};
+use actix::{Actor, ActorContext, SyncContext};
+use diesel::result::{DatabaseErrorKind, Error as DieselError};
 
 pub mod schema;
 pub mod span;
@@ -7,25 +8,39 @@ pub mod test;
 pub mod scripts;
 pub mod reports;
 
-mod helper;
+pub mod helper;
 
 #[cfg(feature = "sqlite")]
-pub fn establish_connection(database_url: &str) -> SqliteConnection {
+pub fn establish_connection(database_url: &str) -> ConnectionResult<SqliteConnection> {
     info!("opening connection to DB {}", database_url);
     SqliteConnection::establish(database_url)
-        .expect(&format!("Error connecting to {}", database_url))
 }
 #[cfg(feature = "sqlite")]
-pub struct DbExecutor(pub SqliteConnection);
+pub struct DbExecutor(pub Option<SqliteConnection>);
 
 #[cfg(feature = "postgres")]
-pub fn establish_connection(database_url: &str) -> PgConnection {
+pub fn establish_connection(database_url: &str) -> ConnectionResult<PgConnection> {
     info!("opening connection to DB {}", database_url);
-    PgConnection::establish(database_url).expect(&format!("Error connecting to {}", database_url))
+    PgConnection::establish(database_url)
 }
 #[cfg(feature = "postgres")]
-pub struct DbExecutor(pub PgConnection);
+pub struct DbExecutor(pub Option<PgConnection>);
 
 impl Actor for DbExecutor {
     type Context = SyncContext<Self>;
+}
+
+impl DbExecutor {
+    fn check_db_connection(&self, ctx: &mut <Self as Actor>::Context) {
+        if self.0.is_none() {
+            ctx.stop();
+        }
+    }
+
+    fn reconnect_if_needed(&self, ctx: &mut <Self as Actor>::Context, error: DieselError) {
+        match error {
+            DieselError::DatabaseError(DatabaseErrorKind::UnableToSendCommand, _) => ctx.stop(),
+            _ => (),
+        }
+    }
 }

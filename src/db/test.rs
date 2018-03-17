@@ -41,7 +41,7 @@ impl super::DbExecutor {
             .filter(name.eq(&test_item_db.name))
             .filter(source.eq(test_item_db.source))
             .filter(parent_id.eq(&test_item_db.parent_id))
-            .first::<TestItemDb>(&self.0)
+            .first::<TestItemDb>(self.0.as_ref().unwrap())
             .ok()
     }
 
@@ -57,7 +57,7 @@ impl super::DbExecutor {
                         id: new_id.clone(),
                         ..(*test_item_db).clone()
                     })
-                    .execute(&self.0);
+                    .execute(self.0.as_ref().unwrap());
                 if could_insert.is_err() {
                     self.find_test_item(test_item_db)
                         .map(|existing| existing.id)
@@ -80,8 +80,10 @@ impl Handler<::engine::test_result::TestResult> for super::DbExecutor {
     fn handle(
         &mut self,
         msg: ::engine::test_result::TestResult,
-        _: &mut Self::Context,
+        ctx: &mut Self::Context,
     ) -> Self::Result {
+        self.check_db_connection(ctx);
+
         let mut parent_id = "root".to_string();
         for item in msg.path.clone() {
             parent_id = self.find_test_or_insert(&TestItemDb {
@@ -114,8 +116,9 @@ impl Handler<::engine::test_result::TestResult> for super::DbExecutor {
                 components_called: serde_json::to_string(&msg.components_called).unwrap(),
                 nb_spans: msg.nb_spans,
             })
-            .execute(&self.0)
-            .unwrap();
+            .execute(self.0.as_ref().unwrap())
+            .map_err(|err| self.reconnect_if_needed(ctx, err))
+            .ok();
 
         MessageResult(::engine::test_result::TestResult {
             test_id: parent_id,
@@ -159,8 +162,11 @@ impl Handler<GetTestItems> for super::DbExecutor {
         MessageResult(
             query
                 .order(name.asc())
-                .load::<TestItemDb>(&self.0)
-                .expect("error loading test items")
+                .load::<TestItemDb>(self.0.as_ref().unwrap())
+                .unwrap_or_else(|err| {
+                    error!("error loading test items: {:?}", err);
+                    vec![]
+                })
                 .iter()
                 .map(|ti| {
                     let mut test_item_to_get = match ti.parent_id.as_ref() {
@@ -175,7 +181,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
                                     use super::schema::test_item::dsl::*;
                                     test_item
                                         .filter(id.eq(ti_id))
-                                        .first::<TestItemDb>(&self.0)
+                                        .first::<TestItemDb>(self.0.as_ref().unwrap())
                                         .ok()
                                 })
                                 .clone()
@@ -201,7 +207,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
                             .filter(parent_id.eq(&ti.id))
                             .order(name.asc())
                             .limit(TEST_ITEM_QUERY_LIMIT)
-                            .load::<TestItemDb>(&self.0)
+                            .load::<TestItemDb>(self.0.as_ref().unwrap())
                             .ok()
                             .unwrap_or_else(|| vec![])
                             .iter()
@@ -219,7 +225,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
 
                         let query = TestResultDb::belonging_to(ti).order(date.desc()).limit(5);
                         query
-                            .load::<TestResultDb>(&self.0)
+                            .load::<TestResultDb>(self.0.as_ref().unwrap())
                             .ok()
                             .unwrap_or_else(|| vec![])
                             .iter()
@@ -329,7 +335,8 @@ impl Message for GetTestResults {
 impl Handler<GetTestResults> for super::DbExecutor {
     type Result = MessageResult<GetTestResults>;
 
-    fn handle(&mut self, msg: GetTestResults, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: GetTestResults, ctx: &mut Self::Context) -> Self::Result {
+        self.check_db_connection(ctx);
         use super::schema::test_result::dsl::*;
 
         let mut query = test_result.into_boxed();
@@ -365,8 +372,12 @@ impl Handler<GetTestResults> for super::DbExecutor {
         let test_results: Vec<TestResultDb> = query
             .order(date.desc())
             .limit(msg.0.limit)
-            .load(&self.0)
-            .expect("error loading test results");
+            .load(self.0.as_ref().unwrap())
+            .unwrap_or_else(|err| {
+                error!("error loading test results: {:?}", err);
+                self.reconnect_if_needed(ctx, err);
+                vec![]
+            });
 
         let mut test_item_cache = super::helper::Cacher::new_with({
             //prefetch first level test items in one query
@@ -377,7 +388,7 @@ impl Handler<GetTestResults> for super::DbExecutor {
                 query = query.or_filter(id.eq(&tr.test_id));
             }
             query
-                .load::<TestItemDb>(&self.0)
+                .load::<TestItemDb>(self.0.as_ref().unwrap())
                 .ok()
                 .unwrap_or_else(|| vec![])
                 .iter()
@@ -395,7 +406,7 @@ impl Handler<GetTestResults> for super::DbExecutor {
 
                             test_item
                                 .filter(id.eq(ti_id))
-                                .first::<TestItemDb>(&self.0)
+                                .first::<TestItemDb>(self.0.as_ref().unwrap())
                                 .ok()
                         })
                         .clone();
@@ -412,7 +423,7 @@ impl Handler<GetTestResults> for super::DbExecutor {
                                 use super::schema::test_item::dsl::*;
                                 test_item
                                     .filter(id.eq(ti_id))
-                                    .first::<TestItemDb>(&self.0)
+                                    .first::<TestItemDb>(self.0.as_ref().unwrap())
                                     .ok()
                             })
                             .clone()
@@ -464,8 +475,11 @@ impl Handler<GetEnvironments> for super::DbExecutor {
                 .select(environment)
                 .filter(environment.is_not_null())
                 .distinct()
-                .load::<Option<String>>(&self.0)
-                .expect("can't load environments from test results")
+                .load::<Option<String>>(self.0.as_ref().unwrap())
+                .unwrap_or_else(|err| {
+                    error!("error loading environment from test results: {:?}", err);
+                    vec![]
+                })
                 .iter()
                 .map(|v| v.clone().unwrap())
                 .collect(),

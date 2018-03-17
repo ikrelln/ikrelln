@@ -35,7 +35,7 @@ impl Handler<SaveScript> for super::DbExecutor {
                     ::engine::streams::ScriptStatus::Disabled => 1,
                 },
             })
-            .execute(&self.0)
+            .execute(self.0.as_ref().unwrap())
             .unwrap();
     }
 }
@@ -59,8 +59,11 @@ impl Handler<GetAll> for super::DbExecutor {
         let scripts: Vec<ScriptDb> = script_query
             .order(script_type.asc())
             .order(name.asc())
-            .load(&self.0)
-            .expect("error loading scripts");
+            .load(self.0.as_ref().unwrap())
+            .unwrap_or_else(|err| {
+                error!("error loading scripts: {:?}", err);
+                vec![]
+            });
 
         MessageResult(
             scripts
@@ -92,7 +95,10 @@ impl Handler<GetScript> for super::DbExecutor {
 
     fn handle(&mut self, msg: GetScript, _: &mut Self::Context) -> Self::Result {
         use super::schema::script::dsl::*;
-        let script_found = script.filter(id.eq(msg.0)).first::<ScriptDb>(&self.0).ok();
+        let script_found = script
+            .filter(id.eq(msg.0))
+            .first::<ScriptDb>(self.0.as_ref().unwrap())
+            .ok();
 
         MessageResult(
             script_found.map(|script_from_db| ::engine::streams::Script {
@@ -122,11 +128,14 @@ impl Handler<DeleteScript> for super::DbExecutor {
 
     fn handle(&mut self, msg: DeleteScript, _: &mut Self::Context) -> Self::Result {
         use super::schema::script::dsl::*;
-        let script_found = script.filter(id.eq(&msg.0)).first::<ScriptDb>(&self.0).ok();
+        let script_found = script
+            .filter(id.eq(&msg.0))
+            .first::<ScriptDb>(self.0.as_ref().unwrap())
+            .ok();
 
         diesel::delete(script.filter(id.eq(msg.0)))
-            .execute(&self.0)
-            .expect("Error deleting script");
+            .execute(self.0.as_ref().unwrap())
+            .ok();
 
         MessageResult(
             script_found.map(|script_from_db| ::engine::streams::Script {
@@ -161,7 +170,7 @@ impl Handler<UpdateScript> for super::DbExecutor {
                     ::engine::streams::ScriptStatus::Disabled => 1,
                 }),
             ))
-            .execute(&self.0)
+            .execute(self.0.as_ref().unwrap())
             .unwrap();
     }
 }

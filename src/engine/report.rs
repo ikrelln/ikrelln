@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use futures::{future, Future};
 use actix::prelude::*;
 
@@ -28,6 +30,13 @@ impl Handler<ResultForReport> for Reporter {
     }
 }
 
+#[derive(Hash, PartialEq, Eq)]
+pub struct Report {
+    pub group: String,
+    pub name: String,
+    pub category: Option<String>,
+}
+
 #[derive(Message)]
 pub struct ComputeReportsForResult(pub ::engine::test_result::TestResult);
 
@@ -44,23 +53,28 @@ impl Handler<ComputeReportsForResult> for Reporter {
                 ))
                 .then(move |spans| {
                     if let Ok(spans) = spans {
-                        let _: Vec<()> = spans
+                        let reports_to_send: HashSet<Report> = spans
                             .iter()
                             .filter(|span| span.remote_endpoint.is_some())
-                            .map(|span| {
-                                actix::Arbiter::system_registry().get::<Reporter>().do_send(
-                                    ResultForReport {
-                                        report_name: span.remote_endpoint
-                                            .clone()
-                                            .and_then(|ep| ep.service_name)
-                                            .unwrap_or_else(|| "service".to_string()),
-                                        report_group: "endpoints".to_string(),
-                                        category: span.name.clone(),
-                                        result: msg.0.clone(),
-                                    },
-                                )
+                            .map(|span| Report {
+                                name: span.remote_endpoint
+                                    .clone()
+                                    .and_then(|ep| ep.service_name)
+                                    .unwrap_or_else(|| "service".to_string()),
+                                group: "endpoints".to_string(),
+                                category: span.name.clone(),
                             })
                             .collect();
+                        reports_to_send.iter().for_each(|report| {
+                            actix::Arbiter::system_registry().get::<Reporter>().do_send(
+                                ResultForReport {
+                                    report_group: report.group.clone(),
+                                    report_name: report.name.clone(),
+                                    category: report.category.clone(),
+                                    result: msg.0.clone(),
+                                },
+                            )
+                        });
                     }
                     future::result(Ok(()))
                 }),

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 extern crate actix_web;
 extern crate chrono;
 extern crate fern;

@@ -61,6 +61,7 @@ fn can_save_report_script() {
 }
 
 #[test]
+#[cfg(feature = "python")]
 fn can_create_report_from_script() {
     helpers::setup_logger();
     let mut srv = helpers::setup_server();

@@ -7,6 +7,8 @@ CREATE TABLE endpoint
     port INT,
     CONSTRAINT UC_Endpoint UNIQUE (service_name, ipv4, ipv6, port)
 );
+CREATE UNIQUE INDEX UC_Endpoint_name ON endpoint (service_name) WHERE (ipv4 is null AND ipv6 is null and port is null);
+CREATE UNIQUE INDEX UC_Endpoint_name_ipv4 ON endpoint (service_name, ipv4) WHERE (ipv4 is not null AND ipv6 is null and port is null);
 CREATE TABLE span
 (
     trace_id VARCHAR(36) NOT NULL,

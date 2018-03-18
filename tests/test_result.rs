@@ -17,10 +17,9 @@ use ikrelln::opentracing::tags::IkrellnTags;
 use ikrelln::api::span::IngestResponse;
 use ikrelln::engine::test_result::TestResult;
 
-const DELAY_RESULT_SAVED_MILLISECONDS: u64 = 200;
-
 #[test]
 fn should_not_have_test_result_from_span_without_tags() {
+    helpers::setup_logger();
     let mut srv = helpers::setup_server();
 
     let trace_id = uuid::Uuid::new_v4().to_string();
@@ -52,7 +51,9 @@ fn should_not_have_test_result_from_span_without_tags() {
     assert!(data.is_ok());
     assert_eq!(data.unwrap().nb_events, 1);
 
-    thread::sleep(time::Duration::from_millis(DELAY_RESULT_SAVED_MILLISECONDS));
+    thread::sleep(time::Duration::from_millis(
+        helpers::DELAY_RESULT_SAVED_MILLISECONDS,
+    ));
 
     let req_tr = srv.client(
         Method::GET,
@@ -65,10 +66,12 @@ fn should_not_have_test_result_from_span_without_tags() {
         serde_json::from_slice(&*srv.execute(response_tr.body()).unwrap());
     assert!(data_tr.is_ok());
     assert_eq!(data_tr.unwrap().len(), 0);
+    thread::sleep(time::Duration::from_millis(helpers::DELAY_FINISH));
 }
 
 #[test]
 fn should_create_test_result() {
+    helpers::setup_logger();
     let mut srv = helpers::setup_server();
 
     let trace_id = uuid::Uuid::new_v4().to_string();
@@ -123,7 +126,9 @@ fn should_create_test_result() {
     assert!(data.is_ok());
     assert_eq!(data.unwrap().nb_events, 1);
 
-    thread::sleep(time::Duration::from_millis(DELAY_RESULT_SAVED_MILLISECONDS));
+    thread::sleep(time::Duration::from_millis(
+        helpers::DELAY_RESULT_SAVED_MILLISECONDS,
+    ));
 
     let req_tr = srv.client(
         Method::GET,
@@ -136,4 +141,5 @@ fn should_create_test_result() {
         serde_json::from_slice(&*srv.execute(response_tr.body()).unwrap());
     assert!(data_tr.is_ok());
     assert_eq!(data_tr.unwrap().len(), 1);
+    thread::sleep(time::Duration::from_millis(helpers::DELAY_FINISH));
 }

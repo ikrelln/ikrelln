@@ -15,10 +15,9 @@ use ikrelln::opentracing::Span;
 use ikrelln::opentracing::span::Kind;
 use ikrelln::api::span::IngestResponse;
 
-const DELAY_SPAN_SAVED_MILLISECONDS: u64 = 200;
-
 #[test]
 fn can_receive_span() {
+    helpers::setup_logger();
     let mut srv = helpers::setup_server();
 
     let trace_id = uuid::Uuid::new_v4().to_string();
@@ -50,7 +49,9 @@ fn can_receive_span() {
     assert!(data.is_ok());
     assert_eq!(data.unwrap().nb_events, 1);
 
-    thread::sleep(time::Duration::from_millis(DELAY_SPAN_SAVED_MILLISECONDS));
+    thread::sleep(time::Duration::from_millis(
+        helpers::DELAY_SPAN_SAVED_MILLISECONDS,
+    ));
 
     let req_trace = srv.client(Method::GET, &format!("/api/v1/trace/{}", &trace_id))
         .finish()
@@ -61,10 +62,12 @@ fn can_receive_span() {
         serde_json::from_slice(&*srv.execute(response_trace.body()).unwrap());
     assert!(data_trace.is_ok());
     assert_eq!(data_trace.unwrap().len(), 1);
+    thread::sleep(time::Duration::from_millis(helpers::DELAY_FINISH));
 }
 
 #[test]
 fn can_receive_spans() {
+    helpers::setup_logger();
     let mut srv = helpers::setup_server();
 
     let trace_id = uuid::Uuid::new_v4().to_string();
@@ -128,7 +131,9 @@ fn can_receive_spans() {
     assert!(data.is_ok());
     assert_eq!(data.unwrap().nb_events, 3);
 
-    thread::sleep(time::Duration::from_millis(DELAY_SPAN_SAVED_MILLISECONDS));
+    thread::sleep(time::Duration::from_millis(
+        helpers::DELAY_SPAN_SAVED_MILLISECONDS,
+    ));
 
     let req_trace = srv.client(Method::GET, &format!("/api/v1/trace/{}", &trace_id))
         .finish()
@@ -139,4 +144,5 @@ fn can_receive_spans() {
         serde_json::from_slice(&*srv.execute(response_trace.body()).unwrap());
     assert!(data_trace.is_ok());
     assert_eq!(data_trace.unwrap().len(), 3);
+    thread::sleep(time::Duration::from_millis(helpers::DELAY_FINISH));
 }

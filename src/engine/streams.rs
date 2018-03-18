@@ -30,6 +30,11 @@ pub enum ScriptType {
     // (result, spans) => '<a href="http://spans.com">' + spans.length + ' spans</a>'
     UITestResult,
 }
+impl Default for ScriptType {
+    fn default() -> Self {
+        ScriptType::ReportFilterTestResult
+    }
+}
 impl From<i32> for ScriptType {
     fn from(val: i32) -> ScriptType {
         match val {
@@ -71,7 +76,7 @@ pub enum ScriptStatus {
     Disabled,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Script {
     pub id: Option<String>,
     pub name: String,

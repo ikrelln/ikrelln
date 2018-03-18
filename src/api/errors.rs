@@ -39,17 +39,20 @@ impl From<error::JsonPayloadError> for IkError {
     }
 }
 impl From<actix::MailboxError> for IkError {
-    fn from(_err: actix::MailboxError) -> IkError {
+    fn from(err: actix::MailboxError) -> IkError {
+        error!("Got a {:?}", err);
         IkError::InternalError
     }
 }
 impl From<futures::Canceled> for IkError {
-    fn from(_err: futures::Canceled) -> IkError {
+    fn from(err: futures::Canceled) -> IkError {
+        error!("Got a {:?}", err);
         IkError::InternalError
     }
 }
 impl From<Error> for IkError {
-    fn from(_err: Error) -> IkError {
+    fn from(err: Error) -> IkError {
+        error!("Got a {:?}", err);
         IkError::InternalError
     }
 }

@@ -318,10 +318,17 @@ impl Handler<GetReport> for super::DbExecutor {
                 Vec<::engine::test_result::TestResult>,
             > = HashMap::new();
             categories.iter().for_each(|category_found| {
-                let traces: Vec<_> = test_result_in_report
+                let mut traces_query = test_result_in_report
                     .select(trace_id)
                     .filter(report_id.eq(&report_from_db.id))
                     .filter(category.eq(category_found))
+                    .into_boxed();
+                traces_query = match msg.environment.as_ref().map(|s| s.as_str()) {
+                    Some("None") => traces_query.filter(environment.is_null()),
+                    Some(v) => traces_query.filter(environment.eq(v)),
+                    None => traces_query.filter(environment.is_null()),
+                };
+                let traces: Vec<_> = traces_query
                     .load::<String>(self.0.as_ref().unwrap())
                     .unwrap_or_else(|err| {
                         error!("error loading test results from category: {:?}", err);

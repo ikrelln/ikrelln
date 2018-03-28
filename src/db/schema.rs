@@ -82,6 +82,7 @@ table! {
         environment -> Nullable<Varchar>,
         components_called -> Varchar,
         nb_spans -> Int4,
+        cleanup_status -> Int4,
     }
 }
 

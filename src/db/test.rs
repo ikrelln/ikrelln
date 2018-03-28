@@ -31,6 +31,37 @@ pub struct TestResultDb {
     pub environment: Option<String>,
     pub components_called: String,
     pub nb_spans: i32,
+    pub cleanup_status: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum ResultCleanupStatus {
+    WithData,
+    ToKeep,
+    Shell,
+}
+impl From<i32> for ResultCleanupStatus {
+    fn from(v: i32) -> Self {
+        match v {
+            1 => ResultCleanupStatus::ToKeep,
+            2 => ResultCleanupStatus::Shell,
+            _ => ResultCleanupStatus::WithData,
+        }
+    }
+}
+impl ResultCleanupStatus {
+    pub fn into_i32(&self) -> i32 {
+        match self {
+            &ResultCleanupStatus::WithData => 0,
+            &ResultCleanupStatus::ToKeep => 1,
+            &ResultCleanupStatus::Shell => 2,
+        }
+    }
+}
+impl Into<i32> for ResultCleanupStatus {
+    fn into(self) -> i32 {
+        self.into_i32()
+    }
 }
 
 impl super::DbExecutor {
@@ -115,6 +146,7 @@ impl Handler<::engine::test_result::TestResult> for super::DbExecutor {
                 environment: msg.environment.clone(),
                 components_called: serde_json::to_string(&msg.components_called).unwrap(),
                 nb_spans: msg.nb_spans,
+                cleanup_status: ResultCleanupStatus::WithData.into(),
             })
             .execute(self.0.as_ref().unwrap())
             .map_err(|err| self.reconnect_if_needed(ctx, err))

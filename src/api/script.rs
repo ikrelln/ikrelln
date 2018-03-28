@@ -138,3 +138,10 @@ pub fn update_script(
         )
         .responder()
 }
+
+pub fn reload_scripts(_req: HttpRequest<AppState>) -> HttpResponse {
+    actix::Arbiter::system_registry()
+        .get::<::engine::streams::Streamer>()
+        .do_send(::engine::streams::LoadScripts);
+    httpcodes::HTTPOk.build().finish().unwrap()
+}

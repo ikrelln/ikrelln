@@ -82,6 +82,7 @@ pub fn http_application() -> Application<AppState> {
         .resource("/api/v1/scripts", |r| {
             r.method(Method::GET).f(script::list_scripts);
             r.method(Method::POST).f(script::save_script);
+            r.method(Method::PUT).f(script::reload_scripts);
         })
         .resource("/api/v1/scripts/{scriptId}", |r| {
             r.method(Method::GET).f(script::get_script);

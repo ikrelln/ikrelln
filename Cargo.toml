@@ -30,7 +30,7 @@ serde_urlencoded = { git = "https://github.com/smangelsdorf/serde_urlencoded", b
 futures = "0.1"
 env_logger = "0.5"
 actix = "0.5"
-actix-web = "0.4"
+actix-web = "0.5"
 
 failure = "0.1"
 

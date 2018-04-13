@@ -37,7 +37,7 @@ pub fn save_script(
                 }
                 _ => (),
             }
-            Ok(httpcodes::HTTPOk.build().json(new_script)?)
+            Ok(HttpResponse::Ok().json(new_script))
         })
         .responder()
 }
@@ -50,7 +50,7 @@ pub fn get_script(
             .send(::db::scripts::GetScript(script_id.to_string()))
             .from_err()
             .and_then(|res| match res {
-                Some(script) => Ok(httpcodes::HTTPOk.build().json(script)?),
+                Some(script) => Ok(HttpResponse::Ok().json(script)),
                 None => Err(super::errors::IkError::NotFound(
                     "script not found".to_string(),
                 )),
@@ -82,7 +82,7 @@ pub fn delete_script(
                         _ => (),
                     }
 
-                    Ok(httpcodes::HTTPOk.build().json(script)?)
+                    Ok(HttpResponse::Ok().json(script))
                 }
                 None => Err(super::errors::IkError::NotFound(
                     "script not found".to_string(),
@@ -102,7 +102,7 @@ pub fn list_scripts(
     ::DB_EXECUTOR_POOL
         .send(::db::scripts::GetAll(None))
         .from_err()
-        .and_then(|res| Ok(httpcodes::HTTPOk.build().json(res)?))
+        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()
 }
 
@@ -129,7 +129,7 @@ pub fn update_script(
                         }
                         _ => (),
                     }
-                    Ok(httpcodes::HTTPOk.build().json(new_script)?)
+                    Ok(HttpResponse::Ok().json(new_script))
                 }
                 _ => Err(super::errors::IkError::BadRequest(
                     "missing scriptId path parameter".to_string(),
@@ -143,5 +143,5 @@ pub fn reload_scripts(_req: HttpRequest<AppState>) -> HttpResponse {
     actix::Arbiter::system_registry()
         .get::<::engine::streams::Streamer>()
         .do_send(::engine::streams::LoadScripts);
-    httpcodes::HTTPOk.build().finish().unwrap()
+    HttpResponse::Ok().finish()
 }

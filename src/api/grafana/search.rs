@@ -26,7 +26,7 @@ pub fn search(
                 SearchResponse::Node("test_results".to_string()),
                 SearchResponse::Node("reports".to_string()),
             ];
-            Ok(httpcodes::HTTPOk.build().json(resp)?)
+            Ok(HttpResponse::Ok().json(resp))
         })
         .responder()
 }

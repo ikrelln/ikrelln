@@ -1,14 +1,17 @@
 use uuid;
-use actix_web::{error, httpcodes, Error, HttpResponse};
+use actix_web::{error, Error, HttpResponse};
 use futures;
 use actix;
 
 #[derive(Fail, Debug, Serialize)]
 #[serde(tag = "error", content = "msg")]
 pub enum IkError {
-    #[fail(display = "internal error")] InternalError,
-    #[fail(display = "bad request")] BadRequest(String),
-    #[fail(display = "not found")] NotFound(String),
+    #[fail(display = "internal error")]
+    InternalError,
+    #[fail(display = "bad request")]
+    BadRequest(String),
+    #[fail(display = "not found")]
+    NotFound(String),
 }
 
 impl error::ResponseError for IkError {
@@ -17,14 +20,12 @@ impl error::ResponseError for IkError {
             IkError::InternalError => {
                 let error_uid = uuid::Uuid::new_v4();
                 error!("{:?} with id {}", self, error_uid);
-                httpcodes::HTTPInternalServerError
-                    .build()
+                HttpResponse::InternalServerError()
                     .header("X-Request-Id", error_uid.hyphenated().to_string().as_str())
                     .finish()
-                    .unwrap()
             }
-            IkError::BadRequest(_) => httpcodes::HTTPBadRequest.build().json(self).unwrap(),
-            IkError::NotFound(_) => httpcodes::HTTPNotFound.build().json(self).unwrap(),
+            IkError::BadRequest(_) => HttpResponse::BadRequest().json(self),
+            IkError::NotFound(_) => HttpResponse::NotFound().json(self),
         }
     }
 }

@@ -34,7 +34,7 @@ actix-web = "0.4"
 
 failure = "0.1"
 
-diesel = { version = "1.2.1", features = [ "chrono" ] }
+diesel = { version = "1.2.2", features = [ "chrono" ] }
 libsqlite3-sys = { version = "*", features = ["bundled"], optional = true }
 openssl-sys = { version = "*", optional = true }
 

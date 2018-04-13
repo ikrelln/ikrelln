@@ -22,7 +22,7 @@ fn can_receive_span() {
 
     let trace_id = uuid::Uuid::new_v4().to_string();
 
-    let req = srv.client(Method::POST, "/api/v1/spans")
+    let req = srv.client(http::Method::POST, "/api/v1/spans")
         .json(vec![
             Span {
                 trace_id: trace_id.to_string(),
@@ -53,7 +53,7 @@ fn can_receive_span() {
         helpers::DELAY_SPAN_SAVED_MILLISECONDS,
     ));
 
-    let req_trace = srv.client(Method::GET, &format!("/api/v1/trace/{}", &trace_id))
+    let req_trace = srv.client(http::Method::GET, &format!("/api/v1/trace/{}", &trace_id))
         .finish()
         .unwrap();
     let response_trace = srv.execute(req_trace.send()).unwrap();
@@ -72,7 +72,7 @@ fn can_receive_spans() {
 
     let trace_id = uuid::Uuid::new_v4().to_string();
 
-    let req = srv.client(Method::POST, "/api/v1/spans")
+    let req = srv.client(http::Method::POST, "/api/v1/spans")
         .json(vec![
             Span {
                 trace_id: trace_id.to_string(),
@@ -135,7 +135,7 @@ fn can_receive_spans() {
         helpers::DELAY_SPAN_SAVED_MILLISECONDS,
     ));
 
-    let req_trace = srv.client(Method::GET, &format!("/api/v1/trace/{}", &trace_id))
+    let req_trace = srv.client(http::Method::GET, &format!("/api/v1/trace/{}", &trace_id))
         .finish()
         .unwrap();
     let response_trace = srv.execute(req_trace.send()).unwrap();

@@ -25,7 +25,7 @@ pub fn get_reports(
     ::DB_EXECUTOR_POOL
         .send(::db::reports::GetAll)
         .from_err()
-        .and_then(|res| Ok(httpcodes::HTTPOk.build().json(res)?))
+        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()
 }
 
@@ -44,7 +44,7 @@ pub fn get_report(
             })
             .from_err()
             .and_then(|res| match res {
-                Some(report) => Ok(httpcodes::HTTPOk.build().json(report)?),
+                Some(report) => Ok(HttpResponse::Ok().json(report)),
                 None => Err(super::errors::IkError::NotFound(
                     "report not found".to_string(),
                 )),

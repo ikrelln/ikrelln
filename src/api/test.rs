@@ -1,4 +1,4 @@
-use actix_web::{httpcodes, AsyncResponder, HttpRequest, HttpResponse};
+use actix_web::{AsyncResponder, HttpRequest, HttpResponse};
 use futures::Future;
 use futures::future::result;
 use serde_urlencoded;
@@ -32,7 +32,7 @@ pub fn get_test_results(
         Ok(query_params) => ::DB_EXECUTOR_POOL
             .send(::db::test::GetTestResults(query_params.into()))
             .from_err()
-            .and_then(|res| Ok(httpcodes::HTTPOk.build().json(res)?))
+            .and_then(|res| Ok(HttpResponse::Ok().json(res)))
             .responder(),
         Err(err) => result(Err(super::errors::IkError::BadRequest(format!(
             "invalid query parameters: '{}'",
@@ -75,8 +75,8 @@ pub fn get_test(
                 0 => Err(super::errors::IkError::NotFound(
                     "testId not found".to_string(),
                 )),
-                1 => Ok(httpcodes::HTTPOk.build().json(res.get(0))?),
-                _ => Ok(httpcodes::HTTPOk.build().json(TestDetails {
+                1 => Ok(HttpResponse::Ok().json(res.get(0))),
+                _ => Ok(HttpResponse::Ok().json(TestDetails {
                     test_id: "root".to_string(),
                     name: "".to_string(),
                     path: vec![],
@@ -87,7 +87,7 @@ pub fn get_test(
                         })
                         .collect(),
                     last_results: vec![],
-                })?),
+                })),
             })
             .responder(),
         _ => result(Err(super::errors::IkError::BadRequest(
@@ -119,7 +119,7 @@ pub fn get_tests_by_parent(
                 0 => Err(super::errors::IkError::NotFound(
                     "testId not found".to_string(),
                 )),
-                _ => Ok(httpcodes::HTTPOk.build().json(res)?),
+                _ => Ok(HttpResponse::Ok().json(res)),
             })
             .responder(),
         _ => result(Err(super::errors::IkError::BadRequest(
@@ -134,6 +134,6 @@ pub fn get_environments(
     ::DB_EXECUTOR_POOL
         .send(::db::test::GetEnvironments)
         .from_err()
-        .and_then(|res| Ok(httpcodes::HTTPOk.build().json(res)?))
+        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()
 }

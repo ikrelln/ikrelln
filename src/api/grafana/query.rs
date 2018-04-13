@@ -132,7 +132,7 @@ pub fn query(
                             }
                         }
                     }
-                    Ok(httpcodes::HTTPOk.build().json(responses)?)
+                    Ok(HttpResponse::Ok().json(responses))
                 })
         })
         .responder()

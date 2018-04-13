@@ -26,7 +26,7 @@ fn can_save_report_script() {
 
     let script_name = uuid::Uuid::new_v4().to_string();
 
-    let req = srv.client(Method::POST, "/api/v1/scripts")
+    let req = srv.client(http::Method::POST, "/api/v1/scripts")
         .json(Script {
             name: script_name.clone(),
             script_type: ScriptType::ReportFilterTestResult,
@@ -47,7 +47,7 @@ fn can_save_report_script() {
     ));
 
     let req_script = srv.client(
-        Method::GET,
+        http::Method::GET,
         &format!("/api/v1/scripts/{}", &script_sent.id.unwrap()),
     ).finish()
         .unwrap();
@@ -68,7 +68,7 @@ fn can_create_report_from_script() {
 
     let script_name = uuid::Uuid::new_v4().to_string();
 
-    let req = srv.client(Method::POST, "/api/v1/scripts")
+    let req = srv.client(http::Method::POST, "/api/v1/scripts")
         .json(Script {
             name: script_name.clone(),
             script_type: ScriptType::ReportFilterTestResult,
@@ -156,7 +156,7 @@ fn can_create_report_from_script() {
         },
     ];
     println!("{:?}", spans);
-    let req = srv.client(Method::POST, "/api/v1/spans")
+    let req = srv.client(http::Method::POST, "/api/v1/spans")
         .json(spans)
         .unwrap();
     let response = srv.execute(req.send()).unwrap();
@@ -171,7 +171,7 @@ fn can_create_report_from_script() {
     ));
 
     let req_report = srv.client(
-        Method::GET,
+        http::Method::GET,
         &format!("/api/v1/reports/from_script/{}", report_name.clone()),
     ).finish()
         .unwrap();

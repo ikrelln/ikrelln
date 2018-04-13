@@ -26,10 +26,10 @@ pub fn ingest(
             let ingest_id = ingest.ingest_id.clone();
             debug!("ingesting {} event(s) as {}", nb_spans, ingest_id,);
             ingestor.do_send(ingest);
-            Ok(httpcodes::HTTPOk.build().json(IngestResponse {
+            Ok(HttpResponse::Ok().json(IngestResponse {
                 ingest_id,
                 nb_events: nb_spans,
-            })?)
+            }))
         })
         .responder()
 }
@@ -42,7 +42,7 @@ pub fn get_services(
         .from_err()
         .and_then(|mut services| {
             services.dedup();
-            Ok(httpcodes::HTTPOk.build().json(services)?)
+            Ok(HttpResponse::Ok().json(services))
         })
         .responder()
 }
@@ -60,7 +60,7 @@ pub fn get_spans_by_service(
                     .collect::<Vec<String>>();
                 span_names.sort_unstable();
                 span_names.dedup();
-                Ok(httpcodes::HTTPOk.build().json(span_names)?)
+                Ok(HttpResponse::Ok().json(span_names))
             })
             .responder(),
 
@@ -79,7 +79,7 @@ pub fn get_spans_by_trace_id(
                 ::db::span::SpanQuery::from_req(&req).with_trace_id(trace_id.to_string()),
             ))
             .from_err()
-            .and_then(|res| Ok(httpcodes::HTTPOk.build().json(res)?))
+            .and_then(|res| Ok(HttpResponse::Ok().json(res)))
             .responder(),
 
         _ => result(Err(super::errors::IkError::BadRequest(
@@ -95,7 +95,7 @@ pub fn get_traces(
         .send(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
         .from_err()
         .and_then(|res| {
-            Ok(httpcodes::HTTPOk.build().json({
+            Ok(HttpResponse::Ok().json({
                 let mut by_trace_with_key = HashMap::new();
                 for span in res {
                     by_trace_with_key
@@ -108,7 +108,7 @@ pub fn get_traces(
                     by_trace.push(spans);
                 }
                 by_trace
-            })?)
+            }))
         })
         .responder()
 }
@@ -143,7 +143,7 @@ pub fn get_dependencies(
         ))
         .from_err()
         .and_then(|res| {
-            Ok(httpcodes::HTTPOk.build().json({
+            Ok(HttpResponse::Ok().json({
                 let by_services = res.into_iter().fold(HashMap::new(), |mut map, elt| {
                     let local_service = elt.local_endpoint
                         .and_then(|ep| ep.service_name)
@@ -171,7 +171,7 @@ pub fn get_dependencies(
                     by_trace.push(spans);
                 }
                 by_trace
-            })?)
+            }))
         })
         .responder()
 }

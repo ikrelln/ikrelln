@@ -24,7 +24,7 @@ fn should_not_have_test_result_from_span_without_tags() {
 
     let trace_id = uuid::Uuid::new_v4().to_string();
 
-    let req = srv.client(Method::POST, "/api/v1/spans")
+    let req = srv.client(http::Method::POST, "/api/v1/spans")
         .json(vec![
             Span {
                 trace_id: trace_id.to_string(),
@@ -56,7 +56,7 @@ fn should_not_have_test_result_from_span_without_tags() {
     ));
 
     let req_tr = srv.client(
-        Method::GET,
+        http::Method::GET,
         &format!("/api/v1/testresults?traceId={}", &trace_id),
     ).finish()
         .unwrap();
@@ -99,7 +99,7 @@ fn should_create_test_result() {
         "success".to_string(),
     );
 
-    let req = srv.client(Method::POST, "/api/v1/spans")
+    let req = srv.client(http::Method::POST, "/api/v1/spans")
         .json(vec![
             Span {
                 trace_id: trace_id.to_string(),
@@ -131,7 +131,7 @@ fn should_create_test_result() {
     ));
 
     let req_tr = srv.client(
-        Method::GET,
+        http::Method::GET,
         &format!("/api/v1/testresults?traceId={}", &trace_id),
     ).finish()
         .unwrap();

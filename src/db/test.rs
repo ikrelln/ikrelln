@@ -37,13 +37,13 @@ pub struct TestResultDb {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ResultCleanupStatus {
     WithData,
-    ToKeep,
+    Important,
     Shell,
 }
 impl From<i32> for ResultCleanupStatus {
     fn from(v: i32) -> Self {
         match v {
-            1 => ResultCleanupStatus::ToKeep,
+            1 => ResultCleanupStatus::Important,
             2 => ResultCleanupStatus::Shell,
             _ => ResultCleanupStatus::WithData,
         }
@@ -53,7 +53,7 @@ impl ResultCleanupStatus {
     pub fn into_i32(&self) -> i32 {
         match self {
             &ResultCleanupStatus::WithData => 0,
-            &ResultCleanupStatus::ToKeep => 1,
+            &ResultCleanupStatus::Important => 1,
             &ResultCleanupStatus::Shell => 2,
         }
     }

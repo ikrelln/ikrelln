@@ -9,6 +9,7 @@ extern crate log;
 extern crate mime;
 
 extern crate clap;
+extern crate toml;
 
 extern crate serde;
 #[macro_use]

@@ -18,8 +18,10 @@ fern = "0.5"
 chrono = { version = "0.4", features = [ "serde" ] }
 mime = "0.3"
 lazy_static = "1.0"
+
 clap = "2.29"
 toml = "0.4"
+structopt = "0.2"
 
 uuid = { version = "0.6", features = ["serde", "v4"] }
 

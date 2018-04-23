@@ -1,4 +1,26 @@
-use clap::{App, Arg};
+use std::fs::File;
+use std::io::prelude::*;
+
+use toml;
+use structopt::StructOpt;
+
+#[derive(Debug, Clone)]
+pub struct CleanUpConfig {
+    pub delay_test_results: u32,
+    pub delay_spans: u32,
+    pub delay_reports: u32,
+    pub schedule: u32,
+}
+impl Default for CleanUpConfig {
+    fn default() -> Self {
+        CleanUpConfig {
+            delay_test_results: 40 * 24 * 60 * 60 * 1000,
+            delay_spans: 7 * 24 * 60 * 60 * 1000,
+            delay_reports: 7 * 24 * 60 * 60 * 1000,
+            schedule: 1 * 60 * 60 * 1000,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -6,83 +28,110 @@ pub struct Config {
     pub port: u16,
     pub db_nb_connection: usize,
     pub db_url: String,
+    pub cleanup: CleanUpConfig,
 }
-impl Config {
-    pub fn load() -> Config {
-        let version: String = format!("v{}", ::build_info::BUILD_INFO.version);
-
-        // configuration
-        let mut cli = App::new("i'Krelln")
-            .version(version.as_str())
-            .about("Start i'Krelln server")
-            .arg(
-                Arg::with_name("host")
-                    .long("host")
-                    .takes_value(true)
-                    .value_name("HOST")
-                    .default_value("0.0.0.0")
-                    .env("HOST")
-                    .help("Listen on the specified host"),
-            )
-            .arg(
-                Arg::with_name("port")
-                    .short("p")
-                    .long("port")
-                    .takes_value(true)
-                    .value_name("PORT")
-                    .default_value("7878")
-                    .env("PORT")
-                    .help("Listen to the specified port"),
-            )
-            .arg(
-                Arg::with_name("database_url")
-                    .long("db-url")
-                    .takes_value(true)
-                    .value_name("DATABASE_URL")
-                    .env("DATABASE_URL")
-                    .help("Url to the DB"),
-            );
-
-        if cfg!(feature = "postgres") {
-            cli = cli.arg(
-                Arg::with_name("nb_connection")
-                    .long("nb-connection")
-                    .takes_value(true)
-                    .value_name("NB_CONNECTION")
-                    .default_value("5")
-                    .env("NB_CONNECTION")
-                    .help("Open this number of connections to the DB"),
-            );
-        }
-
-        let matches = cli.get_matches();
-
-        let host = matches.value_of("host").unwrap().to_string();
-
-        let port = matches
-            .value_of("port")
-            .and_then(|it| it.parse::<u16>().ok())
-            .unwrap();
-
-        let db_nb_connection = if cfg!(feature = "postgres") {
-            matches
-                .value_of("nb_connection")
-                .and_then(|it| it.parse::<usize>().ok())
-                .unwrap()
-        } else {
-            1
-        };
-
-        let db_url = matches
-            .value_of("database_url")
-            .expect("missing DATABASE_URL parameter")
-            .to_string();
-
+impl Default for Config {
+    fn default() -> Self {
         Config {
-            host,
-            port,
-            db_nb_connection,
-            db_url,
+            host: "0.0.0.0".to_string(),
+            port: 7878,
+            db_nb_connection: 5,
+            db_url: "127.0.0.1:5042".to_string(),
+            cleanup: CleanUpConfig::default(),
         }
     }
+}
+
+impl Config {
+    pub fn load() -> Config {
+        let config = merge_configs();
+        match config {
+            Ok(config) => config,
+            Err(err) => panic!("{:?}", err),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename = "cleanup")]
+pub struct CleanUpConfigLoader {
+    pub delay_test_results: Option<u32>,
+    pub delay_spans: Option<u32>,
+    pub delay_reports: Option<u32>,
+    pub schedule: Option<u32>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct ConfigLoader {
+    pub host: Option<String>,
+    pub port: Option<u16>,
+    pub db_nb_connection: Option<usize>,
+    pub db_url: Option<String>,
+    pub cleanup: Option<CleanUpConfigLoader>,
+}
+
+#[derive(Debug, Clone, Deserialize, StructOpt)]
+pub struct ConfigLoaderCmd {
+    #[structopt(short = "h", long = "host", env = "HOST",
+                help = "Listen on the specified host, by default 0.0.0.0")]
+    pub host: Option<String>,
+    #[structopt(short = "p", long = "port", env = "PORT",
+                help = "Listen on the specified host, by default 7878")]
+    pub port: Option<u16>,
+    #[structopt(long = "nb-connection", env = "NB_CONNECTION",
+                help = "Number of connection to the database, by default 5")]
+    pub db_nb_connection: Option<usize>,
+    #[structopt(long = "db-url", env = "DATABASE_URL", help = "URL to connect to the database")]
+    pub db_url: Option<String>,
+}
+
+fn load_config_from_toml() -> ConfigLoader {
+    let contents = File::open("config.toml").and_then(|mut file| {
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).map(|_| contents)
+    });
+    let config: Option<ConfigLoader> = contents
+        .ok()
+        .and_then(|contents| toml::from_str(&contents).ok());
+
+    config.unwrap_or_else(|| ConfigLoader::default())
+}
+
+fn merge_configs() -> Result<Config, String> {
+    let from_args = ConfigLoaderCmd::from_args();
+    let from_toml = load_config_from_toml();
+    let cleanup_from_toml = from_toml.cleanup;
+    let default = Config::default();
+
+    Ok(Config {
+        port: from_args.port.or(from_toml.port).unwrap_or(default.port),
+        host: from_args.host.or(from_toml.host).unwrap_or(default.host),
+        db_nb_connection: from_args
+            .db_nb_connection
+            .or(from_toml.db_nb_connection)
+            .unwrap_or(default.db_nb_connection),
+        db_url: from_args
+            .db_url
+            .or(from_toml.db_url)
+            .ok_or("missing DATABASE_URL parameter")?,
+        cleanup: CleanUpConfig {
+            delay_test_results: cleanup_from_toml
+                .clone()
+                .and_then(|cleanup| cleanup.delay_test_results)
+                .unwrap_or(default.cleanup.delay_test_results),
+            delay_spans: cleanup_from_toml
+                .clone()
+                .and_then(|cleanup| cleanup.delay_spans)
+                .unwrap_or(default.cleanup.delay_spans),
+            delay_reports: cleanup_from_toml
+                .clone()
+                .and_then(|cleanup| cleanup.delay_reports)
+                .unwrap_or(default.cleanup.delay_reports),
+            schedule: cleanup_from_toml
+                .clone()
+                .and_then(|cleanup| cleanup.schedule)
+                .unwrap_or(default.cleanup.schedule),
+        },
+        ..default
+    })
 }

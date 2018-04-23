@@ -38,13 +38,18 @@ pub struct Span {
     pub kind: Option<Kind>,
     pub duration: Option<i64>,
     pub timestamp: Option<i64>,
-    #[serde(default)] pub debug: bool,
-    #[serde(default)] pub shared: bool,
+    #[serde(default)]
+    pub debug: bool,
+    #[serde(default)]
+    pub shared: bool,
     pub local_endpoint: Option<Endpoint>,
     pub remote_endpoint: Option<Endpoint>,
-    #[serde(default)] pub annotations: Vec<Annotation>,
-    #[serde(default)] pub tags: HashMap<String, String>,
-    #[serde(default)] pub binary_annotations: Vec<BinaryTag>,
+    #[serde(default)]
+    pub annotations: Vec<Annotation>,
+    #[serde(default)]
+    pub tags: HashMap<String, String>,
+    #[serde(default)]
+    pub binary_annotations: Vec<BinaryTag>,
 }
 
 #[cfg(feature = "python")]

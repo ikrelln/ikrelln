@@ -147,7 +147,8 @@ pub struct TestResult {
     pub environment: Option<String>,
     pub components_called: HashMap<String, i32>,
     pub nb_spans: i32,
-    #[serde(skip_serializing_if = "Option::is_none")] pub main_span: Option<::opentracing::Span>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub main_span: Option<::opentracing::Span>,
 }
 
 #[cfg(feature = "python")]

@@ -21,7 +21,8 @@ struct TimeRange {
 struct Target {
     target: String,
     ref_id: String,
-    #[serde(rename = "type")] target_type: String,
+    #[serde(rename = "type")]
+    target_type: String,
 }
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -45,7 +46,8 @@ pub enum Value {
 #[derive(Debug, Serialize)]
 pub struct Column {
     pub text: &'static str,
-    #[serde(rename = "type")] pub column_type: &'static str,
+    #[serde(rename = "type")]
+    pub column_type: &'static str,
 }
 #[derive(Debug, Serialize)]
 #[serde(tag = "type")]

@@ -13,8 +13,8 @@ use db::schema::span;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "span"]
 pub struct SpanDb {
-    trace_id: String,
-    id: String,
+    pub trace_id: String,
+    pub id: String,
     parent_id: Option<String>,
     name: Option<String>,
     kind: Option<String>,

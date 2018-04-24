@@ -13,8 +13,8 @@ static REPORT_QUERY_LIMIT: i64 = 200;
 use db::schema::report;
 #[derive(Debug, Insertable, Queryable, Clone)]
 #[table_name = "report"]
-struct ReportDb {
-    id: String,
+pub struct ReportDb {
+    pub id: String,
     name: String,
     folder: String,
     created_on: chrono::NaiveDateTime,

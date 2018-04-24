@@ -7,6 +7,7 @@ pub mod span;
 pub mod test;
 pub mod scripts;
 pub mod reports;
+pub mod cleanup;
 
 pub mod helper;
 

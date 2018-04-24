@@ -32,6 +32,8 @@ extern crate diesel;
 #[cfg(feature = "python")]
 extern crate cpython;
 
+use actix::prelude::*;
+
 pub mod opentracing;
 mod build_info;
 mod config;
@@ -71,6 +73,8 @@ pub fn start_server() {
     actix::Arbiter::system_registry()
         .get::<::engine::streams::Streamer>()
         .do_send(::engine::streams::LoadScripts);
+
+    let _: Addr<Syn, _> = db::cleanup::CleanUpTimer.start();
 
     system.run();
 }

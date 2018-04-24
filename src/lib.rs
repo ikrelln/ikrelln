@@ -53,16 +53,19 @@ lazy_static! {
     };
 }
 
-pub fn start_server() {
-    let config = config::Config::load();
+lazy_static! {
+    #[derive(Debug)]
+    static ref CONFIG: config::Config = config::Config::load();
+}
 
-    info!("Starting i'Krelln with config: {:?}", config);
+pub fn start_server() {
+    info!("Starting i'Krelln with config: {:?}", *CONFIG);
 
     let system = actix::System::new("i'Krelln");
 
     match std::env::var("LISTEN_FD") {
         Ok(fd) => api::serve_from_fd(fd),
-        _ => api::serve(&config.host, config.port),
+        _ => api::serve(&CONFIG.host, CONFIG.port),
     }
 
     actix::Arbiter::system_registry()

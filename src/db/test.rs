@@ -38,6 +38,7 @@ pub struct TestResultDb {
 pub enum ResultCleanupStatus {
     WithData,
     Important,
+    ToKeep,
     Shell,
 }
 impl From<i32> for ResultCleanupStatus {
@@ -45,6 +46,7 @@ impl From<i32> for ResultCleanupStatus {
         match v {
             1 => ResultCleanupStatus::Important,
             2 => ResultCleanupStatus::Shell,
+            3 => ResultCleanupStatus::ToKeep,
             _ => ResultCleanupStatus::WithData,
         }
     }
@@ -55,6 +57,7 @@ impl ResultCleanupStatus {
             &ResultCleanupStatus::WithData => 0,
             &ResultCleanupStatus::Important => 1,
             &ResultCleanupStatus::Shell => 2,
+            &ResultCleanupStatus::ToKeep => 3,
         }
     }
 }
@@ -132,24 +135,40 @@ impl Handler<::engine::test_result::TestResult> for super::DbExecutor {
             source: 0,
         });
 
+        let test_result_date = chrono::NaiveDateTime::from_timestamp(
+            msg.date / 1000 / 1000,
+            (msg.date % (1000 * 1000) * 1000) as u32,
+        );
+
         use super::schema::test_result::dsl::*;
         diesel::insert_into(test_result)
             .values(&TestResultDb {
                 test_id: parent_id.clone(),
                 trace_id: msg.trace_id.clone(),
-                date: chrono::NaiveDateTime::from_timestamp(
-                    msg.date / 1000 / 1000,
-                    (msg.date % (1000 * 1000) * 1000) as u32,
-                ),
+                date: test_result_date,
                 status: msg.status.into_i32(),
                 duration: msg.duration,
                 environment: msg.environment.clone(),
                 components_called: serde_json::to_string(&msg.components_called).unwrap(),
                 nb_spans: msg.nb_spans,
-                cleanup_status: ResultCleanupStatus::WithData.into(),
+                cleanup_status: match msg.status {
+                    ::engine::test_result::TestStatus::Success => {
+                        ResultCleanupStatus::ToKeep.into()
+                    }
+                    _ => ResultCleanupStatus::WithData.into(),
+                },
             })
             .execute(self.0.as_ref().unwrap())
             .map_err(|err| self.reconnect_if_needed(ctx, err))
+            .ok();
+
+        diesel::update(
+            test_result
+                .filter(cleanup_status.eq(super::test::ResultCleanupStatus::ToKeep.into_i32()))
+                .filter(test_id.eq(parent_id.clone()))
+                .filter(date.lt(test_result_date)),
+        ).set(cleanup_status.eq(super::test::ResultCleanupStatus::WithData.into_i32()))
+            .execute(self.0.as_ref().unwrap())
             .ok();
 
         MessageResult(::engine::test_result::TestResult {

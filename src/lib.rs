@@ -34,12 +34,12 @@ extern crate cpython;
 
 use actix::prelude::*;
 
-pub mod opentracing;
+pub mod api;
 mod build_info;
 mod config;
-pub mod engine;
-pub mod api;
 mod db;
+pub mod engine;
+pub mod opentracing;
 
 lazy_static! {
     static ref DB_EXECUTOR_POOL: actix::Addr<actix::Syn, db::DbExecutor> = {

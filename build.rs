@@ -1,7 +1,7 @@
+use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::process::Command;
-use std::error::Error;
 
 struct Ignore;
 

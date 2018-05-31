@@ -1,5 +1,5 @@
-use futures;
 use actix::MailboxError;
+use futures;
 
 use super::query::{Column, ToGrafana, Value};
 

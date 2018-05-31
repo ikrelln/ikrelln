@@ -1,7 +1,7 @@
 use std::collections::hash_map::{Entry, HashMap};
 
-use futures::{future, Future};
 use actix::prelude::*;
+use futures::{future, Future};
 
 #[cfg(feature = "python")]
 use cpython::{PyDict, Python, ToPyObject};
@@ -265,9 +265,9 @@ mod tests {
     use std::collections::HashMap;
     use uuid;
 
-    use opentracing::Span;
     use opentracing::span::Kind;
     use opentracing::tags::IkrellnTags;
+    use opentracing::Span;
 
     use super::*;
 
@@ -298,24 +298,22 @@ mod tests {
             "success".to_string(),
         );
 
-        let spans = vec![
-            Span {
-                trace_id: trace_id.to_string(),
-                id: trace_id.clone(),
-                parent_id: None,
-                name: Some("span_name".to_string()),
-                kind: Some(Kind::CLIENT),
-                duration: Some(25),
-                timestamp: Some(50),
-                debug: false,
-                shared: false,
-                local_endpoint: None,
-                remote_endpoint: None,
-                annotations: vec![],
-                tags,
-                binary_annotations: vec![],
-            },
-        ];
+        let spans = vec![Span {
+            trace_id: trace_id.to_string(),
+            id: trace_id.clone(),
+            parent_id: None,
+            name: Some("span_name".to_string()),
+            kind: Some(Kind::CLIENT),
+            duration: Some(25),
+            timestamp: Some(50),
+            debug: false,
+            shared: false,
+            local_endpoint: None,
+            remote_endpoint: None,
+            annotations: vec![],
+            tags,
+            binary_annotations: vec![],
+        }];
 
         let tr = TestResult::try_from(&spans);
         assert!(tr.is_ok());

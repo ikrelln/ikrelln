@@ -1,8 +1,8 @@
-use std::collections::HashMap;
 use actix_web::*;
-use futures::Future;
-use futures::future::result;
 use chrono;
+use futures::future::result;
+use futures::Future;
+use std::collections::HashMap;
 
 use super::{errors, AppState};
 

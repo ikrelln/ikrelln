@@ -1,8 +1,8 @@
 use std::fs::File;
 use std::io::prelude::*;
 
-use toml;
 use structopt::StructOpt;
+use toml;
 
 #[derive(Debug, Clone)]
 pub struct CleanUpConfig {
@@ -72,14 +72,25 @@ pub struct ConfigLoader {
 
 #[derive(Debug, Clone, Deserialize, StructOpt)]
 pub struct ConfigLoaderCmd {
-    #[structopt(short = "h", long = "host", env = "HOST",
-                help = "Listen on the specified host, by default 0.0.0.0")]
+    #[structopt(
+        short = "h",
+        long = "host",
+        env = "HOST",
+        help = "Listen on the specified host, by default 0.0.0.0"
+    )]
     pub host: Option<String>,
-    #[structopt(short = "p", long = "port", env = "PORT",
-                help = "Listen on the specified host, by default 7878")]
+    #[structopt(
+        short = "p",
+        long = "port",
+        env = "PORT",
+        help = "Listen on the specified host, by default 7878"
+    )]
     pub port: Option<u16>,
-    #[structopt(long = "nb-connection", env = "NB_CONNECTION",
-                help = "Number of connection to the database, by default 5")]
+    #[structopt(
+        long = "nb-connection",
+        env = "NB_CONNECTION",
+        help = "Number of connection to the database, by default 5"
+    )]
     pub db_nb_connection: Option<usize>,
     #[structopt(long = "db-url", env = "DATABASE_URL", help = "URL to connect to the database")]
     pub db_url: Option<String>,

@@ -1,13 +1,13 @@
-use diesel::prelude::*;
 use actix::{Actor, ActorContext, SyncContext};
+use diesel::prelude::*;
 use diesel::result::{DatabaseErrorKind, Error as DieselError};
 
+pub mod cleanup;
+pub mod reports;
 pub mod schema;
+pub mod scripts;
 pub mod span;
 pub mod test;
-pub mod scripts;
-pub mod reports;
-pub mod cleanup;
 
 pub mod helper;
 

@@ -1,9 +1,9 @@
-use diesel;
-use actix::{Handler, Message};
-use diesel::prelude::*;
-use chrono;
-use std::time::Duration;
 use actix::prelude::*;
+use actix::{Handler, Message};
+use chrono;
+use diesel;
+use diesel::prelude::*;
+use std::time::Duration;
 
 pub struct CleanUp;
 impl Message for CleanUp {

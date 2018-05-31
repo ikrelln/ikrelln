@@ -1,5 +1,5 @@
-use std::fmt::{Display, Formatter, Result};
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter, Result};
 
 #[cfg(feature = "python")]
 use cpython::{PyDict, Python, ToPyObject};

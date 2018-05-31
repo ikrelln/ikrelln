@@ -1,5 +1,5 @@
-use actix_web::{HttpRequest, HttpResponse};
 use super::AppState;
+use actix_web::{HttpRequest, HttpResponse};
 use chrono;
 
 #[derive(Serialize)]
@@ -64,11 +64,11 @@ pub fn zipkin_ui_config(_: HttpRequest<AppState>) -> HttpResponse {
 mod tests {
     extern crate http;
 
+    use self::http::StatusCode;
+    use super::*;
     use actix;
     use actix_web::test::TestRequest;
     use futures;
-    use self::http::StatusCode;
-    use super::*;
 
     use api::AppState;
 

@@ -1,9 +1,9 @@
-use diesel;
 use actix::{Handler, Message, MessageResult};
-use diesel::prelude::*;
-use uuid;
 use chrono;
+use diesel;
+use diesel::prelude::*;
 use serde_json;
+use uuid;
 
 static TEST_ITEM_QUERY_LIMIT: i64 = 200;
 use db::schema::test_item;

@@ -6,16 +6,16 @@ extern crate ikrelln;
 
 mod helpers;
 
-use std::{thread, time};
 use std::collections::HashMap;
+use std::{thread, time};
 
 use actix_web::*;
 
-use ikrelln::opentracing::Span;
-use ikrelln::opentracing::span::Kind;
-use ikrelln::opentracing::tags::IkrellnTags;
 use ikrelln::api::span::IngestResponse;
 use ikrelln::engine::test_result::TestResult;
+use ikrelln::opentracing::span::Kind;
+use ikrelln::opentracing::tags::IkrellnTags;
+use ikrelln::opentracing::Span;
 
 #[test]
 fn should_not_have_test_result_from_span_without_tags() {
@@ -25,24 +25,22 @@ fn should_not_have_test_result_from_span_without_tags() {
     let trace_id = uuid::Uuid::new_v4().to_string();
 
     let req = srv.client(http::Method::POST, "/api/v1/spans")
-        .json(vec![
-            Span {
-                trace_id: trace_id.to_string(),
-                id: trace_id.clone(),
-                parent_id: None,
-                name: Some(trace_id.clone()),
-                kind: Some(Kind::CLIENT),
-                duration: Some(25),
-                timestamp: Some(50),
-                debug: false,
-                shared: false,
-                local_endpoint: None,
-                remote_endpoint: None,
-                annotations: vec![],
-                tags: HashMap::new(),
-                binary_annotations: vec![],
-            },
-        ])
+        .json(vec![Span {
+            trace_id: trace_id.to_string(),
+            id: trace_id.clone(),
+            parent_id: None,
+            name: Some(trace_id.clone()),
+            kind: Some(Kind::CLIENT),
+            duration: Some(25),
+            timestamp: Some(50),
+            debug: false,
+            shared: false,
+            local_endpoint: None,
+            remote_endpoint: None,
+            annotations: vec![],
+            tags: HashMap::new(),
+            binary_annotations: vec![],
+        }])
         .unwrap();
     let response = srv.execute(req.send()).unwrap();
     assert!(response.status().is_success());
@@ -100,24 +98,22 @@ fn should_create_test_result() {
     );
 
     let req = srv.client(http::Method::POST, "/api/v1/spans")
-        .json(vec![
-            Span {
-                trace_id: trace_id.to_string(),
-                id: trace_id.clone(),
-                parent_id: None,
-                name: Some("span_name".to_string()),
-                kind: Some(Kind::CLIENT),
-                duration: Some(25),
-                timestamp: Some(50),
-                debug: false,
-                shared: false,
-                local_endpoint: None,
-                remote_endpoint: None,
-                annotations: vec![],
-                tags,
-                binary_annotations: vec![],
-            },
-        ])
+        .json(vec![Span {
+            trace_id: trace_id.to_string(),
+            id: trace_id.clone(),
+            parent_id: None,
+            name: Some("span_name".to_string()),
+            kind: Some(Kind::CLIENT),
+            duration: Some(25),
+            timestamp: Some(50),
+            debug: false,
+            shared: false,
+            local_endpoint: None,
+            remote_endpoint: None,
+            annotations: vec![],
+            tags,
+            binary_annotations: vec![],
+        }])
         .unwrap();
     let response = srv.execute(req.send()).unwrap();
     assert!(response.status().is_success());

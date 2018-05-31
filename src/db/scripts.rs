@@ -1,7 +1,7 @@
-use chrono;
 use actix::prelude::*;
-use diesel::prelude::*;
+use chrono;
 use diesel;
+use diesel::prelude::*;
 
 use db::schema::script;
 #[derive(Debug, Insertable, Queryable, Clone)]

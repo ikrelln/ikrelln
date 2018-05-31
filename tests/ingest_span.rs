@@ -6,14 +6,14 @@ extern crate ikrelln;
 
 mod helpers;
 
-use std::{thread, time};
 use std::collections::HashMap;
+use std::{thread, time};
 
 use actix_web::*;
 
-use ikrelln::opentracing::Span;
-use ikrelln::opentracing::span::Kind;
 use ikrelln::api::span::IngestResponse;
+use ikrelln::opentracing::span::Kind;
+use ikrelln::opentracing::Span;
 
 #[test]
 fn can_receive_span() {
@@ -23,24 +23,22 @@ fn can_receive_span() {
     let trace_id = uuid::Uuid::new_v4().to_string();
 
     let req = srv.client(http::Method::POST, "/api/v1/spans")
-        .json(vec![
-            Span {
-                trace_id: trace_id.to_string(),
-                id: trace_id.clone(),
-                parent_id: None,
-                name: Some(trace_id.clone()),
-                kind: Some(Kind::CLIENT),
-                duration: Some(25),
-                timestamp: Some(50),
-                debug: false,
-                shared: false,
-                local_endpoint: None,
-                remote_endpoint: None,
-                annotations: vec![],
-                tags: HashMap::new(),
-                binary_annotations: vec![],
-            },
-        ])
+        .json(vec![Span {
+            trace_id: trace_id.to_string(),
+            id: trace_id.clone(),
+            parent_id: None,
+            name: Some(trace_id.clone()),
+            kind: Some(Kind::CLIENT),
+            duration: Some(25),
+            timestamp: Some(50),
+            debug: false,
+            shared: false,
+            local_endpoint: None,
+            remote_endpoint: None,
+            annotations: vec![],
+            tags: HashMap::new(),
+            binary_annotations: vec![],
+        }])
         .unwrap();
     let response = srv.execute(req.send()).unwrap();
     assert!(response.status().is_success());

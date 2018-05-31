@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use chrono;
 use actix::prelude::*;
-use diesel::prelude::*;
-use uuid;
+use chrono;
 use diesel;
+use diesel::prelude::*;
 use serde_json;
+use uuid;
 
 use engine::test_result::TestStatus;
 

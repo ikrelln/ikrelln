@@ -1,21 +1,21 @@
 use serde;
-use uuid;
 use std::fmt;
+use uuid;
 
 pub mod ingestor;
-pub mod span;
-pub mod test_result;
-pub mod streams;
 pub mod report;
+pub mod span;
+pub mod streams;
+pub mod test_result;
 
 pub fn hello() -> &'static str {
     "I am i'Krelln"
 }
 
 macro_rules! typed_id {
-    ($name:ident) => (
+    ($name:ident) => {
         #[derive(Serialize, Deserialize, Debug, Clone)]
-        pub struct $name (pub String);
+        pub struct $name(pub String);
         impl TypedId for $name {}
         impl From<String> for $name {
             fn from(v: String) -> Self {
@@ -33,7 +33,7 @@ macro_rules! typed_id {
                 $name(format!("{}", uuid::Uuid::new_v4().hyphenated()))
             }
         }
-    );
+    };
 }
 
 trait TypedId {}

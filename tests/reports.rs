@@ -6,17 +6,17 @@ extern crate ikrelln;
 
 mod helpers;
 
-use std::{thread, time};
 use std::collections::HashMap;
+use std::{thread, time};
 
 use actix_web::*;
 
-use ikrelln::opentracing::Span;
+use ikrelln::api::report::Report;
+use ikrelln::api::span::IngestResponse;
+use ikrelln::opentracing::span::Endpoint;
 use ikrelln::opentracing::span::Kind;
 use ikrelln::opentracing::tags::IkrellnTags;
-use ikrelln::opentracing::span::Endpoint;
-use ikrelln::api::span::IngestResponse;
-use ikrelln::api::report::Report;
+use ikrelln::opentracing::Span;
 
 #[test]
 fn should_create_report() {

@@ -1,12 +1,12 @@
 use actix_web::*;
-use futures::Future;
 use futures::future::result;
+use futures::Future;
 use std::collections::HashMap;
 
 use super::{errors, AppState};
+use actix::Arbiter;
 use engine::ingestor::IngestEvents;
 use opentracing::Span;
-use actix::Arbiter;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IngestResponse {

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
-use futures::{future, Future};
 use actix::prelude::*;
+use futures::{future, Future};
 
 #[derive(Default)]
 pub struct Reporter;

@@ -1,9 +1,9 @@
-use actix_web::*;
 use actix;
-use futures::Future;
-use futures::future::result;
-use uuid;
+use actix_web::*;
 use chrono;
+use futures::future::result;
+use futures::Future;
+use uuid;
 
 use super::{errors, AppState};
 

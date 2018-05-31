@@ -1,7 +1,7 @@
-use uuid;
+use actix;
 use actix_web::{error, Error, HttpResponse};
 use futures;
-use actix;
+use uuid;
 
 #[derive(Fail, Debug, Serialize)]
 #[serde(tag = "error", content = "msg")]

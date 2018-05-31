@@ -1,20 +1,20 @@
-use std::os::unix::io::FromRawFd;
 use std::net::TcpListener;
+use std::os::unix::io::FromRawFd;
 
-use actix_web::{http, middleware, server, App, HttpRequest};
 use actix_web::middleware::cors;
+use actix_web::{http, middleware, server, App, HttpRequest};
 
+use chrono;
 use engine;
 use uuid;
-use chrono;
 
-mod healthcheck;
 mod errors;
+mod grafana;
+mod healthcheck;
+pub mod report;
+mod script;
 pub mod span;
 pub mod test;
-mod script;
-pub mod report;
-mod grafana;
 
 fn index(_req: HttpRequest<AppState>) -> String {
     String::from(engine::hello())

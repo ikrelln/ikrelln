@@ -1,6 +1,6 @@
 use actix_web::*;
-use futures::Future;
 use futures;
+use futures::Future;
 
 use super::data_queries::{DataQuery, FutureData};
 

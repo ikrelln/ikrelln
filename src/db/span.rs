@@ -1,12 +1,12 @@
-use diesel;
-use actix::{Handler, MessageResult};
 use actix::prelude::Message;
-use diesel::prelude::*;
-use uuid;
-use std::collections::HashMap;
+use actix::{Handler, MessageResult};
 use actix_web;
-use std::str::FromStr;
 use chrono;
+use diesel;
+use diesel::prelude::*;
+use std::collections::HashMap;
+use std::str::FromStr;
+use uuid;
 
 static SPAN_QUERY_LIMIT: i64 = 500;
 use db::schema::span;

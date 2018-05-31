@@ -2,9 +2,9 @@ use actix::prelude::*;
 use actix::registry::SystemService;
 use futures::future::*;
 
+use chrono;
 #[cfg(feature = "python")]
 use cpython::{FromPyObject, PyDict, PyObject, PyResult, Python};
-use chrono;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum ScriptType {

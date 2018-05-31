@@ -1,6 +1,6 @@
 use actix_web::{AsyncResponder, HttpRequest, HttpResponse};
-use futures::Future;
 use futures::future::result;
+use futures::Future;
 use serde_urlencoded;
 
 use super::{errors, AppState};

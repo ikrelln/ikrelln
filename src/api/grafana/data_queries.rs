@@ -74,11 +74,11 @@ impl ToGrafana for ::engine::test_result::TestResult {
         let mut column = vec![];
         column.push(Value::String(self.name));
         column.push(Value::String(self.path.join("/")));
-        column.push(Value::String(self.status.into_str().to_string()));
+        column.push(Value::String(self.status.as_str().to_string()));
         column.push(Value::String(
             self.environment.unwrap_or_else(|| "".to_string()),
         ));
-        column.push(Value::Number(self.nb_spans as i64));
+        column.push(Value::Number(i64::from(self.nb_spans)));
         column.push(Value::Number(self.date / 1000));
         column.push(Value::Number(self.duration / 1000));
         column
@@ -118,7 +118,7 @@ impl ToGrafana for ::api::report::Report {
             .and_then(|summary| {
                 summary
                     .get(&::engine::test_result::TestStatus::Success)
-                    .map(|v| *v)
+                    .cloned()
             })
             .unwrap_or(0) as i64));
         column.push(Value::Number(self.summary
@@ -126,7 +126,7 @@ impl ToGrafana for ::api::report::Report {
             .and_then(|summary| {
                 summary
                     .get(&::engine::test_result::TestStatus::Failure)
-                    .map(|v| *v)
+                    .cloned()
             })
             .unwrap_or(0) as i64));
         column.push(Value::Number(self.summary
@@ -134,7 +134,7 @@ impl ToGrafana for ::api::report::Report {
             .and_then(|summary| {
                 summary
                     .get(&::engine::test_result::TestStatus::Skipped)
-                    .map(|v| *v)
+                    .cloned()
             })
             .unwrap_or(0) as i64));
         column

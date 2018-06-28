@@ -98,13 +98,13 @@ pub fn http_application() -> App<AppState> {
 }
 
 pub fn serve(host: &str, port: u16) {
-    server::new(|| http_application())
+    server::new(http_application)
         .bind(format!("{}:{}", host, port))
         .unwrap()
         .start();
 }
 
-pub fn serve_from_fd(fd: String) {
+pub fn serve_from_fd(fd: &str) {
     server::new(|| http_application())
         .listen(unsafe { TcpListener::from_raw_fd(fd.parse().unwrap()) })
         .start();

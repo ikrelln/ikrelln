@@ -17,12 +17,12 @@ impl Handler<CleanUp> for super::DbExecutor {
 
         let deleted = {
             let limit = chrono::Utc::now().naive_utc()
-                - chrono::Duration::milliseconds(::CONFIG.cleanup.delay_test_results as i64);
+                - chrono::Duration::milliseconds(i64::from(::CONFIG.cleanup.delay_test_results));
 
             test_result
                 .filter(date.lt(limit))
-                .filter(cleanup_status.eq(super::test::ResultCleanupStatus::Shell.into_i32()))
-                .load::<super::test::TestResultDb>(self.0.as_ref().unwrap())
+                .filter(cleanup_status.eq(super::test::ResultCleanupStatus::Shell.as_i32()))
+                .load::<super::test::TestResultDb>(self.0.as_ref().expect("fail to get DB"))
                 .ok()
                 .unwrap_or_else(|| vec![])
                 .iter()
@@ -32,46 +32,45 @@ impl Handler<CleanUp> for super::DbExecutor {
                     diesel::delete(
                         test_result_in_report
                             .filter(trace_id.eq(&tr.trace_id).and(test_id.eq(&tr.test_id))),
-                    ).execute(self.0.as_ref().unwrap())
+                    ).execute(self.0.as_ref().expect("fail to get DB"))
                         .ok();
                 });
 
             diesel::delete(
                 test_result
                     .filter(date.lt(limit))
-                    .filter(cleanup_status.eq(super::test::ResultCleanupStatus::Shell.into_i32())),
-            ).execute(self.0.as_ref().unwrap())
+                    .filter(cleanup_status.eq(super::test::ResultCleanupStatus::Shell.as_i32())),
+            ).execute(self.0.as_ref().expect("fail to get DB"))
                 .unwrap()
         };
 
-        let to_clean: Vec<super::test::TestResultDb> = {
-            let limit = chrono::Utc::now().naive_utc()
-                - chrono::Duration::milliseconds(::CONFIG.cleanup.delay_spans as i64);
+        let to_clean: Vec<super::test::TestResultDb> =
+            {
+                let limit = chrono::Utc::now().naive_utc()
+                    - chrono::Duration::milliseconds(i64::from(::CONFIG.cleanup.delay_spans));
 
-            let to_clean = test_result
-                .filter(date.lt(limit))
-                .filter(cleanup_status.eq(super::test::ResultCleanupStatus::WithData.into_i32()))
-                .load::<super::test::TestResultDb>(self.0.as_ref().unwrap())
-                .ok()
-                .unwrap_or_else(|| vec![]);
+                let to_clean = test_result
+                    .filter(date.lt(limit))
+                    .filter(cleanup_status.eq(super::test::ResultCleanupStatus::WithData.as_i32()))
+                    .load::<super::test::TestResultDb>(self.0.as_ref().expect("fail to get DB"))
+                    .ok()
+                    .unwrap_or_else(|| vec![]);
 
-            diesel::update(
-                test_result.filter(date.lt(limit)).filter(
-                    cleanup_status.eq(super::test::ResultCleanupStatus::WithData.into_i32()),
-                ),
-            ).set(cleanup_status.eq(super::test::ResultCleanupStatus::Shell.into_i32()))
-                .execute(self.0.as_ref().unwrap())
-                .ok();
+                diesel::update(test_result.filter(date.lt(limit)).filter(
+                    cleanup_status.eq(super::test::ResultCleanupStatus::WithData.as_i32()),
+                )).set(cleanup_status.eq(super::test::ResultCleanupStatus::Shell.as_i32()))
+                    .execute(self.0.as_ref().expect("fail to get DB"))
+                    .ok();
 
-            to_clean
-        };
+                to_clean
+            };
 
         to_clean.iter().for_each(|tr| {
             use super::schema::span::dsl::*;
 
             let spans: Vec<super::span::SpanDb> = {
                 span.filter(trace_id.eq(&tr.trace_id))
-                    .load::<super::span::SpanDb>(self.0.as_ref().unwrap())
+                    .load::<super::span::SpanDb>(self.0.as_ref().expect("fail to get DB"))
                     .ok()
                     .unwrap_or_else(|| vec![])
             };
@@ -83,7 +82,7 @@ impl Handler<CleanUp> for super::DbExecutor {
                     diesel::delete(
                         annotation
                             .filter(trace_id.eq(&spandb.trace_id).and(span_id.eq(&spandb.id))),
-                    ).execute(self.0.as_ref().unwrap())
+                    ).execute(self.0.as_ref().expect("fail to get DB"))
                         .ok();
                 }
 
@@ -91,25 +90,25 @@ impl Handler<CleanUp> for super::DbExecutor {
                     use super::schema::tag::dsl::*;
 
                     diesel::delete(tag.filter(span_id.eq(&spandb.id)))
-                        .execute(self.0.as_ref().unwrap())
+                        .execute(self.0.as_ref().expect("fail to get DB"))
                         .ok();
                 }
             });
 
             diesel::delete(span.filter(trace_id.eq(&tr.trace_id)))
-                .execute(self.0.as_ref().unwrap())
+                .execute(self.0.as_ref().expect("fail to get DB"))
                 .ok();
         });
 
         let reports_cleaned = {
             let limit = chrono::Utc::now().naive_utc()
-                - chrono::Duration::milliseconds(::CONFIG.cleanup.delay_reports as i64);
+                - chrono::Duration::milliseconds(i64::from(::CONFIG.cleanup.delay_reports));
 
             use super::schema::report::dsl::*;
 
             report
                 .filter(last_update.lt(limit))
-                .load::<super::reports::ReportDb>(self.0.as_ref().unwrap())
+                .load::<super::reports::ReportDb>(self.0.as_ref().expect("fail to get DB"))
                 .ok()
                 .unwrap_or_else(|| vec![])
                 .iter()
@@ -117,12 +116,12 @@ impl Handler<CleanUp> for super::DbExecutor {
                     use super::schema::test_result_in_report::dsl::*;
 
                     diesel::delete(test_result_in_report.filter(report_id.eq(&rep.id)))
-                        .execute(self.0.as_ref().unwrap())
+                        .execute(self.0.as_ref().expect("fail to get DB"))
                         .ok();
                 });
 
             diesel::delete(report.filter(last_update.lt(limit)))
-                .execute(self.0.as_ref().unwrap())
+                .execute(self.0.as_ref().expect("fail to get DB"))
                 .unwrap()
         };
 
@@ -142,7 +141,7 @@ impl Actor for CleanUpTimer {
     fn started(&mut self, ctx: &mut Context<Self>) {
         ctx.notify_later(
             Trigger,
-            Duration::from_millis(::CONFIG.cleanup.schedule as u64),
+            Duration::from_millis(u64::from(::CONFIG.cleanup.schedule)),
         );
     }
 }
@@ -155,7 +154,7 @@ impl Handler<Trigger> for CleanUpTimer {
         ::DB_EXECUTOR_POOL.do_send(CleanUp);
         ctx.notify_later(
             Trigger,
-            Duration::from_millis(::CONFIG.cleanup.schedule as u64),
+            Duration::from_millis(u64::from(::CONFIG.cleanup.schedule)),
         );
     }
 }

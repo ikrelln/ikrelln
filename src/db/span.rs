@@ -173,7 +173,9 @@ impl super::DbExecutor {
             query = query.filter(port.eq(query_port));
         }
 
-        query.first::<EndpointDb>(self.0.as_ref().unwrap()).ok()
+        query
+            .first::<EndpointDb>(self.0.as_ref().expect("fail to get DB"))
+            .ok()
     }
 
     fn upsert_endpoint(&mut self, ep: Option<EndpointDb>) -> Option<String> {
@@ -192,7 +194,7 @@ impl super::DbExecutor {
                             ipv6: le.ipv6.clone(),
                             port: le.port,
                         })
-                        .execute(self.0.as_ref().unwrap());
+                        .execute(self.0.as_ref().expect("fail to get DB"));
                     if could_insert.is_err() {
                         self.find_endpoint(&le).map(|existing| existing.endpoint_id)
                     } else {
@@ -222,7 +224,7 @@ impl Handler<::opentracing::Span> for super::DbExecutor {
             match span.filter(
                 id.eq(&to_upsert.span_db.id)
                     .and(trace_id.eq(&to_upsert.span_db.trace_id)),
-            ).first::<SpanDb>(self.0.as_ref().unwrap())
+            ).first::<SpanDb>(self.0.as_ref().expect("fail to get DB"))
             {
                 Ok(_) => {
                     //TODO: manage more update cases than duration
@@ -232,13 +234,13 @@ impl Handler<::opentracing::Span> for super::DbExecutor {
                                 .and(trace_id.eq(&to_upsert.span_db.trace_id)),
                         ),
                     ).set(duration.eq(to_upsert.span_db.duration))
-                        .execute(self.0.as_ref().unwrap())
-                        .map_err(|err| self.reconnect_if_needed(ctx, err))
+                        .execute(self.0.as_ref().expect("fail to get DB"))
+                        .map_err(|err| self.reconnect_if_needed(ctx, &err))
                 }
                 Err(_) => diesel::insert_into(span)
                     .values(&to_upsert.span_db)
-                    .execute(self.0.as_ref().unwrap())
-                    .map_err(|err| self.reconnect_if_needed(ctx, err)),
+                    .execute(self.0.as_ref().expect("fail to get DB"))
+                    .map_err(|err| self.reconnect_if_needed(ctx, &err)),
             }
         };
 
@@ -246,7 +248,7 @@ impl Handler<::opentracing::Span> for super::DbExecutor {
         to_upsert.annotations.iter().for_each(|item| {
             diesel::insert_into(annotation)
                 .values(item)
-                .execute(self.0.as_ref().unwrap())
+                .execute(self.0.as_ref().expect("fail to get DB"))
                 .ok();
         });
 
@@ -254,7 +256,7 @@ impl Handler<::opentracing::Span> for super::DbExecutor {
         to_upsert.tags.iter().for_each(|item| {
             diesel::insert_into(tag)
                 .values(item)
-                .execute(self.0.as_ref().unwrap())
+                .execute(self.0.as_ref().expect("fail to get DB"))
                 .ok();
         });
 
@@ -277,7 +279,7 @@ impl Handler<GetServices> for super::DbExecutor {
             endpoint
                 .limit(ENDPOINT_QUERY_LIMIT)
                 .order(service_name.asc())
-                .load::<EndpointDb>(self.0.as_ref().unwrap())
+                .load::<EndpointDb>(self.0.as_ref().expect("fail to get DB"))
                 .ok()
                 .unwrap_or_else(|| vec![])
                 .iter()
@@ -396,7 +398,7 @@ impl Handler<GetSpans> for super::DbExecutor {
             msg.0.service_name.map(|query_service_name| {
                 endpoint
                     .filter(service_name.eq(query_service_name.to_lowercase()))
-                    .first::<EndpointDb>(self.0.as_ref().unwrap())
+                    .first::<EndpointDb>(self.0.as_ref().expect("fail to get DB"))
             })
         };
         if let Some(Err(_err)) = query_endpoint {
@@ -448,7 +450,7 @@ impl Handler<GetSpans> for super::DbExecutor {
             query
                 .order(ts.asc())
                 .limit(msg.0.limit)
-                .load::<SpanDb>(self.0.as_ref().unwrap())
+                .load::<SpanDb>(self.0.as_ref().expect("fail to get DB"))
                 .ok()
                 .unwrap_or_else(|| vec![])
         };
@@ -469,7 +471,7 @@ impl Handler<GetSpans> for super::DbExecutor {
 
                                 endpoint
                                     .filter(endpoint_id.eq(id))
-                                    .first::<EndpointDb>(self.0.as_ref().unwrap())
+                                    .first::<EndpointDb>(self.0.as_ref().expect("fail to get DB"))
                                     .ok()
                                     .map(|ep| ::opentracing::span::Endpoint {
                                         service_name: ep.service_name,
@@ -487,7 +489,7 @@ impl Handler<GetSpans> for super::DbExecutor {
 
                                 endpoint
                                     .filter(endpoint_id.eq(id))
-                                    .first::<EndpointDb>(self.0.as_ref().unwrap())
+                                    .first::<EndpointDb>(self.0.as_ref().expect("fail to get DB"))
                                     .ok()
                                     .map(|ep| ::opentracing::span::Endpoint {
                                         service_name: ep.service_name,
@@ -505,7 +507,7 @@ impl Handler<GetSpans> for super::DbExecutor {
                         annotation
                             .filter(trace_id.eq(&spandb.trace_id).and(span_id.eq(&spandb.id)))
                             .limit(ANNOTATION_QUERY_LIMIT)
-                            .load::<AnnotationDb>(self.0.as_ref().unwrap())
+                            .load::<AnnotationDb>(self.0.as_ref().expect("fail to get DB"))
                             .ok()
                             .unwrap_or_else(|| vec![])
                             .iter()
@@ -526,7 +528,7 @@ impl Handler<GetSpans> for super::DbExecutor {
 
                         tag.filter(span_id.eq(&spandb.id))
                             .limit(TAG_QUERY_LIMIT)
-                            .load::<TagDb>(self.0.as_ref().unwrap())
+                            .load::<TagDb>(self.0.as_ref().expect("fail to get DB"))
                             .ok()
                             .unwrap_or_else(|| vec![])
                             .iter()

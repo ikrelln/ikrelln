@@ -8,7 +8,7 @@ impl From<OpenTracingTag> for KnownTag {
     fn from(tag: OpenTracingTag) -> KnownTag {
         let tag_str: &'static str = tag.into();
         KnownTag {
-            tag: format!("{}", tag_str),
+            tag: tag_str.to_string(),
         }
     }
 }
@@ -16,7 +16,7 @@ impl From<IkrellnTags> for KnownTag {
     fn from(tag: IkrellnTags) -> KnownTag {
         let tag_str: &'static str = tag.into();
         KnownTag {
-            tag: format!("{}", tag_str),
+            tag: tag_str.to_string(),
         }
     }
 }

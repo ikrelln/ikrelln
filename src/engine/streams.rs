@@ -160,8 +160,11 @@ impl Handler<RemoveScript> for Streamer {
     fn handle(&mut self, msg: RemoveScript, _ctx: &mut Context<Self>) -> Self::Result {
         let index = self.scripts
             .iter()
-            .position(|x| (*x.id.clone().unwrap()) == msg.0.id.clone().unwrap())
-            .unwrap();
+            .position(|x| {
+                (*x.id.clone().expect("script should have an ID"))
+                    == msg.0.id.clone().expect("script should have an ID")
+            })
+            .expect("script not found");
         self.scripts.remove(index);
     }
 }
@@ -174,8 +177,11 @@ impl Handler<UpdateScript> for Streamer {
     fn handle(&mut self, msg: UpdateScript, _ctx: &mut Context<Self>) -> Self::Result {
         let index = self.scripts
             .iter()
-            .position(|x| (*x.id.clone().unwrap()) == msg.0.id.clone().unwrap())
-            .unwrap();
+            .position(|x| {
+                (*x.id.clone().expect("script should have an ID"))
+                    == msg.0.id.clone().expect("script should have an ID")
+            })
+            .expect("script not found");
         self.scripts.remove(index);
         self.scripts.push(msg.0);
     }

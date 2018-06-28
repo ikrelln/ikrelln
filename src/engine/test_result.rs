@@ -107,31 +107,31 @@ impl From<i32> for TestStatus {
     }
 }
 impl TestStatus {
-    pub fn into_i32(&self) -> i32 {
+    pub fn as_i32(&self) -> i32 {
         match self {
-            &::engine::test_result::TestStatus::Success => 0,
-            &::engine::test_result::TestStatus::Failure => 1,
-            &::engine::test_result::TestStatus::Skipped => 2,
-            &::engine::test_result::TestStatus::Any => 3,
+            ::engine::test_result::TestStatus::Success => 0,
+            ::engine::test_result::TestStatus::Failure => 1,
+            ::engine::test_result::TestStatus::Skipped => 2,
+            ::engine::test_result::TestStatus::Any => 3,
         }
     }
-    pub fn into_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
-            &::engine::test_result::TestStatus::Success => "Success",
-            &::engine::test_result::TestStatus::Failure => "Failure",
-            &::engine::test_result::TestStatus::Skipped => "Skipped",
-            &::engine::test_result::TestStatus::Any => "Any",
+            ::engine::test_result::TestStatus::Success => "Success",
+            ::engine::test_result::TestStatus::Failure => "Failure",
+            ::engine::test_result::TestStatus::Skipped => "Skipped",
+            ::engine::test_result::TestStatus::Any => "Any",
         }
     }
 }
 impl Into<i32> for TestStatus {
     fn into(self) -> i32 {
-        self.into_i32()
+        self.as_i32()
     }
 }
 impl Into<&'static str> for TestStatus {
     fn into(self) -> &'static str {
-        self.into_str()
+        self.as_str()
     }
 }
 
@@ -165,9 +165,7 @@ impl ToPyObject for TestResult {
             .set_item(py, "trace_id", self.trace_id.clone())
             .unwrap();
         object.set_item(py, "date", self.date).unwrap();
-        object
-            .set_item(py, "status", self.status.into_str())
-            .unwrap();
+        object.set_item(py, "status", self.status.as_str()).unwrap();
         object.set_item(py, "duration", self.duration).unwrap();
         if let Some(environment) = self.environment.clone() {
             object.set_item(py, "environment", environment).unwrap();
@@ -206,7 +204,10 @@ impl TestResult {
     }
 
     fn try_from(spans: &[::opentracing::Span]) -> Result<Self, KnownTag> {
-        let main_span = spans.iter().find(|span| span.parent_id.is_none()).unwrap();
+        let main_span = match spans.iter().find(|span| span.parent_id.is_none()) {
+            Some(span) => span,
+            None => return Err(IkrellnTags::StepType.into()),
+        };
         let suite = Self::value_from_tag_or(main_span, IkrellnTags::Suite, |span| {
             span.local_endpoint.clone().and_then(|ep| ep.service_name)
         })?;

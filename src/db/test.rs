@@ -52,18 +52,18 @@ impl From<i32> for ResultCleanupStatus {
     }
 }
 impl ResultCleanupStatus {
-    pub fn into_i32(&self) -> i32 {
+    pub fn as_i32(&self) -> i32 {
         match self {
-            &ResultCleanupStatus::WithData => 0,
-            &ResultCleanupStatus::Important => 1,
-            &ResultCleanupStatus::Shell => 2,
-            &ResultCleanupStatus::ToKeep => 3,
+            ResultCleanupStatus::WithData => 0,
+            ResultCleanupStatus::Important => 1,
+            ResultCleanupStatus::Shell => 2,
+            ResultCleanupStatus::ToKeep => 3,
         }
     }
 }
 impl Into<i32> for ResultCleanupStatus {
     fn into(self) -> i32 {
-        self.into_i32()
+        self.as_i32()
     }
 }
 
@@ -75,7 +75,7 @@ impl super::DbExecutor {
             .filter(name.eq(&test_item_db.name))
             .filter(source.eq(test_item_db.source))
             .filter(parent_id.eq(&test_item_db.parent_id))
-            .first::<TestItemDb>(self.0.as_ref().unwrap())
+            .first::<TestItemDb>(self.0.as_ref().expect("fail to get DB"))
             .ok()
     }
 
@@ -91,11 +91,11 @@ impl super::DbExecutor {
                         id: new_id.clone(),
                         ..(*test_item_db).clone()
                     })
-                    .execute(self.0.as_ref().unwrap());
+                    .execute(self.0.as_ref().expect("fail to get DB"));
                 if could_insert.is_err() {
                     self.find_test_item(test_item_db)
                         .map(|existing| existing.id)
-                        .unwrap()
+                        .expect("should have found an test ID after insertion failed")
                 } else {
                     new_id
                 }
@@ -146,7 +146,7 @@ impl Handler<::engine::test_result::TestResult> for super::DbExecutor {
                 test_id: parent_id.clone(),
                 trace_id: msg.trace_id.clone(),
                 date: test_result_date,
-                status: msg.status.into_i32(),
+                status: msg.status.as_i32(),
                 duration: msg.duration,
                 environment: msg.environment.clone(),
                 components_called: serde_json::to_string(&msg.components_called).unwrap(),
@@ -158,17 +158,17 @@ impl Handler<::engine::test_result::TestResult> for super::DbExecutor {
                     _ => ResultCleanupStatus::WithData.into(),
                 },
             })
-            .execute(self.0.as_ref().unwrap())
-            .map_err(|err| self.reconnect_if_needed(ctx, err))
+            .execute(self.0.as_ref().expect("fail to get DB"))
+            .map_err(|err| self.reconnect_if_needed(ctx, &err))
             .ok();
 
         diesel::update(
             test_result
-                .filter(cleanup_status.eq(super::test::ResultCleanupStatus::ToKeep.into_i32()))
+                .filter(cleanup_status.eq(super::test::ResultCleanupStatus::ToKeep.as_i32()))
                 .filter(test_id.eq(parent_id.clone()))
                 .filter(date.lt(test_result_date)),
-        ).set(cleanup_status.eq(super::test::ResultCleanupStatus::WithData.into_i32()))
-            .execute(self.0.as_ref().unwrap())
+        ).set(cleanup_status.eq(super::test::ResultCleanupStatus::WithData.as_i32()))
+            .execute(self.0.as_ref().expect("fail to get DB"))
             .ok();
 
         MessageResult(::engine::test_result::TestResult {
@@ -213,7 +213,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
         MessageResult(
             query
                 .order(name.asc())
-                .load::<TestItemDb>(self.0.as_ref().unwrap())
+                .load::<TestItemDb>(self.0.as_ref().expect("fail to get DB"))
                 .unwrap_or_else(|err| {
                     error!("error loading test items: {:?}", err);
                     vec![]
@@ -226,13 +226,15 @@ impl Handler<GetTestItems> for super::DbExecutor {
                     };
                     let mut path = vec![];
                     if msg.0.with_full_path {
-                        while test_item_to_get.is_some() {
+                        while let Some(test_item_got) = test_item_to_get {
                             if let Some(test) = test_item_cache
-                                .get(&test_item_to_get.unwrap(), |ti_id| {
+                                .get(&test_item_got, |ti_id| {
                                     use super::schema::test_item::dsl::*;
                                     test_item
                                         .filter(id.eq(ti_id))
-                                        .first::<TestItemDb>(self.0.as_ref().unwrap())
+                                        .first::<TestItemDb>(
+                                            self.0.as_ref().expect("fail to get DB"),
+                                        )
                                         .ok()
                                 })
                                 .clone()
@@ -258,7 +260,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
                             .filter(parent_id.eq(&ti.id))
                             .order(name.asc())
                             .limit(TEST_ITEM_QUERY_LIMIT)
-                            .load::<TestItemDb>(self.0.as_ref().unwrap())
+                            .load::<TestItemDb>(self.0.as_ref().expect("fail to get DB"))
                             .ok()
                             .unwrap_or_else(|| vec![])
                             .iter()
@@ -276,7 +278,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
 
                         let query = TestResultDb::belonging_to(ti).order(date.desc()).limit(5);
                         query
-                            .load::<TestResultDb>(self.0.as_ref().unwrap())
+                            .load::<TestResultDb>(self.0.as_ref().expect("fail to get DB"))
                             .ok()
                             .unwrap_or_else(|| vec![])
                             .iter()
@@ -423,10 +425,10 @@ impl Handler<GetTestResults> for super::DbExecutor {
         let test_results: Vec<TestResultDb> = query
             .order(date.desc())
             .limit(msg.0.limit)
-            .load(self.0.as_ref().unwrap())
+            .load(self.0.as_ref().expect("fail to get DB"))
             .unwrap_or_else(|err| {
                 error!("error loading test results: {:?}", err);
-                self.reconnect_if_needed(ctx, err);
+                self.reconnect_if_needed(ctx, &err);
                 vec![]
             });
 
@@ -439,7 +441,7 @@ impl Handler<GetTestResults> for super::DbExecutor {
                 query = query.or_filter(id.eq(&tr.test_id));
             }
             query
-                .load::<TestItemDb>(self.0.as_ref().unwrap())
+                .load::<TestItemDb>(self.0.as_ref().expect("fail to get DB"))
                 .ok()
                 .unwrap_or_else(|| vec![])
                 .iter()
@@ -457,7 +459,7 @@ impl Handler<GetTestResults> for super::DbExecutor {
 
                             test_item
                                 .filter(id.eq(ti_id))
-                                .first::<TestItemDb>(self.0.as_ref().unwrap())
+                                .first::<TestItemDb>(self.0.as_ref().expect("fail to get DB"))
                                 .ok()
                         })
                         .clone();
@@ -468,13 +470,13 @@ impl Handler<GetTestResults> for super::DbExecutor {
                             item_id => Some(item_id.to_string()),
                         });
                     let mut path = vec![];
-                    while test_item_to_get.is_some() {
+                    while let Some(test_item_got) = test_item_to_get {
                         if let Some(test) = test_item_cache
-                            .get(&test_item_to_get.unwrap(), |ti_id| {
+                            .get(&test_item_got, |ti_id| {
                                 use super::schema::test_item::dsl::*;
                                 test_item
                                     .filter(id.eq(ti_id))
-                                    .first::<TestItemDb>(self.0.as_ref().unwrap())
+                                    .first::<TestItemDb>(self.0.as_ref().expect("fail to get DB"))
                                     .ok()
                             })
                             .clone()
@@ -493,7 +495,8 @@ impl Handler<GetTestResults> for super::DbExecutor {
                     ::engine::test_result::TestResult {
                         test_id: tr.test_id.clone(),
                         path,
-                        name: test.unwrap().name,
+                        name: test.map(|t| t.name)
+                            .unwrap_or_else(|| "missing name".to_string()),
                         date: (((tr.date.timestamp() * 1000)
                             + i64::from(tr.date.timestamp_subsec_millis()))
                             * 1000),
@@ -526,13 +529,13 @@ impl Handler<GetEnvironments> for super::DbExecutor {
                 .select(environment)
                 .filter(environment.is_not_null())
                 .distinct()
-                .load::<Option<String>>(self.0.as_ref().unwrap())
+                .load::<Option<String>>(self.0.as_ref().expect("fail to get DB"))
                 .unwrap_or_else(|err| {
                     error!("error loading environment from test results: {:?}", err);
                     vec![]
                 })
                 .iter()
-                .map(|v| v.clone().unwrap())
+                .filter_map(|v| v.clone())
                 .collect(),
         )
     }

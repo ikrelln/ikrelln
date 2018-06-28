@@ -25,17 +25,17 @@ impl Handler<SaveScript> for super::DbExecutor {
         use super::schema::script::dsl::*;
         diesel::insert_into(script)
             .values(&ScriptDb {
-                id: msg.0.id.unwrap().clone(),
+                id: msg.0.id.expect("script should have an ID").clone(),
                 name: msg.0.name.clone(),
                 source: msg.0.source.clone(),
                 script_type: msg.0.script_type.into(),
-                date_added: msg.0.date_added.unwrap(),
-                status: match msg.0.status.unwrap() {
+                date_added: msg.0.date_added.expect("script should have a date_added"),
+                status: match msg.0.status.expect("script should have a status") {
                     ::engine::streams::ScriptStatus::Enabled => 0,
                     ::engine::streams::ScriptStatus::Disabled => 1,
                 },
             })
-            .execute(self.0.as_ref().unwrap())
+            .execute(self.0.as_ref().expect("fail to get DB"))
             .unwrap();
     }
 }
@@ -59,7 +59,7 @@ impl Handler<GetAll> for super::DbExecutor {
         let scripts: Vec<ScriptDb> = script_query
             .order(script_type.asc())
             .order(name.asc())
-            .load(self.0.as_ref().unwrap())
+            .load(self.0.as_ref().expect("fail to get DB"))
             .unwrap_or_else(|err| {
                 error!("error loading scripts: {:?}", err);
                 vec![]
@@ -97,7 +97,7 @@ impl Handler<GetScript> for super::DbExecutor {
         use super::schema::script::dsl::*;
         let script_found = script
             .filter(id.eq(msg.0))
-            .first::<ScriptDb>(self.0.as_ref().unwrap())
+            .first::<ScriptDb>(self.0.as_ref().expect("fail to get DB"))
             .ok();
 
         MessageResult(
@@ -130,11 +130,11 @@ impl Handler<DeleteScript> for super::DbExecutor {
         use super::schema::script::dsl::*;
         let script_found = script
             .filter(id.eq(&msg.0))
-            .first::<ScriptDb>(self.0.as_ref().unwrap())
+            .first::<ScriptDb>(self.0.as_ref().expect("fail to get DB"))
             .ok();
 
         diesel::delete(script.filter(id.eq(msg.0)))
-            .execute(self.0.as_ref().unwrap())
+            .execute(self.0.as_ref().expect("fail to get DB"))
             .ok();
 
         MessageResult(
@@ -161,16 +161,16 @@ impl Handler<UpdateScript> for super::DbExecutor {
 
     fn handle(&mut self, msg: UpdateScript, _: &mut Self::Context) -> Self::Result {
         use super::schema::script::dsl::*;
-        diesel::update(script.filter(id.eq(&msg.0.id.unwrap())))
+        diesel::update(script.filter(id.eq(&msg.0.id.expect("script should have an ID"))))
             .set((
                 name.eq(&msg.0.name),
                 source.eq(&msg.0.source),
-                status.eq(match msg.0.status.unwrap() {
+                status.eq(match msg.0.status.expect("script should have a status") {
                     ::engine::streams::ScriptStatus::Enabled => 0,
                     ::engine::streams::ScriptStatus::Disabled => 1,
                 }),
             ))
-            .execute(self.0.as_ref().unwrap())
+            .execute(self.0.as_ref().expect("fail to get DB"))
             .unwrap();
     }
 }

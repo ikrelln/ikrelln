@@ -40,7 +40,7 @@ impl super::DbExecutor {
         report
             .filter(folder.eq(&report_db.folder))
             .filter(name.eq(&report_db.name))
-            .first::<ReportDb>(self.0.as_ref().unwrap())
+            .first::<ReportDb>(self.0.as_ref().expect("fail to get DB"))
             .ok()
     }
 
@@ -51,7 +51,7 @@ impl super::DbExecutor {
             Some(existing) => {
                 diesel::update(report.filter(id.eq(&existing.id)))
                     .set(last_update.eq(report_db.last_update))
-                    .execute(self.0.as_ref().unwrap())
+                    .execute(self.0.as_ref().expect("fail to get DB"))
                     .ok();
                 existing.id
             }
@@ -62,17 +62,17 @@ impl super::DbExecutor {
                         id: new_id.clone(),
                         ..(*report_db).clone()
                     })
-                    .execute(self.0.as_ref().unwrap());
+                    .execute(self.0.as_ref().expect("fail to get DB"));
                 if could_insert.is_err() {
                     self.find_report(report_db)
                         .map(|existing| {
                             diesel::update(report.filter(id.eq(&existing.id)))
                                 .set(last_update.eq(report_db.last_update))
-                                .execute(self.0.as_ref().unwrap())
+                                .execute(self.0.as_ref().expect("fail to get DB"))
                                 .ok();
                             existing.id
                         })
-                        .unwrap()
+                        .expect("fail to find report")
                 } else {
                     new_id
                 }
@@ -115,7 +115,7 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
             find_tr = find_tr.filter(environment.is_null());
         }
         if find_tr
-            .first::<TestResultInReportDb>(self.0.as_ref().unwrap())
+            .first::<TestResultInReportDb>(self.0.as_ref().expect("fail to get DB"))
             .ok()
             .is_some()
         {
@@ -129,9 +129,9 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                             .filter(environment.eq(environment_from_input)),
                     ).set((
                         trace_id.eq(msg.result.trace_id),
-                        status.eq(msg.result.status.into_i32()),
+                        status.eq(msg.result.status.as_i32()),
                     ))
-                        .execute(self.0.as_ref().unwrap())
+                        .execute(self.0.as_ref().expect("fail to get DB"))
                         .ok();
                 }
                 (Some(category_from_input), None) => {
@@ -143,9 +143,9 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                             .filter(environment.is_null()),
                     ).set((
                         trace_id.eq(msg.result.trace_id),
-                        status.eq(msg.result.status.into_i32()),
+                        status.eq(msg.result.status.as_i32()),
                     ))
-                        .execute(self.0.as_ref().unwrap())
+                        .execute(self.0.as_ref().expect("fail to get DB"))
                         .ok();
                 }
 
@@ -158,9 +158,9 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                             .filter(environment.eq(environment_from_input)),
                     ).set((
                         trace_id.eq(msg.result.trace_id),
-                        status.eq(msg.result.status.into_i32()),
+                        status.eq(msg.result.status.as_i32()),
                     ))
-                        .execute(self.0.as_ref().unwrap())
+                        .execute(self.0.as_ref().expect("fail to get DB"))
                         .ok();
                 }
                 (None, None) => {
@@ -172,9 +172,9 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                             .filter(environment.is_null()),
                     ).set((
                         trace_id.eq(msg.result.trace_id),
-                        status.eq(msg.result.status.into_i32()),
+                        status.eq(msg.result.status.as_i32()),
                     ))
-                        .execute(self.0.as_ref().unwrap())
+                        .execute(self.0.as_ref().expect("fail to get DB"))
                         .ok();
                 }
             };
@@ -182,13 +182,15 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
             diesel::insert_into(test_result_in_report)
                 .values(&TestResultInReportDb {
                     test_id: msg.result.test_id.clone(),
-                    trace_id: msg.result.trace_id,
+                    trace_id: msg.result.trace_id.clone(),
                     report_id: found_report_id.clone(),
-                    category: msg.category.unwrap_or(msg.report_name.clone()),
+                    category: msg.category
+                        .clone()
+                        .unwrap_or_else(|| msg.report_name.clone()),
                     environment: msg.result.environment,
                     status: msg.result.status.into(),
                 })
-                .execute(self.0.as_ref().unwrap())
+                .execute(self.0.as_ref().expect("fail to get DB"))
                 .ok();
         }
     }
@@ -208,7 +210,7 @@ impl Handler<GetAll> for super::DbExecutor {
         let reports: Vec<ReportDb> = report
             .order(last_update.desc())
             .limit(REPORT_QUERY_LIMIT)
-            .load(self.0.as_ref().unwrap())
+            .load(self.0.as_ref().expect("fail to get DB"))
             .unwrap_or_else(|err| {
                 error!("error loading reports: {:?}", err);
                 vec![]
@@ -225,7 +227,7 @@ impl Handler<GetAll> for super::DbExecutor {
                             .filter(report_id.eq(&report_from_db.id))
                             .order(environment.asc())
                             .distinct()
-                            .load::<Option<String>>(self.0.as_ref().unwrap())
+                            .load::<Option<String>>(self.0.as_ref().expect("fail to get DB"))
                             .unwrap_or_else(|err| {
                                 error!("error loading environment from reports: {:?}", err);
                                 vec![]
@@ -251,12 +253,12 @@ impl Handler<GetAll> for super::DbExecutor {
                                 .select(test_id)
                                 .distinct()
                                 .filter(report_id.eq(&report_from_db.id))
-                                .filter(status.eq(one_status.into_i32()));
+                                .filter(status.eq(one_status.as_i32()));
 
                             summary.insert(
                                 one_status.clone(),
                                 query
-                                    .load(self.0.as_ref().unwrap())
+                                    .load(self.0.as_ref().expect("fail to get DB"))
                                     .map(|v: Vec<String>| v.len())
                                     .unwrap_or(0),
                             );
@@ -270,7 +272,7 @@ impl Handler<GetAll> for super::DbExecutor {
                         created_on: report_from_db.created_on,
                         last_update: report_from_db.last_update,
                         categories: None,
-                        environments: environments,
+                        environments,
                         summary: Some(summary),
                     }
                 })
@@ -297,7 +299,7 @@ impl Handler<GetReport> for super::DbExecutor {
         let report_from_db: Option<ReportDb> = report
             .filter(folder.eq(&msg.report_group))
             .filter(name.eq(&msg.report_name))
-            .first(self.0.as_ref().unwrap())
+            .first(self.0.as_ref().expect("fail to get DB"))
             .ok();
 
         MessageResult(report_from_db.map(|report_from_db| {
@@ -307,7 +309,7 @@ impl Handler<GetReport> for super::DbExecutor {
                 .filter(report_id.eq(&report_from_db.id))
                 .order(category.asc())
                 .distinct()
-                .load::<String>(self.0.as_ref().unwrap())
+                .load::<String>(self.0.as_ref().expect("fail to get DB"))
                 .unwrap_or_else(|err| {
                     error!("error loading categories for report: {:?}", err);
                     vec![]
@@ -329,7 +331,7 @@ impl Handler<GetReport> for super::DbExecutor {
                     None => traces_query.filter(environment.is_null()),
                 };
                 let traces: Vec<_> = traces_query
-                    .load::<String>(self.0.as_ref().unwrap())
+                    .load::<String>(self.0.as_ref().expect("fail to get DB"))
                     .unwrap_or_else(|err| {
                         error!("error loading test results from category: {:?}", err);
                         vec![]
@@ -347,7 +349,7 @@ impl Handler<GetReport> for super::DbExecutor {
 
                     tr_query
                         .order(date.desc())
-                        .load::<::db::test::TestResultDb>(self.0.as_ref().unwrap())
+                        .load::<::db::test::TestResultDb>(self.0.as_ref().expect("fail to get DB"))
                         .unwrap_or_else(|err| {
                             error!("error loading test results: {:?}", err);
                             vec![]
@@ -360,7 +362,9 @@ impl Handler<GetReport> for super::DbExecutor {
 
                                     test_item
                                         .filter(id.eq(ti_id))
-                                        .first::<::db::test::TestItemDb>(self.0.as_ref().unwrap())
+                                        .first::<::db::test::TestItemDb>(
+                                            self.0.as_ref().expect("fail to get DB"),
+                                        )
                                         .ok()
                                 })
                                 .clone();
@@ -371,14 +375,14 @@ impl Handler<GetReport> for super::DbExecutor {
                                     item_id => Some(item_id.to_string()),
                                 });
                             let mut path = vec![];
-                            while test_item_to_get.is_some() {
+                            while let Some(test_item) = test_item_to_get {
                                 if let Some(test) = test_item_cache
-                                    .get(&test_item_to_get.unwrap(), |ti_id| {
+                                    .get(&test_item, |ti_id| {
                                         use super::schema::test_item::dsl::*;
                                         test_item
                                             .filter(id.eq(ti_id))
                                             .first::<::db::test::TestItemDb>(
-                                                self.0.as_ref().unwrap(),
+                                                self.0.as_ref().expect("fail to get DB"),
                                             )
                                             .ok()
                                     })
@@ -398,7 +402,8 @@ impl Handler<GetReport> for super::DbExecutor {
                             ::engine::test_result::TestResult {
                                 test_id: tr.test_id.clone(),
                                 path,
-                                name: test.unwrap().name,
+                                name: test.map(|t| t.name)
+                                    .unwrap_or_else(|| "missing name".to_string()),
                                 date: (((tr.date.timestamp() * 1000)
                                     + i64::from(tr.date.timestamp_subsec_millis()))
                                     * 1000),
@@ -424,7 +429,7 @@ impl Handler<GetReport> for super::DbExecutor {
                     .filter(report_id.eq(&report_from_db.id))
                     .order(environment.asc())
                     .distinct()
-                    .load::<Option<String>>(self.0.as_ref().unwrap())
+                    .load::<Option<String>>(self.0.as_ref().expect("fail to get DB"))
                     .unwrap_or_else(|err| {
                         error!("error loading environments from report: {:?}", err);
                         vec![]
@@ -443,7 +448,7 @@ impl Handler<GetReport> for super::DbExecutor {
                 created_on: report_from_db.created_on,
                 last_update: report_from_db.last_update,
                 categories: Some(test_results),
-                environments: environments,
+                environments,
                 summary: None,
             }
         }))

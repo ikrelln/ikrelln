@@ -105,7 +105,7 @@ fn load_config_from_toml() -> ConfigLoader {
         .ok()
         .and_then(|contents| toml::from_str(&contents).ok());
 
-    config.unwrap_or_else(|| ConfigLoader::default())
+    config.unwrap_or_else(ConfigLoader::default)
 }
 
 fn merge_configs() -> Result<Config, String> {

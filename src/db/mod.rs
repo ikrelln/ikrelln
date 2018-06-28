@@ -38,7 +38,7 @@ impl DbExecutor {
         }
     }
 
-    fn reconnect_if_needed(&self, ctx: &mut <Self as Actor>::Context, error: DieselError) {
+    fn reconnect_if_needed(&self, ctx: &mut <Self as Actor>::Context, error: &DieselError) {
         match error {
             DieselError::DatabaseError(DatabaseErrorKind::UnableToSendCommand, _) => ctx.stop(),
             _ => (),

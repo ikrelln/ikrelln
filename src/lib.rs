@@ -66,7 +66,7 @@ pub fn start_server() {
     let system = actix::System::new("i'Krelln");
 
     match std::env::var("LISTEN_FD") {
-        Ok(fd) => api::serve_from_fd(fd),
+        Ok(fd) => api::serve_from_fd(&fd),
         _ => api::serve(&CONFIG.host, CONFIG.port),
     }
 

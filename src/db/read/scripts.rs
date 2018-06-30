@@ -1,6 +1,5 @@
 use actix::prelude::*;
 use chrono;
-// use diesel;
 use diesel::prelude::*;
 
 use db::schema::script;

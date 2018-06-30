@@ -2,10 +2,8 @@ use std::collections::HashMap;
 
 use actix::prelude::*;
 use chrono;
-// use diesel;
 use diesel::prelude::*;
 use serde_json;
-// use uuid;
 
 use engine::test_result::TestStatus;
 
@@ -32,28 +30,6 @@ struct TestResultInReportDb {
     environment: Option<String>,
     status: i32,
 }
-
-// impl super::DbReadExecutor {
-//     fn find_report(&mut self, report_db: &ReportDb) -> Option<ReportDb> {
-//         use super::super::schema::report::dsl::*;
-//         println!("searching report in db: {:?}", report_db);
-
-//         let all_reports = report
-//             .filter(folder.eq(&report_db.folder))
-//             .filter(name.eq(&report_db.name))
-//             .load::<ReportDb>(self.0.as_ref().expect("fail to get DB"));
-//         println!("   all reports {:#?}", all_reports);
-
-//         let found = report
-//             .filter(folder.eq(&report_db.folder))
-//             .filter(name.eq(&report_db.name))
-//             .first::<ReportDb>(self.0.as_ref().expect("fail to get DB"))
-//             .ok();
-//         println!("was it found ? {:?}", found);
-
-//         found
-//     }
-// }
 
 pub struct GetAll;
 impl Message for GetAll {

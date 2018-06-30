@@ -1,9 +1,7 @@
 use actix::{Handler, Message, MessageResult};
 use chrono;
-// use diesel;
 use diesel::prelude::*;
 use serde_json;
-// use uuid;
 
 static TEST_ITEM_QUERY_LIMIT: i64 = 200;
 use db::schema::test_item;
@@ -66,19 +64,6 @@ impl Into<i32> for ResultCleanupStatus {
         self.as_i32()
     }
 }
-
-// impl super::DbReadExecutor {
-//     fn find_test_item(&mut self, test_item_db: &TestItemDb) -> Option<TestItemDb> {
-//         use super::super::schema::test_item::dsl::*;
-
-//         test_item
-//             .filter(name.eq(&test_item_db.name))
-//             .filter(source.eq(test_item_db.source))
-//             .filter(parent_id.eq(&test_item_db.parent_id))
-//             .first::<TestItemDb>(self.0.as_ref().expect("fail to get DB"))
-//             .ok()
-//     }
-// }
 
 #[derive(Default)]
 pub struct TestItemQuery {

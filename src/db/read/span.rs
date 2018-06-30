@@ -2,11 +2,9 @@ use actix::prelude::Message;
 use actix::{Handler, MessageResult};
 use actix_web;
 use chrono;
-// use diesel;
 use diesel::prelude::*;
 use std::collections::HashMap;
 use std::str::FromStr;
-// use uuid;
 
 static SPAN_QUERY_LIMIT: i64 = 500;
 use db::schema::span;
@@ -59,121 +57,6 @@ pub struct AnnotationDb {
     ts: chrono::NaiveDateTime,
     value: String,
 }
-
-// struct FromSpan {
-//     span_db: SpanDb,
-//     local_endpoint: Option<EndpointDb>,
-//     remote_endpoint: Option<EndpointDb>,
-//     tags: Vec<TagDb>,
-//     annotations: Vec<AnnotationDb>,
-// }
-
-// fn get_all_from_span(span: &::opentracing::Span) -> FromSpan {
-//     let trace_id = span.trace_id.clone();
-//     let span_id = span.id.clone();
-
-//     let span_db = SpanDb {
-//         trace_id: trace_id.clone(),
-//         id: span_id.clone(),
-//         parent_id: span.parent_id.clone(),
-//         name: span.name.clone().map(|s| s.to_lowercase()),
-//         kind: span.kind.clone().map(|k| k.to_string()),
-//         duration: span.duration,
-//         ts: span.timestamp.map(|ts| {
-//             // span timestamp is in microseconds
-//             chrono::NaiveDateTime::from_timestamp(
-//                 ts / 1000 / 1000,
-//                 (ts % (1000 * 1000) * 1000) as u32,
-//             )
-//         }),
-//         debug: span.debug,
-//         shared: span.shared,
-//         local_endpoint_id: None,
-//         remote_endpoint_id: None,
-//     };
-
-//     let local_endpoint = if let Some(endpoint) = span.local_endpoint.clone() {
-//         Some(EndpointDb {
-//             endpoint_id: "n/a".to_string(),
-//             service_name: endpoint.service_name.map(|s| s.to_lowercase()),
-//             ipv4: endpoint.ipv4,
-//             ipv6: endpoint.ipv6,
-//             port: endpoint.port,
-//         })
-//     } else {
-//         None
-//     };
-
-//     let remote_endpoint = if let Some(endpoint) = span.remote_endpoint.clone() {
-//         Some(EndpointDb {
-//             endpoint_id: "n/a".to_string(),
-//             service_name: endpoint.service_name.map(|s| s.to_lowercase()),
-//             ipv4: endpoint.ipv4,
-//             ipv6: endpoint.ipv6,
-//             port: endpoint.port,
-//         })
-//     } else {
-//         None
-//     };
-
-//     let annotations = span.annotations
-//         .iter()
-//         .map(|annotation| {
-//             AnnotationDb {
-//                 trace_id: trace_id.clone(),
-//                 span_id: span_id.clone(),
-//                 annotation_id: uuid::Uuid::new_v4().hyphenated().to_string(),
-//                 ts: chrono::NaiveDateTime::from_timestamp(
-//                     // timestamp is in microseconds
-//                     annotation.timestamp / 1000 / 1000,
-//                     (annotation.timestamp % 1000 * 1000) as u32,
-//                 ),
-//                 value: annotation.value.clone(),
-//             }
-//         })
-//         .collect();
-
-//     let tags = span.tags
-//         .iter()
-//         .map(|(key, value)| TagDb {
-//             span_id: span_id.clone(),
-//             name: key.clone().to_lowercase(),
-//             value: value.clone(),
-//         })
-//         .collect();
-
-//     FromSpan {
-//         span_db,
-//         local_endpoint,
-//         remote_endpoint,
-//         annotations,
-//         tags,
-//     }
-// }
-
-// impl super::DbReadExecutor {
-//     fn find_endpoint(&mut self, ep: &EndpointDb) -> Option<EndpointDb> {
-//         use super::super::schema::endpoint::dsl::*;
-
-//         let mut query = endpoint.into_boxed();
-//         if let Some(query_service_name) = ep.service_name.clone() {
-//             query = query.filter(service_name.eq(query_service_name));
-//         }
-//         if let Some(query_ipv4) = ep.ipv4.clone() {
-//             query = query.filter(ipv4.eq(query_ipv4));
-//         }
-//         if let Some(query_ipv6) = ep.ipv6.clone() {
-//             query = query.filter(ipv6.eq(query_ipv6));
-//         }
-//         if let Some(query_port) = ep.port {
-//             query = query.filter(port.eq(query_port));
-//         }
-
-//         query
-//             .first::<EndpointDb>(self.0.as_ref().expect("fail to get DB"))
-//             .ok()
-//     }
-// }
 
 pub struct GetServices;
 impl Message for GetServices {

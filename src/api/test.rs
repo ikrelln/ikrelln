@@ -29,8 +29,8 @@ pub fn get_test_results(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match serde_urlencoded::from_str::<TestResultsQueryParams>(req.query_string()) {
-        Ok(query_params) => ::DB_EXECUTOR_POOL
-            .send(::db::test::GetTestResults(query_params.into()))
+        Ok(query_params) => ::DB_READ_EXECUTOR_POOL
+            .send(::db::read::test::GetTestResults(query_params.into()))
             .from_err()
             .and_then(|res| Ok(HttpResponse::Ok().json(res)))
             .responder(),
@@ -53,16 +53,16 @@ pub fn get_test(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("testId") {
-        Some(test_id) => ::DB_EXECUTOR_POOL
+        Some(test_id) => ::DB_READ_EXECUTOR_POOL
             .send(match test_id {
-                "root" => ::db::test::GetTestItems(::db::test::TestItemQuery {
+                "root" => ::db::read::test::GetTestItems(::db::read::test::TestItemQuery {
                     id: None,
                     parent_id: Some("root".to_string()),
                     with_children: true,
                     with_full_path: true,
                     with_traces: true,
                 }),
-                _ => ::db::test::GetTestItems(::db::test::TestItemQuery {
+                _ => ::db::read::test::GetTestItems(::db::read::test::TestItemQuery {
                     id: Some(test_id.to_string()),
                     with_children: true,
                     with_full_path: true,
@@ -106,14 +106,16 @@ pub fn get_tests_by_parent(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match serde_urlencoded::from_str::<GetTestQueryParams>(req.query_string()) {
-        Ok(params) => ::DB_EXECUTOR_POOL
-            .send(::db::test::GetTestItems(::db::test::TestItemQuery {
-                parent_id: Some(params.parent_id),
-                with_children: true,
-                with_full_path: true,
-                with_traces: true,
-                ..Default::default()
-            }))
+        Ok(params) => ::DB_READ_EXECUTOR_POOL
+            .send(::db::read::test::GetTestItems(
+                ::db::read::test::TestItemQuery {
+                    parent_id: Some(params.parent_id),
+                    with_children: true,
+                    with_full_path: true,
+                    with_traces: true,
+                    ..Default::default()
+                },
+            ))
             .from_err()
             .and_then(|res| match res.len() {
                 0 => Err(super::errors::IkError::NotFound(
@@ -131,8 +133,8 @@ pub fn get_tests_by_parent(
 pub fn get_environments(
     _req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    ::DB_EXECUTOR_POOL
-        .send(::db::test::GetEnvironments)
+    ::DB_READ_EXECUTOR_POOL
+        .send(::db::read::test::GetEnvironments)
         .from_err()
         .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()

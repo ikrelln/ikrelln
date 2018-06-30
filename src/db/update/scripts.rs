@@ -22,7 +22,7 @@ impl Handler<SaveScript> for super::DbExecutor {
     type Result = ();
 
     fn handle(&mut self, msg: SaveScript, _: &mut Self::Context) -> Self::Result {
-        use super::schema::script::dsl::*;
+        use super::super::schema::script::dsl::*;
         diesel::insert_into(script)
             .values(&ScriptDb {
                 id: msg.0.id.expect("script should have an ID").clone(),
@@ -40,81 +40,81 @@ impl Handler<SaveScript> for super::DbExecutor {
     }
 }
 
-pub struct GetAll(pub Option<Vec<::engine::streams::ScriptType>>);
+// pub struct GetAll(pub Option<Vec<::engine::streams::ScriptType>>);
 
-impl Message for GetAll {
-    type Result = Vec<::engine::streams::Script>;
-}
+// impl Message for GetAll {
+//     type Result = Vec<::engine::streams::Script>;
+// }
 
-impl Handler<GetAll> for super::DbExecutor {
-    type Result = MessageResult<GetAll>;
+// impl Handler<GetAll> for super::DbExecutor {
+//     type Result = MessageResult<GetAll>;
 
-    fn handle(&mut self, msg: GetAll, _: &mut Self::Context) -> Self::Result {
-        use super::schema::script::dsl::*;
-        let mut script_query = script.into_boxed();
-        if let Some(types) = msg.0 {
-            let types: Vec<i32> = types.iter().map(|ty| ty.clone().into()).collect();
-            script_query = script_query.filter(script_type.eq_any(types))
-        }
-        let scripts: Vec<ScriptDb> = script_query
-            .order(script_type.asc())
-            .order(name.asc())
-            .load(self.0.as_ref().expect("fail to get DB"))
-            .unwrap_or_else(|err| {
-                error!("error loading scripts: {:?}", err);
-                vec![]
-            });
+//     fn handle(&mut self, msg: GetAll, _: &mut Self::Context) -> Self::Result {
+//         use super::super::schema::script::dsl::*;
+//         let mut script_query = script.into_boxed();
+//         if let Some(types) = msg.0 {
+//             let types: Vec<i32> = types.iter().map(|ty| ty.clone().into()).collect();
+//             script_query = script_query.filter(script_type.eq_any(types))
+//         }
+//         let scripts: Vec<ScriptDb> = script_query
+//             .order(script_type.asc())
+//             .order(name.asc())
+//             .load(self.0.as_ref().expect("fail to get DB"))
+//             .unwrap_or_else(|err| {
+//                 error!("error loading scripts: {:?}", err);
+//                 vec![]
+//             });
 
-        MessageResult(
-            scripts
-                .iter()
-                .map(|script_from_db| ::engine::streams::Script {
-                    id: Some(script_from_db.id.clone()),
-                    date_added: Some(script_from_db.date_added),
-                    script_type: script_from_db.script_type.into(),
-                    name: script_from_db.name.clone(),
-                    source: script_from_db.source.clone(),
-                    status: Some(match script_from_db.status {
-                        0 => ::engine::streams::ScriptStatus::Enabled,
-                        _ => ::engine::streams::ScriptStatus::Disabled,
-                    }),
-                })
-                .collect(),
-        )
-    }
-}
+//         MessageResult(
+//             scripts
+//                 .iter()
+//                 .map(|script_from_db| ::engine::streams::Script {
+//                     id: Some(script_from_db.id.clone()),
+//                     date_added: Some(script_from_db.date_added),
+//                     script_type: script_from_db.script_type.into(),
+//                     name: script_from_db.name.clone(),
+//                     source: script_from_db.source.clone(),
+//                     status: Some(match script_from_db.status {
+//                         0 => ::engine::streams::ScriptStatus::Enabled,
+//                         _ => ::engine::streams::ScriptStatus::Disabled,
+//                     }),
+//                 })
+//                 .collect(),
+//         )
+//     }
+// }
 
-pub struct GetScript(pub String);
+// pub struct GetScript(pub String);
 
-impl Message for GetScript {
-    type Result = Option<::engine::streams::Script>;
-}
+// impl Message for GetScript {
+//     type Result = Option<::engine::streams::Script>;
+// }
 
-impl Handler<GetScript> for super::DbExecutor {
-    type Result = MessageResult<GetScript>;
+// impl Handler<GetScript> for super::DbExecutor {
+//     type Result = MessageResult<GetScript>;
 
-    fn handle(&mut self, msg: GetScript, _: &mut Self::Context) -> Self::Result {
-        use super::schema::script::dsl::*;
-        let script_found = script
-            .filter(id.eq(msg.0))
-            .first::<ScriptDb>(self.0.as_ref().expect("fail to get DB"))
-            .ok();
+//     fn handle(&mut self, msg: GetScript, _: &mut Self::Context) -> Self::Result {
+//         use super::super::schema::script::dsl::*;
+//         let script_found = script
+//             .filter(id.eq(msg.0))
+//             .first::<ScriptDb>(self.0.as_ref().expect("fail to get DB"))
+//             .ok();
 
-        MessageResult(
-            script_found.map(|script_from_db| ::engine::streams::Script {
-                id: Some(script_from_db.id.clone()),
-                date_added: Some(script_from_db.date_added),
-                script_type: script_from_db.script_type.into(),
-                name: script_from_db.name.clone(),
-                source: script_from_db.source.clone(),
-                status: Some(match script_from_db.status {
-                    0 => ::engine::streams::ScriptStatus::Enabled,
-                    _ => ::engine::streams::ScriptStatus::Disabled,
-                }),
-            }),
-        )
-    }
-}
+//         MessageResult(
+//             script_found.map(|script_from_db| ::engine::streams::Script {
+//                 id: Some(script_from_db.id.clone()),
+//                 date_added: Some(script_from_db.date_added),
+//                 script_type: script_from_db.script_type.into(),
+//                 name: script_from_db.name.clone(),
+//                 source: script_from_db.source.clone(),
+//                 status: Some(match script_from_db.status {
+//                     0 => ::engine::streams::ScriptStatus::Enabled,
+//                     _ => ::engine::streams::ScriptStatus::Disabled,
+//                 }),
+//             }),
+//         )
+//     }
+// }
 
 #[derive(Debug)]
 pub struct DeleteScript(pub String);
@@ -127,7 +127,7 @@ impl Handler<DeleteScript> for super::DbExecutor {
     type Result = MessageResult<DeleteScript>;
 
     fn handle(&mut self, msg: DeleteScript, _: &mut Self::Context) -> Self::Result {
-        use super::schema::script::dsl::*;
+        use super::super::schema::script::dsl::*;
         let script_found = script
             .filter(id.eq(&msg.0))
             .first::<ScriptDb>(self.0.as_ref().expect("fail to get DB"))
@@ -160,7 +160,7 @@ impl Handler<UpdateScript> for super::DbExecutor {
     type Result = ();
 
     fn handle(&mut self, msg: UpdateScript, _: &mut Self::Context) -> Self::Result {
-        use super::schema::script::dsl::*;
+        use super::super::schema::script::dsl::*;
         diesel::update(script.filter(id.eq(&msg.0.id.expect("script should have an ID"))))
             .set((
                 name.eq(&msg.0.name),

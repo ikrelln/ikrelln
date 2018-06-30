@@ -114,8 +114,8 @@ impl Handler<LoadScripts> for Streamer {
 
     fn handle(&mut self, _msg: LoadScripts, _ctx: &mut Context<Self>) -> Self::Result {
         Arbiter::handle().spawn_fn(move || {
-            ::DB_EXECUTOR_POOL
-                .send(::db::scripts::GetAll(Some(vec![
+            ::DB_READ_EXECUTOR_POOL
+                .send(::db::read::scripts::GetAll(Some(vec![
                     ScriptType::StreamTest,
                     ScriptType::ReportFilterTestResult,
                 ])))

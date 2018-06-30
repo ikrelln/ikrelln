@@ -45,9 +45,9 @@ impl Handler<ComputeReportsForResult> for Reporter {
 
     fn handle(&mut self, msg: ComputeReportsForResult, _ctx: &mut Context<Self>) -> Self::Result {
         Arbiter::handle().spawn(
-            ::DB_EXECUTOR_POOL
-                .send(::db::span::GetSpans(
-                    ::db::span::SpanQuery::default()
+            ::DB_READ_EXECUTOR_POOL
+                .send(::db::read::span::GetSpans(
+                    ::db::read::span::SpanQuery::default()
                         .with_trace_id(msg.0.trace_id.clone())
                         .with_limit(1000),
                 ))

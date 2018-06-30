@@ -22,8 +22,8 @@ pub struct Report {
 pub fn get_reports(
     _req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    ::DB_EXECUTOR_POOL
-        .send(::db::reports::GetAll)
+    ::DB_READ_EXECUTOR_POOL
+        .send(::db::read::reports::GetAll)
         .from_err()
         .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()
@@ -36,8 +36,8 @@ pub fn get_report(
         req.match_info().get("reportGroup"),
         req.match_info().get("reportName"),
     ) {
-        (Some(report_group), Some(report_name)) => ::DB_EXECUTOR_POOL
-            .send(::db::reports::GetReport {
+        (Some(report_group), Some(report_name)) => ::DB_READ_EXECUTOR_POOL
+            .send(::db::read::reports::GetReport {
                 report_group: report_group.to_string().replace("%20", " "),
                 report_name: report_name.to_string().replace("%20", " "),
                 environment: req.query().get("environment").map(|v| v.to_string()),

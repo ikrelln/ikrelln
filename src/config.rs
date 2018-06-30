@@ -26,7 +26,6 @@ impl Default for CleanUpConfig {
 pub struct Config {
     pub host: String,
     pub port: u16,
-    pub db_nb_connection: usize,
     pub db_url: String,
     pub cleanup: CleanUpConfig,
 }
@@ -35,7 +34,6 @@ impl Default for Config {
         Config {
             host: "0.0.0.0".to_string(),
             port: 7878,
-            db_nb_connection: 5,
             db_url: "127.0.0.1:5042".to_string(),
             cleanup: CleanUpConfig::default(),
         }
@@ -86,12 +84,6 @@ pub struct ConfigLoaderCmd {
         help = "Listen on the specified host, by default 7878"
     )]
     pub port: Option<u16>,
-    #[structopt(
-        long = "nb-connection",
-        env = "NB_CONNECTION",
-        help = "Number of connection to the database, by default 5"
-    )]
-    pub db_nb_connection: Option<usize>,
     #[structopt(long = "db-url", env = "DATABASE_URL", help = "URL to connect to the database")]
     pub db_url: Option<String>,
 }
@@ -117,10 +109,6 @@ fn merge_configs() -> Result<Config, String> {
     Ok(Config {
         port: from_args.port.or(from_toml.port).unwrap_or(default.port),
         host: from_args.host.or(from_toml.host).unwrap_or(default.host),
-        db_nb_connection: from_args
-            .db_nb_connection
-            .or(from_toml.db_nb_connection)
-            .unwrap_or(default.db_nb_connection),
         db_url: from_args
             .db_url
             .or(from_toml.db_url)

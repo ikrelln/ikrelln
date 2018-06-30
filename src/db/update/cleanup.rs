@@ -13,7 +13,7 @@ impl Handler<CleanUp> for super::DbExecutor {
     type Result = ();
 
     fn handle(&mut self, _msg: CleanUp, _ctx: &mut Self::Context) -> Self::Result {
-        use super::schema::test_result::dsl::*;
+        use super::super::schema::test_result::dsl::*;
 
         let deleted = {
             let limit = chrono::Utc::now().naive_utc()
@@ -27,7 +27,7 @@ impl Handler<CleanUp> for super::DbExecutor {
                 .unwrap_or_else(|| vec![])
                 .iter()
                 .for_each(|tr| {
-                    use super::schema::test_result_in_report::dsl::*;
+                    use super::super::schema::test_result_in_report::dsl::*;
 
                     diesel::delete(
                         test_result_in_report
@@ -66,7 +66,7 @@ impl Handler<CleanUp> for super::DbExecutor {
             };
 
         to_clean.iter().for_each(|tr| {
-            use super::schema::span::dsl::*;
+            use super::super::schema::span::dsl::*;
 
             let spans: Vec<super::span::SpanDb> = {
                 span.filter(trace_id.eq(&tr.trace_id))
@@ -77,7 +77,7 @@ impl Handler<CleanUp> for super::DbExecutor {
 
             spans.iter().for_each(|spandb| {
                 {
-                    use super::schema::annotation::dsl::*;
+                    use super::super::schema::annotation::dsl::*;
 
                     diesel::delete(
                         annotation
@@ -87,7 +87,7 @@ impl Handler<CleanUp> for super::DbExecutor {
                 }
 
                 {
-                    use super::schema::tag::dsl::*;
+                    use super::super::schema::tag::dsl::*;
 
                     diesel::delete(tag.filter(span_id.eq(&spandb.id)))
                         .execute(self.0.as_ref().expect("fail to get DB"))
@@ -104,7 +104,7 @@ impl Handler<CleanUp> for super::DbExecutor {
             let limit = chrono::Utc::now().naive_utc()
                 - chrono::Duration::milliseconds(i64::from(::CONFIG.cleanup.delay_reports));
 
-            use super::schema::report::dsl::*;
+            use super::super::schema::report::dsl::*;
 
             report
                 .filter(last_update.lt(limit))
@@ -113,7 +113,7 @@ impl Handler<CleanUp> for super::DbExecutor {
                 .unwrap_or_else(|| vec![])
                 .iter()
                 .for_each(|rep| {
-                    use super::schema::test_result_in_report::dsl::*;
+                    use super::super::schema::test_result_in_report::dsl::*;
 
                     diesel::delete(test_result_in_report.filter(report_id.eq(&rep.id)))
                         .execute(self.0.as_ref().expect("fail to get DB"))

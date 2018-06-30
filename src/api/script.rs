@@ -46,8 +46,8 @@ pub fn get_script(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("scriptId") {
-        Some(script_id) => ::DB_EXECUTOR_POOL
-            .send(::db::scripts::GetScript(script_id.to_string()))
+        Some(script_id) => ::DB_READ_EXECUTOR_POOL
+            .send(::db::read::scripts::GetScript(script_id.to_string()))
             .from_err()
             .and_then(|res| match res {
                 Some(script) => Ok(HttpResponse::Ok().json(script)),
@@ -99,8 +99,8 @@ pub fn delete_script(
 pub fn list_scripts(
     _req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    ::DB_EXECUTOR_POOL
-        .send(::db::scripts::GetAll(None))
+    ::DB_READ_EXECUTOR_POOL
+        .send(::db::read::scripts::GetAll(None))
         .from_err()
         .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()

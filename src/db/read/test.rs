@@ -1,9 +1,9 @@
 use actix::{Handler, Message, MessageResult};
 use chrono;
-use diesel;
+// use diesel;
 use diesel::prelude::*;
 use serde_json;
-use uuid;
+// use uuid;
 
 static TEST_ITEM_QUERY_LIMIT: i64 = 200;
 use db::schema::test_item;
@@ -67,116 +67,18 @@ impl Into<i32> for ResultCleanupStatus {
     }
 }
 
-impl super::DbExecutor {
-    fn find_test_item(&mut self, test_item_db: &TestItemDb) -> Option<TestItemDb> {
-        use super::schema::test_item::dsl::*;
+// impl super::DbReadExecutor {
+//     fn find_test_item(&mut self, test_item_db: &TestItemDb) -> Option<TestItemDb> {
+//         use super::super::schema::test_item::dsl::*;
 
-        test_item
-            .filter(name.eq(&test_item_db.name))
-            .filter(source.eq(test_item_db.source))
-            .filter(parent_id.eq(&test_item_db.parent_id))
-            .first::<TestItemDb>(self.0.as_ref().expect("fail to get DB"))
-            .ok()
-    }
-
-    fn find_test_or_insert(&mut self, test_item_db: &TestItemDb) -> String {
-        use super::schema::test_item::dsl::*;
-
-        match self.find_test_item(test_item_db) {
-            Some(existing) => existing.id,
-            None => {
-                let new_id = uuid::Uuid::new_v4().hyphenated().to_string();
-                let could_insert = diesel::insert_into(test_item)
-                    .values(&TestItemDb {
-                        id: new_id.clone(),
-                        ..(*test_item_db).clone()
-                    })
-                    .execute(self.0.as_ref().expect("fail to get DB"));
-                if could_insert.is_err() {
-                    self.find_test_item(test_item_db)
-                        .map(|existing| existing.id)
-                        .expect("should have found an test ID after insertion failed")
-                } else {
-                    new_id
-                }
-            }
-        }
-    }
-}
-
-impl Message for ::engine::test_result::TestResult {
-    type Result = ::engine::test_result::TestResult;
-}
-
-impl Handler<::engine::test_result::TestResult> for super::DbExecutor {
-    type Result = MessageResult<::engine::test_result::TestResult>;
-
-    fn handle(
-        &mut self,
-        msg: ::engine::test_result::TestResult,
-        ctx: &mut Self::Context,
-    ) -> Self::Result {
-        self.check_db_connection(ctx);
-
-        let mut parent_id = "root".to_string();
-        for item in msg.path.clone() {
-            parent_id = self.find_test_or_insert(&TestItemDb {
-                id: "n/a".to_string(),
-                parent_id,
-                name: item,
-                source: 0,
-            });
-        }
-
-        parent_id = self.find_test_or_insert(&TestItemDb {
-            id: "n/a".to_string(),
-            parent_id,
-            name: msg.name.clone(),
-            source: 0,
-        });
-
-        let test_result_date = chrono::NaiveDateTime::from_timestamp(
-            msg.date / 1000 / 1000,
-            (msg.date % (1000 * 1000) * 1000) as u32,
-        );
-
-        use super::schema::test_result::dsl::*;
-        diesel::insert_into(test_result)
-            .values(&TestResultDb {
-                test_id: parent_id.clone(),
-                trace_id: msg.trace_id.clone(),
-                date: test_result_date,
-                status: msg.status.as_i32(),
-                duration: msg.duration,
-                environment: msg.environment.clone(),
-                components_called: serde_json::to_string(&msg.components_called).unwrap(),
-                nb_spans: msg.nb_spans,
-                cleanup_status: match msg.status {
-                    ::engine::test_result::TestStatus::Success => {
-                        ResultCleanupStatus::ToKeep.into()
-                    }
-                    _ => ResultCleanupStatus::WithData.into(),
-                },
-            })
-            .execute(self.0.as_ref().expect("fail to get DB"))
-            .map_err(|err| self.reconnect_if_needed(ctx, &err))
-            .ok();
-
-        diesel::update(
-            test_result
-                .filter(cleanup_status.eq(super::test::ResultCleanupStatus::ToKeep.as_i32()))
-                .filter(test_id.eq(parent_id.clone()))
-                .filter(date.lt(test_result_date)),
-        ).set(cleanup_status.eq(super::test::ResultCleanupStatus::WithData.as_i32()))
-            .execute(self.0.as_ref().expect("fail to get DB"))
-            .ok();
-
-        MessageResult(::engine::test_result::TestResult {
-            test_id: parent_id,
-            ..msg
-        })
-    }
-}
+//         test_item
+//             .filter(name.eq(&test_item_db.name))
+//             .filter(source.eq(test_item_db.source))
+//             .filter(parent_id.eq(&test_item_db.parent_id))
+//             .first::<TestItemDb>(self.0.as_ref().expect("fail to get DB"))
+//             .ok()
+//     }
+// }
 
 #[derive(Default)]
 pub struct TestItemQuery {
@@ -192,11 +94,11 @@ impl Message for GetTestItems {
     type Result = Vec<::api::test::TestDetails>;
 }
 
-impl Handler<GetTestItems> for super::DbExecutor {
+impl Handler<GetTestItems> for super::DbReadExecutor {
     type Result = MessageResult<GetTestItems>;
 
     fn handle(&mut self, msg: GetTestItems, _: &mut Self::Context) -> Self::Result {
-        use super::schema::test_item::dsl::*;
+        use super::super::schema::test_item::dsl::*;
 
         let mut query = test_item.into_boxed();
 
@@ -208,7 +110,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
             query = query.filter(id.eq(filter_id));
         }
 
-        let mut test_item_cache = super::helper::Cacher::new();
+        let mut test_item_cache = super::super::helper::Cacher::new();
 
         MessageResult(
             query
@@ -229,7 +131,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
                         while let Some(test_item_got) = test_item_to_get {
                             if let Some(test) = test_item_cache
                                 .get(&test_item_got, |ti_id| {
-                                    use super::schema::test_item::dsl::*;
+                                    use super::super::schema::test_item::dsl::*;
                                     test_item
                                         .filter(id.eq(ti_id))
                                         .first::<TestItemDb>(
@@ -255,7 +157,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
                     }
 
                     let children = if msg.0.with_children {
-                        use super::schema::test_item::dsl::*;
+                        use super::super::schema::test_item::dsl::*;
                         test_item
                             .filter(parent_id.eq(&ti.id))
                             .order(name.asc())
@@ -274,7 +176,7 @@ impl Handler<GetTestItems> for super::DbExecutor {
                     };
 
                     let traces = if msg.0.with_traces {
-                        use super::schema::test_result::dsl::*;
+                        use super::super::schema::test_result::dsl::*;
 
                         let query = TestResultDb::belonging_to(ti).order(date.desc()).limit(5);
                         query
@@ -385,12 +287,12 @@ pub struct GetTestResults(pub TestResultQuery);
 impl Message for GetTestResults {
     type Result = Vec<::engine::test_result::TestResult>;
 }
-impl Handler<GetTestResults> for super::DbExecutor {
+impl Handler<GetTestResults> for super::DbReadExecutor {
     type Result = MessageResult<GetTestResults>;
 
     fn handle(&mut self, msg: GetTestResults, ctx: &mut Self::Context) -> Self::Result {
         self.check_db_connection(ctx);
-        use super::schema::test_result::dsl::*;
+        use super::super::schema::test_result::dsl::*;
 
         let mut query = test_result.into_boxed();
 
@@ -432,9 +334,9 @@ impl Handler<GetTestResults> for super::DbExecutor {
                 vec![]
             });
 
-        let mut test_item_cache = super::helper::Cacher::new_with({
+        let mut test_item_cache = super::super::helper::Cacher::new_with({
             //prefetch first level test items in one query
-            use super::schema::test_item::dsl::*;
+            use super::super::schema::test_item::dsl::*;
 
             let mut query = test_item.into_boxed();
             for tr in &test_results {
@@ -455,7 +357,7 @@ impl Handler<GetTestResults> for super::DbExecutor {
                 .map(|tr| {
                     let test = test_item_cache
                         .get(&tr.test_id, |ti_id| {
-                            use super::schema::test_item::dsl::*;
+                            use super::super::schema::test_item::dsl::*;
 
                             test_item
                                 .filter(id.eq(ti_id))
@@ -473,7 +375,7 @@ impl Handler<GetTestResults> for super::DbExecutor {
                     while let Some(test_item_got) = test_item_to_get {
                         if let Some(test) = test_item_cache
                             .get(&test_item_got, |ti_id| {
-                                use super::schema::test_item::dsl::*;
+                                use super::super::schema::test_item::dsl::*;
                                 test_item
                                     .filter(id.eq(ti_id))
                                     .first::<TestItemDb>(self.0.as_ref().expect("fail to get DB"))
@@ -518,11 +420,11 @@ pub struct GetEnvironments;
 impl Message for GetEnvironments {
     type Result = Vec<String>;
 }
-impl Handler<GetEnvironments> for super::DbExecutor {
+impl Handler<GetEnvironments> for super::DbReadExecutor {
     type Result = MessageResult<GetEnvironments>;
 
     fn handle(&mut self, _msg: GetEnvironments, _: &mut Self::Context) -> Self::Result {
-        use super::schema::test_result::dsl::*;
+        use super::super::schema::test_result::dsl::*;
 
         MessageResult(
             test_result

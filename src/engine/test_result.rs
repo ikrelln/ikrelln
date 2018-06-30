@@ -26,9 +26,9 @@ impl Handler<TraceDone> for TraceParser {
 
     fn handle(&mut self, msg: TraceDone, _ctx: &mut Context<Self>) -> Self::Result {
         Arbiter::handle().spawn(
-            ::DB_EXECUTOR_POOL
-                .send(::db::span::GetSpans(
-                    ::db::span::SpanQuery::default()
+            ::DB_READ_EXECUTOR_POOL
+                .send(::db::read::span::GetSpans(
+                    ::db::read::span::SpanQuery::default()
                         .with_trace_id(msg.0)
                         .with_limit(1000),
                 ))

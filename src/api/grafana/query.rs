@@ -74,19 +74,20 @@ pub fn query(
             for target in &val.targets {
                 match target.target.as_ref() {
                     "spans" => {
-                        let data_req = ::DB_EXECUTOR_POOL.send(::db::span::GetSpans(
-                            ::db::span::SpanQuery::default().with_limit(50),
+                        let data_req = ::DB_READ_EXECUTOR_POOL.send(::db::read::span::GetSpans(
+                            ::db::read::span::SpanQuery::default().with_limit(50),
                         ));
                         data_reqs.push(DataQuery::FutureSpans(Box::new(data_req)));
                     }
                     "test_results" => {
-                        let data_req = ::DB_EXECUTOR_POOL.send(::db::test::GetTestResults(
-                            ::db::test::TestResultQuery::default(),
-                        ));
+                        let data_req =
+                            ::DB_READ_EXECUTOR_POOL.send(::db::read::test::GetTestResults(
+                                ::db::read::test::TestResultQuery::default(),
+                            ));
                         data_reqs.push(DataQuery::FutureTestResults(Box::new(data_req)));
                     }
                     "reports" => {
-                        let data_req = ::DB_EXECUTOR_POOL.send(::db::reports::GetAll);
+                        let data_req = ::DB_READ_EXECUTOR_POOL.send(::db::read::reports::GetAll);
                         data_reqs.push(DataQuery::FutureReports(Box::new(data_req)));
                     }
                     _ => (),

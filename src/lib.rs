@@ -1,4 +1,5 @@
 #![deny(warnings)]
+#![cfg_attr(feature = "cargo-clippy", deny(option_unwrap_used))]
 
 #[macro_use]
 extern crate lazy_static;
@@ -42,14 +43,28 @@ pub mod engine;
 pub mod opentracing;
 
 lazy_static! {
-    static ref DB_EXECUTOR_POOL: actix::Addr<actix::Syn, db::DbExecutor> = {
+    static ref DB_EXECUTOR_POOL: actix::Addr<actix::Syn, db::update::DbExecutor> = {
         let config = ::config::Config::load();
-        actix::SyncArbiter::start(config.db_nb_connection, move || {
-            if let Ok(connection) = db::establish_connection(&config.db_url) {
-                return db::DbExecutor(Some(connection));
+        actix::SyncArbiter::start(1, move || {
+            if let Ok(connection) = db::update::establish_connection(&config.db_url) {
+                return db::update::DbExecutor(Some(connection));
             } else {
                 error!("error opening connection to DB");
-                return db::DbExecutor(None);
+                return db::update::DbExecutor(None);
+            }
+        })
+    };
+}
+
+lazy_static! {
+    static ref DB_READ_EXECUTOR_POOL: actix::Addr<actix::Syn, db::read::DbReadExecutor> = {
+        let config = ::config::Config::load();
+        actix::SyncArbiter::start(3, move || {
+            if let Ok(connection) = db::read::establish_connection(&config.db_url) {
+                return db::read::DbReadExecutor(Some(connection));
+            } else {
+                error!("error opening read connection to DB");
+                return db::read::DbReadExecutor(None);
             }
         })
     };

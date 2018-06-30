@@ -37,8 +37,8 @@ pub fn ingest(
 pub fn get_services(
     _req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    ::DB_EXECUTOR_POOL
-        .send(::db::span::GetServices)
+    ::DB_READ_EXECUTOR_POOL
+        .send(::db::read::span::GetServices)
         .from_err()
         .and_then(|mut services| {
             services.dedup();
@@ -51,8 +51,10 @@ pub fn get_spans_by_service(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.query().get("serviceName") {
-        Some(_) => ::DB_EXECUTOR_POOL
-            .send(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
+        Some(_) => ::DB_READ_EXECUTOR_POOL
+            .send(::db::read::span::GetSpans(
+                ::db::read::span::SpanQuery::from_req(&req),
+            ))
             .from_err()
             .and_then(|res| {
                 let mut span_names = res.iter()
@@ -74,9 +76,9 @@ pub fn get_spans_by_trace_id(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("traceId") {
-        Some(trace_id) => ::DB_EXECUTOR_POOL
-            .send(::db::span::GetSpans(
-                ::db::span::SpanQuery::from_req(&req).with_trace_id(trace_id.to_string()),
+        Some(trace_id) => ::DB_READ_EXECUTOR_POOL
+            .send(::db::read::span::GetSpans(
+                ::db::read::span::SpanQuery::from_req(&req).with_trace_id(trace_id.to_string()),
             ))
             .from_err()
             .and_then(|res| Ok(HttpResponse::Ok().json(res)))
@@ -91,8 +93,10 @@ pub fn get_spans_by_trace_id(
 pub fn get_traces(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    ::DB_EXECUTOR_POOL
-        .send(::db::span::GetSpans(::db::span::SpanQuery::from_req(&req)))
+    ::DB_READ_EXECUTOR_POOL
+        .send(::db::read::span::GetSpans(
+            ::db::read::span::SpanQuery::from_req(&req),
+        ))
         .from_err()
         .and_then(|res| {
             Ok(HttpResponse::Ok().json({
@@ -135,9 +139,9 @@ impl Dependency {
 pub fn get_dependencies(
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    ::DB_EXECUTOR_POOL
-        .send(::db::span::GetSpans(
-            ::db::span::SpanQuery::from_req(&req)
+    ::DB_READ_EXECUTOR_POOL
+        .send(::db::read::span::GetSpans(
+            ::db::read::span::SpanQuery::from_req(&req)
                 .with_limit(100_000)
                 .only_endpoint(),
         ))

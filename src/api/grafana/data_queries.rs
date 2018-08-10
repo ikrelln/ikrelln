@@ -113,30 +113,36 @@ impl ToGrafana for ::api::report::Report {
         let mut column = vec![];
         column.push(Value::String(self.name));
         column.push(Value::Number(self.last_update.timestamp()));
-        column.push(Value::Number(self.summary
-            .clone()
-            .and_then(|summary| {
-                summary
-                    .get(&::engine::test_result::TestStatus::Success)
-                    .cloned()
-            })
-            .unwrap_or(0) as i64));
-        column.push(Value::Number(self.summary
-            .clone()
-            .and_then(|summary| {
-                summary
-                    .get(&::engine::test_result::TestStatus::Failure)
-                    .cloned()
-            })
-            .unwrap_or(0) as i64));
-        column.push(Value::Number(self.summary
-            .clone()
-            .and_then(|summary| {
-                summary
-                    .get(&::engine::test_result::TestStatus::Skipped)
-                    .cloned()
-            })
-            .unwrap_or(0) as i64));
+        column.push(Value::Number(
+            self.summary
+                .clone()
+                .and_then(|summary| {
+                    summary
+                        .get(&::engine::test_result::TestStatus::Success)
+                        .cloned()
+                })
+                .unwrap_or(0) as i64,
+        ));
+        column.push(Value::Number(
+            self.summary
+                .clone()
+                .and_then(|summary| {
+                    summary
+                        .get(&::engine::test_result::TestStatus::Failure)
+                        .cloned()
+                })
+                .unwrap_or(0) as i64,
+        ));
+        column.push(Value::Number(
+            self.summary
+                .clone()
+                .and_then(|summary| {
+                    summary
+                        .get(&::engine::test_result::TestStatus::Skipped)
+                        .cloned()
+                })
+                .unwrap_or(0) as i64,
+        ));
         column
     }
 }

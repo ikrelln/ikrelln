@@ -179,7 +179,8 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                     test_id: msg.result.test_id.clone(),
                     trace_id: msg.result.trace_id.clone(),
                     report_id: found_report_id.clone(),
-                    category: msg.category
+                    category: msg
+                        .category
                         .clone()
                         .unwrap_or_else(|| msg.report_name.clone()),
                     environment: msg.result.environment,

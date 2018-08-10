@@ -57,7 +57,8 @@ pub fn get_spans_by_service(
             ))
             .from_err()
             .and_then(|res| {
-                let mut span_names = res.iter()
+                let mut span_names = res
+                    .iter()
                     .map(|span| span.name.clone().unwrap_or_else(|| "n/a".to_string()))
                     .collect::<Vec<String>>();
                 span_names.sort_unstable();
@@ -149,10 +150,12 @@ pub fn get_dependencies(
         .and_then(|res| {
             Ok(HttpResponse::Ok().json({
                 let by_services = res.into_iter().fold(HashMap::new(), |mut map, elt| {
-                    let local_service = elt.local_endpoint
+                    let local_service = elt
+                        .local_endpoint
                         .and_then(|ep| ep.service_name)
                         .unwrap_or_else(|| "n/a".to_string());
-                    let remote_service = elt.remote_endpoint
+                    let remote_service = elt
+                        .remote_endpoint
                         .and_then(|ep| ep.service_name)
                         .unwrap_or_else(|| "n/a".to_string());
                     {

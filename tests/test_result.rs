@@ -24,7 +24,8 @@ fn should_not_have_test_result_from_span_without_tags() {
 
     let trace_id = uuid::Uuid::new_v4().to_string();
 
-    let req = srv.client(http::Method::POST, "/api/v1/spans")
+    let req = srv
+        .client(http::Method::POST, "/api/v1/spans")
         .json(vec![Span {
             trace_id: trace_id.to_string(),
             id: trace_id.clone(),
@@ -53,11 +54,12 @@ fn should_not_have_test_result_from_span_without_tags() {
         helpers::DELAY_RESULT_SAVED_MILLISECONDS,
     ));
 
-    let req_tr = srv.client(
-        http::Method::GET,
-        &format!("/api/v1/testresults?traceId={}", &trace_id),
-    ).finish()
-        .unwrap();
+    let req_tr =
+        srv.client(
+            http::Method::GET,
+            &format!("/api/v1/testresults?traceId={}", &trace_id),
+        ).finish()
+            .unwrap();
     let response_tr = srv.execute(req_tr.send()).unwrap();
     assert!(response_tr.status().is_success());
     let data_tr: Result<Vec<TestResult>, _> =
@@ -97,7 +99,8 @@ fn should_create_test_result() {
         "success".to_string(),
     );
 
-    let req = srv.client(http::Method::POST, "/api/v1/spans")
+    let req = srv
+        .client(http::Method::POST, "/api/v1/spans")
         .json(vec![Span {
             trace_id: trace_id.to_string(),
             id: trace_id.clone(),
@@ -126,11 +129,12 @@ fn should_create_test_result() {
         helpers::DELAY_RESULT_SAVED_MILLISECONDS,
     ));
 
-    let req_tr = srv.client(
-        http::Method::GET,
-        &format!("/api/v1/testresults?traceId={}", &trace_id),
-    ).finish()
-        .unwrap();
+    let req_tr =
+        srv.client(
+            http::Method::GET,
+            &format!("/api/v1/testresults?traceId={}", &trace_id),
+        ).finish()
+            .unwrap();
     let response_tr = srv.execute(req_tr.send()).unwrap();
     assert!(response_tr.status().is_success());
     let data_tr: Result<Vec<TestResult>, _> =

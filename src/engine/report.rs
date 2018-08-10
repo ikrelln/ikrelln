@@ -57,7 +57,8 @@ impl Handler<ComputeReportsForResult> for Reporter {
                             .iter()
                             .filter(|span| span.remote_endpoint.is_some())
                             .map(|span| Report {
-                                name: span.remote_endpoint
+                                name: span
+                                    .remote_endpoint
                                     .clone()
                                     .and_then(|ep| ep.service_name)
                                     .unwrap_or_else(|| "service".to_string()),

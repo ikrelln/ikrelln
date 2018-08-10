@@ -117,20 +117,24 @@ impl Default for SpanQuery {
 impl SpanQuery {
     pub fn from_req(req: &actix_web::HttpRequest<::api::AppState>) -> Self {
         SpanQuery {
-            filter_finish: req.query()
+            filter_finish: req
+                .query()
                 .get("finished")
                 .and_then(|s| FromStr::from_str(s).ok())
                 .unwrap_or(true),
             service_name: req.query().get("serviceName").map(|s| s.to_string()),
             span_name: req.query().get("spanName").map(|s| s.to_string()),
             trace_id: req.query().get("traceId").map(|s| s.to_string()),
-            min_duration: req.query()
+            min_duration: req
+                .query()
                 .get("minDuration")
                 .and_then(|s| s.parse::<i64>().ok()),
-            max_duration: req.query()
+            max_duration: req
+                .query()
                 .get("maxDuration")
                 .and_then(|s| s.parse::<i64>().ok()),
-            end_ts: req.query()
+            end_ts: req
+                .query()
                 .get("endTs")
                 .and_then(|s| s.parse::<i64>().ok())
                 .map(|v| {
@@ -141,11 +145,13 @@ impl SpanQuery {
                     )
                 })
                 .unwrap_or_else(|| chrono::Utc::now().naive_utc()),
-            lookback: req.query()
+            lookback: req
+                .query()
                 .get("lookback")
                 .and_then(|s| s.parse::<i64>().ok())
                 .map(chrono::Duration::milliseconds),
-            limit: req.query()
+            limit: req
+                .query()
                 .get("limit")
                 .and_then(|s| s.parse::<i64>().ok())
                 .map(|v| {
@@ -352,7 +358,8 @@ impl Handler<GetSpans> for super::DbReadExecutor {
                         remote_endpoint,
                         annotations,
                         tags: tags.clone(),
-                        binary_annotations: tags.iter()
+                        binary_annotations: tags
+                            .iter()
                             .map(|(k, v)| ::opentracing::span::BinaryTag {
                                 key: k.clone(),
                                 value: v.clone(),

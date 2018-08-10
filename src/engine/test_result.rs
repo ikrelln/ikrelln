@@ -193,7 +193,8 @@ impl TestResult {
         tag: IkrellnTags,
         f: fn(&::opentracing::Span) -> Option<String>,
     ) -> Result<String, KnownTag> {
-        match span.tags
+        match span
+            .tags
             .get(tag.clone().into())
             .ok_or_else(|| tag.into())
             .map(|v| v.to_string())

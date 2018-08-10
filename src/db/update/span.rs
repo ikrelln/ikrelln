@@ -109,7 +109,8 @@ fn get_all_from_span(span: &::opentracing::Span) -> FromSpan {
         None
     };
 
-    let annotations = span.annotations
+    let annotations = span
+        .annotations
         .iter()
         .map(|annotation| {
             AnnotationDb {
@@ -126,7 +127,8 @@ fn get_all_from_span(span: &::opentracing::Span) -> FromSpan {
         })
         .collect();
 
-    let tags = span.tags
+    let tags = span
+        .tags
         .iter()
         .map(|(key, value)| TagDb {
             span_id: span_id.clone(),
@@ -214,10 +216,12 @@ impl Handler<::opentracing::Span> for super::DbExecutor {
 
         let _span_in_db = {
             use super::super::schema::span::dsl::*;
-            match span.filter(
-                id.eq(&to_upsert.span_db.id)
-                    .and(trace_id.eq(&to_upsert.span_db.trace_id)),
-            ).first::<SpanDb>(self.0.as_ref().expect("fail to get DB"))
+            match span
+                .filter(
+                    id.eq(&to_upsert.span_db.id)
+                        .and(trace_id.eq(&to_upsert.span_db.trace_id)),
+                )
+                .first::<SpanDb>(self.0.as_ref().expect("fail to get DB"))
             {
                 Ok(_) => {
                     //TODO: manage more update cases than duration
@@ -249,7 +253,8 @@ impl Handler<::opentracing::Span> for super::DbExecutor {
 
         {
             use super::super::schema::tag::dsl::*;
-            let existing_tags = tag.select(name)
+            let existing_tags = tag
+                .select(name)
                 .filter(
                     span_id
                         .eq(to_upsert.span_db.id)

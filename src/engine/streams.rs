@@ -158,7 +158,8 @@ impl Handler<RemoveScript> for Streamer {
     type Result = ();
 
     fn handle(&mut self, msg: RemoveScript, _ctx: &mut Context<Self>) -> Self::Result {
-        let index = self.scripts
+        let index = self
+            .scripts
             .iter()
             .position(|x| {
                 (*x.id.clone().expect("script should have an ID"))
@@ -175,7 +176,8 @@ impl Handler<UpdateScript> for Streamer {
     type Result = ();
 
     fn handle(&mut self, msg: UpdateScript, _ctx: &mut Context<Self>) -> Self::Result {
-        let index = self.scripts
+        let index = self
+            .scripts
             .iter()
             .position(|x| {
                 (*x.id.clone().expect("script should have an ID"))
@@ -203,7 +205,8 @@ impl<'a> FromPyObject<'a> for ReportTarget {
         Ok(ReportTarget {
             group: py.eval("obj['group']", None, Some(&locals))?.extract(py)?,
             name: py.eval("obj['name']", None, Some(&locals))?.extract(py)?,
-            category: py.eval("obj['category']", None, Some(&locals))?
+            category: py
+                .eval("obj['category']", None, Some(&locals))?
                 .extract(py)?,
         })
     }
@@ -223,7 +226,8 @@ impl Handler<Test> for Streamer {
             let locals = PyDict::new(py);
             locals.set_item(py, "test", msg.0.clone()).unwrap();
 
-            let stream_test_script: Vec<&Script> = self.scripts
+            let stream_test_script: Vec<&Script> = self
+                .scripts
                 .iter()
                 .filter(|script| match script.script_type {
                     ScriptType::StreamTest => true,
@@ -244,7 +248,8 @@ impl Handler<Test> for Streamer {
                 }
             }
 
-            let report_filter_test_script: Vec<&Script> = self.scripts
+            let report_filter_test_script: Vec<&Script> = self
+                .scripts
                 .iter()
                 .filter(|script| match script.script_type {
                     ScriptType::ReportFilterTestResult => true,

@@ -52,7 +52,8 @@ fn should_create_report() {
         "success".to_string(),
     );
 
-    let req = srv.client(http::Method::POST, "/api/v1/spans")
+    let req = srv
+        .client(http::Method::POST, "/api/v1/spans")
         .json(vec![
             Span {
                 trace_id: trace_id.to_string(),
@@ -160,11 +161,12 @@ fn should_create_report() {
     ));
 
     {
-        let req_report = srv.client(
-            http::Method::GET,
-            &format!("/api/v1/reports/endpoints/{}", service_name1),
-        ).finish()
-            .unwrap();
+        let req_report =
+            srv.client(
+                http::Method::GET,
+                &format!("/api/v1/reports/endpoints/{}", service_name1),
+            ).finish()
+                .unwrap();
         let response_report = srv.execute(req_report.send()).unwrap();
         assert!(response_report.status().is_success());
         let data_report_res: Result<Report, _> =
@@ -181,11 +183,12 @@ fn should_create_report() {
         );
     }
     {
-        let req_report = srv.client(
-            http::Method::GET,
-            &format!("/api/v1/reports/endpoints/{}", service_name2),
-        ).finish()
-            .unwrap();
+        let req_report =
+            srv.client(
+                http::Method::GET,
+                &format!("/api/v1/reports/endpoints/{}", service_name2),
+            ).finish()
+                .unwrap();
         let response_report = srv.execute(req_report.send()).unwrap();
         assert!(response_report.status().is_success());
         let data_report_res: Result<Report, _> =

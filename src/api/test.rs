@@ -80,7 +80,8 @@ pub fn get_test(
                     test_id: "root".to_string(),
                     name: "".to_string(),
                     path: vec![],
-                    children: res.iter()
+                    children: res
+                        .iter()
                         .map(|tr| TestItem {
                             name: tr.name.clone(),
                             id: tr.test_id.clone(),

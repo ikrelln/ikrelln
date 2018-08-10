@@ -46,11 +46,12 @@ fn can_save_report_script() {
         helpers::DELAY_SCRIPT_SAVED_MILLISECONDS,
     ));
 
-    let req_script = srv.client(
-        http::Method::GET,
-        &format!("/api/v1/scripts/{}", &script_sent.id.unwrap()),
-    ).finish()
-        .unwrap();
+    let req_script =
+        srv.client(
+            http::Method::GET,
+            &format!("/api/v1/scripts/{}", &script_sent.id.unwrap()),
+        ).finish()
+            .unwrap();
     let response_script = srv.execute(req_script.send()).unwrap();
     assert!(response_script.status().is_success());
     let data_script: Result<Script, _> =
@@ -156,7 +157,8 @@ fn can_create_report_from_script() {
         },
     ];
     println!("{:?}", spans);
-    let req = srv.client(http::Method::POST, "/api/v1/spans")
+    let req = srv
+        .client(http::Method::POST, "/api/v1/spans")
         .json(spans)
         .unwrap();
     let response = srv.execute(req.send()).unwrap();
@@ -170,11 +172,12 @@ fn can_create_report_from_script() {
         helpers::DELAY_REPORT_SAVED_MILLISECONDS,
     ));
 
-    let req_report = srv.client(
-        http::Method::GET,
-        &format!("/api/v1/reports/from_script/{}", report_name.clone()),
-    ).finish()
-        .unwrap();
+    let req_report =
+        srv.client(
+            http::Method::GET,
+            &format!("/api/v1/reports/from_script/{}", report_name.clone()),
+        ).finish()
+            .unwrap();
     let response_report = srv.execute(req_report.send()).unwrap();
     assert!(response_report.status().is_success());
     let data_report_res: Result<Report, _> =

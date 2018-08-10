@@ -237,7 +237,8 @@ impl Handler<GetReport> for super::DbReadExecutor {
                             ::engine::test_result::TestResult {
                                 test_id: tr.test_id.clone(),
                                 path,
-                                name: test.map(|t| t.name)
+                                name: test
+                                    .map(|t| t.name)
                                     .unwrap_or_else(|| "missing name".to_string()),
                                 date: (((tr.date.timestamp() * 1000)
                                     + i64::from(tr.date.timestamp_subsec_millis()))

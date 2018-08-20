@@ -113,7 +113,7 @@ impl Handler<LoadScripts> for Streamer {
     type Result = ();
 
     fn handle(&mut self, _msg: LoadScripts, _ctx: &mut Context<Self>) -> Self::Result {
-        Arbiter::handle().spawn_fn(move || {
+        Arbiter::spawn_fn(move || {
             ::DB_READ_EXECUTOR_POOL
                 .send(::db::read::scripts::GetAll(Some(vec![
                     ScriptType::StreamTest,
@@ -121,7 +121,8 @@ impl Handler<LoadScripts> for Streamer {
                 ])))
                 .then(|scripts| {
                     if let Ok(scripts) = scripts {
-                        actix::Arbiter::system_registry()
+                        actix::System::current()
+                            .registry()
                             .get::<::engine::streams::Streamer>()
                             .do_send(UpdateScripts(scripts));
                     }
@@ -263,7 +264,8 @@ impl Handler<Test> for Streamer {
                             let reports = py_reports.extract::<Vec<ReportTarget>>(py);
                             if let Ok(reports) = reports {
                                 for report in reports {
-                                    actix::Arbiter::system_registry()
+                                    actix::System::current()
+                                        .registry()
                                         .get::<::engine::report::Reporter>()
                                         .do_send(::engine::report::ResultForReport {
                                             report_group: report.group,

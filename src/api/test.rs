@@ -26,7 +26,7 @@ pub struct TestResultsQueryParams {
 }
 
 pub fn get_test_results(
-    req: HttpRequest<AppState>,
+    req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match serde_urlencoded::from_str::<TestResultsQueryParams>(req.query_string()) {
         Ok(query_params) => ::DB_READ_EXECUTOR_POOL
@@ -50,7 +50,7 @@ pub struct TestDetails {
     pub last_results: Vec<::engine::test_result::TestResult>,
 }
 pub fn get_test(
-    req: HttpRequest<AppState>,
+    req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("testId") {
         Some(test_id) => ::DB_READ_EXECUTOR_POOL
@@ -104,7 +104,7 @@ struct GetTestQueryParams {
 }
 
 pub fn get_tests_by_parent(
-    req: HttpRequest<AppState>,
+    req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match serde_urlencoded::from_str::<GetTestQueryParams>(req.query_string()) {
         Ok(params) => ::DB_READ_EXECUTOR_POOL
@@ -132,7 +132,7 @@ pub fn get_tests_by_parent(
 }
 
 pub fn get_environments(
-    _req: HttpRequest<AppState>,
+    _req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     ::DB_READ_EXECUTOR_POOL
         .send(::db::read::test::GetEnvironments)

@@ -44,7 +44,7 @@ impl Handler<ComputeReportsForResult> for Reporter {
     type Result = ();
 
     fn handle(&mut self, msg: ComputeReportsForResult, _ctx: &mut Context<Self>) -> Self::Result {
-        Arbiter::handle().spawn(
+        Arbiter::spawn(
             ::DB_READ_EXECUTOR_POOL
                 .send(::db::read::span::GetSpans(
                     ::db::read::span::SpanQuery::default()
@@ -67,14 +67,15 @@ impl Handler<ComputeReportsForResult> for Reporter {
                             })
                             .collect();
                         reports_to_send.iter().for_each(|report| {
-                            actix::Arbiter::system_registry().get::<Reporter>().do_send(
-                                ResultForReport {
+                            actix::System::current()
+                                .registry()
+                                .get::<Reporter>()
+                                .do_send(ResultForReport {
                                     report_group: report.group.clone(),
                                     report_name: report.name.clone(),
                                     category: report.category.clone(),
                                     result: msg.0.clone(),
-                                },
-                            )
+                                })
                         });
                     }
                     future::result(Ok(()))

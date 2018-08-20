@@ -15,7 +15,7 @@ pub struct Times {
     now: chrono::DateTime<chrono::Utc>,
 }
 
-pub fn healthcheck(req: HttpRequest<AppState>) -> HttpResponse {
+pub fn healthcheck(req: &HttpRequest<AppState>) -> HttpResponse {
     HttpResponse::Ok().json(HealthcheckResponse {
         app_name: "i'Krelln",
         build_info: ::build_info::BUILD_INFO.clone(),
@@ -45,7 +45,7 @@ struct DependencyErrorRates {
     high_error_rate: f32,
 }
 
-pub fn zipkin_ui_config(_: HttpRequest<AppState>) -> HttpResponse {
+pub fn zipkin_ui_config(_: &HttpRequest<AppState>) -> HttpResponse {
     HttpResponse::Ok().json(ZipkinUiConfig {
         environment: "".to_string(),
         query_limit: 100,
@@ -79,7 +79,7 @@ mod tests {
         };
 
         let resp = TestRequest::with_state(app_state)
-            .run(zipkin_ui_config)
+            .run(&zipkin_ui_config)
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
         assert_eq!(resp.body().is_binary(), true);
@@ -93,12 +93,14 @@ mod tests {
             start_time: chrono::Utc::now(),
         };
 
-        actix::Arbiter::handle().spawn({
-            let resp = TestRequest::with_state(app_state).run(healthcheck).unwrap();
+        actix::Arbiter::spawn({
+            let resp = TestRequest::with_state(app_state)
+                .run(&healthcheck)
+                .unwrap();
             assert_eq!(resp.status(), StatusCode::OK);
             assert_eq!(resp.body().is_binary(), true);
 
-            actix::Arbiter::system().do_send(actix::msgs::SystemExit(0));
+            actix::System::current().stop();
             futures::future::ok(())
         });
         system.run();

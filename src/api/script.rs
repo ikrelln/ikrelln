@@ -8,7 +8,7 @@ use uuid;
 use super::{errors, AppState};
 
 pub fn save_script(
-    req: HttpRequest<AppState>,
+    req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     req.json()
         .from_err()
@@ -30,11 +30,10 @@ pub fn save_script(
             ::DB_EXECUTOR_POOL.do_send(::db::scripts::SaveScript(new_script.clone()));
             match new_script.script_type {
                 ::engine::streams::ScriptType::StreamTest
-                | ::engine::streams::ScriptType::ReportFilterTestResult => {
-                    actix::Arbiter::system_registry()
-                        .get::<::engine::streams::Streamer>()
-                        .do_send(::engine::streams::AddScript(new_script.clone()))
-                }
+                | ::engine::streams::ScriptType::ReportFilterTestResult => actix::System::current()
+                    .registry()
+                    .get::<::engine::streams::Streamer>()
+                    .do_send(::engine::streams::AddScript(new_script.clone())),
                 _ => (),
             }
             Ok(HttpResponse::Ok().json(new_script))
@@ -43,7 +42,7 @@ pub fn save_script(
 }
 
 pub fn get_script(
-    req: HttpRequest<AppState>,
+    req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("scriptId") {
         Some(script_id) => ::DB_READ_EXECUTOR_POOL
@@ -64,7 +63,7 @@ pub fn get_script(
 }
 
 pub fn delete_script(
-    req: HttpRequest<AppState>,
+    req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("scriptId") {
         Some(script_id) => ::DB_EXECUTOR_POOL
@@ -75,7 +74,8 @@ pub fn delete_script(
                     match script.script_type {
                         ::engine::streams::ScriptType::StreamTest
                         | ::engine::streams::ScriptType::ReportFilterTestResult => {
-                            actix::Arbiter::system_registry()
+                            actix::System::current()
+                                .registry()
                                 .get::<::engine::streams::Streamer>()
                                 .do_send(::engine::streams::RemoveScript(script.clone()))
                         }
@@ -97,7 +97,7 @@ pub fn delete_script(
 }
 
 pub fn list_scripts(
-    _req: HttpRequest<AppState>,
+    _req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     ::DB_READ_EXECUTOR_POOL
         .send(::db::read::scripts::GetAll(None))
@@ -107,13 +107,13 @@ pub fn list_scripts(
 }
 
 pub fn update_script(
-    req: HttpRequest<AppState>,
+    req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    req.clone()
-        .json()
+    let match_info = req.match_info().clone();
+    req.json()
         .from_err()
         .and_then(
-            move |script: ::engine::streams::Script| match req.match_info().get("scriptId") {
+            move |script: ::engine::streams::Script| match match_info.get("scriptId") {
                 Some(script_id) => {
                     let new_script = ::engine::streams::Script {
                         id: Some(script_id.to_string()),
@@ -123,7 +123,8 @@ pub fn update_script(
                     match new_script.script_type {
                         ::engine::streams::ScriptType::StreamTest
                         | ::engine::streams::ScriptType::ReportFilterTestResult => {
-                            actix::Arbiter::system_registry()
+                            actix::System::current()
+                                .registry()
                                 .get::<::engine::streams::Streamer>()
                                 .do_send(::engine::streams::UpdateScript(new_script.clone()))
                         }
@@ -139,8 +140,9 @@ pub fn update_script(
         .responder()
 }
 
-pub fn reload_scripts(_req: HttpRequest<AppState>) -> HttpResponse {
-    actix::Arbiter::system_registry()
+pub fn reload_scripts(_req: &HttpRequest<AppState>) -> HttpResponse {
+    actix::System::current()
+        .registry()
         .get::<::engine::streams::Streamer>()
         .do_send(::engine::streams::LoadScripts);
     HttpResponse::Ok().finish()

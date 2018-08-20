@@ -16,7 +16,7 @@ enum SearchResponse {
 }
 
 pub fn search(
-    req: HttpRequest<AppState>,
+    req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     req.json()
         .from_err()

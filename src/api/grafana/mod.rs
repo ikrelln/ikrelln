@@ -8,6 +8,6 @@ pub mod query;
 pub use self::query::query;
 pub mod data_queries;
 
-pub fn setup(_req: HttpRequest<AppState>) -> String {
+pub fn setup(_req: &HttpRequest<AppState>) -> String {
     String::from(::engine::hello())
 }

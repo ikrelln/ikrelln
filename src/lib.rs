@@ -43,7 +43,7 @@ pub mod engine;
 pub mod opentracing;
 
 lazy_static! {
-    static ref DB_EXECUTOR_POOL: actix::Addr<actix::Syn, db::update::DbExecutor> = {
+    static ref DB_EXECUTOR_POOL: actix::Addr<db::update::DbExecutor> = {
         let config = ::config::Config::load();
         actix::SyncArbiter::start(1, move || {
             if let Ok(connection) = db::update::establish_connection(&config.db_url) {
@@ -57,7 +57,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref DB_READ_EXECUTOR_POOL: actix::Addr<actix::Syn, db::read::DbReadExecutor> = {
+    static ref DB_READ_EXECUTOR_POOL: actix::Addr<db::read::DbReadExecutor> = {
         let config = ::config::Config::load();
         actix::SyncArbiter::start(3, move || {
             if let Ok(connection) = db::read::establish_connection(&config.db_url) {
@@ -85,11 +85,13 @@ pub fn start_server() {
         _ => api::serve(&CONFIG.host, CONFIG.port),
     }
 
-    actix::Arbiter::system_registry()
+    //actix::System::current().registry()
+    actix::System::current()
+        .registry()
         .get::<::engine::streams::Streamer>()
         .do_send(::engine::streams::LoadScripts);
 
-    let _: Addr<Syn, _> = db::cleanup::CleanUpTimer.start();
+    let _: Addr<_> = db::cleanup::CleanUpTimer.start();
 
     system.run();
 }

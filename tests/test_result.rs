@@ -140,6 +140,7 @@ fn should_create_test_result() {
     let data_tr: Result<Vec<TestResult>, _> =
         serde_json::from_slice(&*srv.execute(response_tr.body()).unwrap());
     assert!(data_tr.is_ok());
+    println!("{:#?}", data_tr);
     assert_eq!(data_tr.unwrap().len(), 1);
     thread::sleep(time::Duration::from_millis(helpers::DELAY_FINISH));
 }

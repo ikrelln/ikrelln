@@ -4,7 +4,6 @@ use futures::Future;
 use std::collections::HashMap;
 
 use super::{errors, AppState};
-use actix::Arbiter;
 use engine::ingestor::IngestEvents;
 use opentracing::Span;
 
@@ -15,9 +14,11 @@ pub struct IngestResponse {
 }
 
 pub fn ingest(
-    req: HttpRequest<AppState>,
+    req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    let ingestor = Arbiter::system_registry().get::<::engine::ingestor::Ingestor>();
+    let ingestor = actix::System::current()
+        .registry()
+        .get::<::engine::ingestor::Ingestor>();
     req.json()
         .from_err()
         .and_then(move |val: Vec<Span>| {
@@ -35,7 +36,7 @@ pub fn ingest(
 }
 
 pub fn get_services(
-    _req: HttpRequest<AppState>,
+    _req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     ::DB_READ_EXECUTOR_POOL
         .send(::db::read::span::GetServices)
@@ -48,7 +49,7 @@ pub fn get_services(
 }
 
 pub fn get_spans_by_service(
-    req: HttpRequest<AppState>,
+    req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.query().get("serviceName") {
         Some(_) => ::DB_READ_EXECUTOR_POOL
@@ -74,7 +75,7 @@ pub fn get_spans_by_service(
 }
 
 pub fn get_spans_by_trace_id(
-    req: HttpRequest<AppState>,
+    req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("traceId") {
         Some(trace_id) => ::DB_READ_EXECUTOR_POOL
@@ -92,7 +93,7 @@ pub fn get_spans_by_trace_id(
 }
 
 pub fn get_traces(
-    req: HttpRequest<AppState>,
+    req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     ::DB_READ_EXECUTOR_POOL
         .send(::db::read::span::GetSpans(
@@ -138,7 +139,7 @@ impl Dependency {
 }
 
 pub fn get_dependencies(
-    req: HttpRequest<AppState>,
+    req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     ::DB_READ_EXECUTOR_POOL
         .send(::db::read::span::GetSpans(

@@ -20,7 +20,7 @@ pub struct Report {
 }
 
 pub fn get_reports(
-    _req: HttpRequest<AppState>,
+    _req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     ::DB_READ_EXECUTOR_POOL
         .send(::db::read::reports::GetAll)
@@ -30,7 +30,7 @@ pub fn get_reports(
 }
 
 pub fn get_report(
-    req: HttpRequest<AppState>,
+    req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match (
         req.match_info().get("reportGroup"),

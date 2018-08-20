@@ -16,7 +16,7 @@ mod script;
 pub mod span;
 pub mod test;
 
-fn index(_req: HttpRequest<AppState>) -> String {
+fn index(_req: &HttpRequest<AppState>) -> String {
     String::from(engine::hello())
 }
 

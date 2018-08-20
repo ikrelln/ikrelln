@@ -61,6 +61,7 @@ fn can_receive_span() {
     let data_trace: Result<Vec<Span>, _> =
         serde_json::from_slice(&*srv.execute(response_trace.body()).unwrap());
     assert!(data_trace.is_ok());
+    println!("{:#?}", data_trace);
     assert_eq!(data_trace.unwrap().len(), 1);
     thread::sleep(time::Duration::from_millis(helpers::DELAY_FINISH));
 }

@@ -13,10 +13,11 @@ impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor 
     ) -> Self::Result {
         for event in &msg.events {
             let event = event.clone();
-            Arbiter::handle().spawn(::DB_EXECUTOR_POOL.send(event.clone()).then(|span| {
+            Arbiter::spawn(::DB_EXECUTOR_POOL.send(event.clone()).then(|span| {
                 if let Ok(span) = span {
                     if let (Some(_), None) = (span.duration, span.parent_id.clone()) {
-                        Arbiter::system_registry()
+                        actix::System::current()
+                            .registry()
                             .get::<super::test_result::TraceParser>()
                             .do_send(super::test_result::TraceDone(span.trace_id.clone()));
                     }

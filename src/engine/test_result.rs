@@ -25,7 +25,7 @@ impl Handler<TraceDone> for TraceParser {
     type Result = ();
 
     fn handle(&mut self, msg: TraceDone, _ctx: &mut Context<Self>) -> Self::Result {
-        Arbiter::handle().spawn(
+        Arbiter::spawn(
             ::DB_READ_EXECUTOR_POOL
                 .send(::db::read::span::GetSpans(
                     ::db::read::span::SpanQuery::default()
@@ -47,7 +47,8 @@ impl Handler<TraceDone> for TraceParser {
                 })
                 .then(|test_exec| {
                     if let Ok(Some(test_exec)) = test_exec {
-                        Arbiter::system_registry()
+                        actix::System::current()
+                            .registry()
                             .get::<super::test_result::TraceParser>()
                             .do_send(TestExecutionToSave(test_exec));
                     }
@@ -64,12 +65,14 @@ impl Handler<TestExecutionToSave> for TraceParser {
     type Result = ();
 
     fn handle(&mut self, msg: TestExecutionToSave, _ctx: &mut Context<Self>) -> Self::Result {
-        Arbiter::handle().spawn(::DB_EXECUTOR_POOL.send(msg.0.clone()).then(|test_result| {
+        Arbiter::spawn(::DB_EXECUTOR_POOL.send(msg.0.clone()).then(|test_result| {
             if let Ok(test_result) = test_result {
-                actix::Arbiter::system_registry()
+                actix::System::current()
+                    .registry()
                     .get::<::engine::streams::Streamer>()
                     .do_send(::engine::streams::Test(test_result.clone()));
-                actix::Arbiter::system_registry()
+                actix::System::current()
+                    .registry()
                     .get::<::engine::report::Reporter>()
                     .do_send(::engine::report::ComputeReportsForResult(test_result));
             }

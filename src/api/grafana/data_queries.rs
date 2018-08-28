@@ -160,15 +160,15 @@ impl futures::Future for DataQuery {
 
     fn poll(&mut self) -> futures::Poll<Self::Item, Self::Error> {
         match self {
-            &mut DataQuery::FutureSpans(ref mut v) => v.poll().map(|av| match av {
+            DataQuery::FutureSpans(ref mut v) => v.poll().map(|av| match av {
                 futures::Async::Ready(v) => futures::Async::Ready(v.into()),
                 futures::Async::NotReady => futures::Async::NotReady,
             }),
-            &mut DataQuery::FutureTestResults(ref mut v) => v.poll().map(|av| match av {
+            DataQuery::FutureTestResults(ref mut v) => v.poll().map(|av| match av {
                 futures::Async::Ready(v) => futures::Async::Ready(v.into()),
                 futures::Async::NotReady => futures::Async::NotReady,
             }),
-            &mut DataQuery::FutureReports(ref mut v) => v.poll().map(|av| match av {
+            DataQuery::FutureReports(ref mut v) => v.poll().map(|av| match av {
                 futures::Async::Ready(v) => futures::Async::Ready(v.into()),
                 futures::Async::NotReady => futures::Async::NotReady,
             }),

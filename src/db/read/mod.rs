@@ -35,9 +35,8 @@ impl DbReadExecutor {
     }
 
     fn reconnect_if_needed(&self, ctx: &mut <Self as Actor>::Context, error: &DieselError) {
-        match error {
-            DieselError::DatabaseError(DatabaseErrorKind::UnableToSendCommand, _) => ctx.stop(),
-            _ => (),
+        if let DieselError::DatabaseError(DatabaseErrorKind::UnableToSendCommand, _) = error {
+            ctx.stop()
         }
     }
 }

@@ -17,7 +17,7 @@ impl Default for CleanUpConfig {
             delay_test_results: 40 * 24 * 60 * 60 * 1000,
             delay_spans: 7 * 24 * 60 * 60 * 1000,
             delay_reports: 14 * 24 * 60 * 60 * 1000,
-            schedule: 1 * 60 * 60 * 1000,
+            schedule: 60 * 60 * 1000,
         }
     }
 }
@@ -131,6 +131,5 @@ fn merge_configs() -> Result<Config, String> {
                 .and_then(|cleanup| cleanup.schedule)
                 .unwrap_or(default.cleanup.schedule),
         },
-        ..default
     })
 }

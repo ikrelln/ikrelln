@@ -30,13 +30,11 @@ struct TestResultInReportDb {
 impl super::DbExecutor {
     fn find_report(&mut self, report_db: &ReportDb) -> Option<ReportDb> {
         use super::super::schema::report::dsl::*;
-        let found = report
+        report
             .filter(folder.eq(&report_db.folder))
             .filter(name.eq(&report_db.name))
             .first::<ReportDb>(self.0.as_ref().expect("fail to get DB"))
-            .ok();
-
-        found
+            .ok()
     }
 
     fn update_report_or_create(&mut self, report_db: &ReportDb) -> String {

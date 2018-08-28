@@ -69,8 +69,8 @@ impl Handler<GetAll> for super::DbReadExecutor {
                             })
                             .iter()
                             .map(|vo| match vo {
-                                &Some(ref v) => v.clone(),
-                                &None => "None".to_string(),
+                                Some(ref v) => v.clone(),
+                                None => "None".to_string(),
                             })
                             .collect()
                     };
@@ -272,8 +272,8 @@ impl Handler<GetReport> for super::DbReadExecutor {
                     })
                     .iter()
                     .map(|vo| match vo {
-                        &Some(ref v) => v.clone(),
-                        &None => "None".to_string(),
+                        Some(ref v) => v.clone(),
+                        None => "None".to_string(),
                     })
                     .collect()
             };

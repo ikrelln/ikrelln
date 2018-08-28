@@ -105,7 +105,7 @@ pub fn serve(host: &str, port: u16) {
 }
 
 pub fn serve_from_fd(fd: &str) {
-    server::new(|| http_application())
+    server::new(http_application)
         .listen(unsafe { TcpListener::from_raw_fd(fd.parse().unwrap()) })
         .start();
 }

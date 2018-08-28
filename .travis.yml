@@ -7,9 +7,9 @@ matrix:
       rust: stable
       env: DATABASE_URL=postgresql://postgres@localhost:5432 NB_CONNECTION=1
     - name: beta
-      rust: nightly
+      rust: beta
       env: DATABASE_URL=postgresql://postgres@localhost:5432 NB_CONNECTION=1 RUSTFLAGS="-Aproc-macro-derive-resolution-fallback"
-    - name: beta
+    - name: nightly
       rust: nightly
       env: DATABASE_URL=postgresql://postgres@localhost:5432 NB_CONNECTION=1 RUSTFLAGS="-Aproc-macro-derive-resolution-fallback"
     - rust: stable

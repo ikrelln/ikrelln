@@ -56,8 +56,7 @@ fn main() {
     let version = env!("CARGO_PKG_VERSION");
 
     let new_content = format!(
-        "
-#[derive(Serialize, Debug, Clone)]
+        "#[derive(Serialize, Debug, Clone)]
 pub struct BuildInfo {{
     pub version: &'static str,
     pub commit_hash: &'static str,

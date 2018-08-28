@@ -35,12 +35,14 @@ matrix:
       install:
         - rustup component add rustfmt-preview
       script:
+        - cargo build
         - cargo fmt -- --check
     - rust: nightly
-      env: CLIPPY
+      env: CLIPPY RUSTFLAGS="-Aproc-macro-derive-resolution-fallback"
       install:
         - rustup component add clippy-preview
       script:
+        - cargo build
         - cargo clippy -- -D clippy
 cache:
   timeout: 1000

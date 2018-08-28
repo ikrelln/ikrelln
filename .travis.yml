@@ -1,17 +1,33 @@
 language: rust
-rust:
-  - stable
-  - beta
-  - nightly
 matrix:
   allow_failures:
     - rust: nightly
+  include:
+    - name: stable
+      rust: stable
+      env: DATABASE_URL=postgresql://postgres@localhost:5432 NB_CONNECTION=1
+    - name: beta
+      rust: nightly
+      env: DATABASE_URL=postgresql://postgres@localhost:5432 NB_CONNECTION=1 RUSTFLAGS="-Aproc-macro-derive-resolution-fallback"
+    - name: beta
+      rust: nightly
+      env: DATABASE_URL=postgresql://postgres@localhost:5432 NB_CONNECTION=1 RUSTFLAGS="-Aproc-macro-derive-resolution-fallback"
+    - rust: stable
+      env: RUSTFMT
+      install:
+        - rustup component add rustfmt-preview
+      script:
+        - cargo fmt -- --check
+    - rust: nightly
+      env: CLIPPY
+      install:
+        - rustup component add clippy-preview
+      script:
+        - cargo clippy -- -D clippy
 cache:
   timeout: 1000
 services:
   - postgresql
-env:
-  - DATABASE_URL=postgresql://postgres@localhost:5432 NB_CONNECTION=1 RUSTFLAGS="-Aproc-macro-derive-resolution-fallback"
 cache: cargo
 before_script:
   - export PATH="$PATH:$HOME/.cargo/bin"

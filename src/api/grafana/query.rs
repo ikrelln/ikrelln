@@ -137,6 +137,5 @@ pub fn query(
                     }
                     Ok(HttpResponse::Ok().json(responses))
                 })
-        })
-        .responder()
+        }).responder()
 }

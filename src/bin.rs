@@ -19,8 +19,7 @@ fn main() {
                 record.level(),
                 message
             ))
-        })
-        .apply()
+        }).apply()
         .unwrap();
 
     ikrelln::start_server();

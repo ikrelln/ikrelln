@@ -84,7 +84,11 @@ pub struct ConfigLoaderCmd {
         help = "Listen on the specified host, by default 7878"
     )]
     pub port: Option<u16>,
-    #[structopt(long = "db-url", env = "DATABASE_URL", help = "URL to connect to the database")]
+    #[structopt(
+        long = "db-url",
+        env = "DATABASE_URL",
+        help = "URL to connect to the database"
+    )]
     pub db_url: Option<String>,
 }
 

@@ -31,8 +31,7 @@ impl Handler<TraceDone> for TraceParser {
                     ::db::read::span::SpanQuery::default()
                         .with_trace_id(msg.0)
                         .with_limit(1000),
-                ))
-                .map(|spans| {
+                )).map(|spans| {
                     let te = TestResult::try_from(&spans);
                     match te {
                         Ok(te) => Some(te),
@@ -44,8 +43,7 @@ impl Handler<TraceDone> for TraceParser {
                             None
                         }
                     }
-                })
-                .then(|test_exec| {
+                }).then(|test_exec| {
                     if let Ok(Some(test_exec)) = test_exec {
                         actix::System::current()
                             .registry()

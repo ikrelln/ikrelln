@@ -69,8 +69,7 @@ pub fn get_test(
                     with_traces: true,
                     ..Default::default()
                 }),
-            })
-            .from_err()
+            }).from_err()
             .and_then(|res| match res.len() {
                 0 => Err(super::errors::IkError::NotFound(
                     "testId not found".to_string(),
@@ -85,12 +84,10 @@ pub fn get_test(
                         .map(|tr| TestItem {
                             name: tr.name.clone(),
                             id: tr.test_id.clone(),
-                        })
-                        .collect(),
+                        }).collect(),
                     last_results: vec![],
                 })),
-            })
-            .responder(),
+            }).responder(),
         _ => result(Err(super::errors::IkError::BadRequest(
             "missing testId path parameter".to_string(),
         ))).responder(),
@@ -116,15 +113,13 @@ pub fn get_tests_by_parent(
                     with_traces: true,
                     ..Default::default()
                 },
-            ))
-            .from_err()
+            )).from_err()
             .and_then(|res| match res.len() {
                 0 => Err(super::errors::IkError::NotFound(
                     "testId not found".to_string(),
                 )),
                 _ => Ok(HttpResponse::Ok().json(res)),
-            })
-            .responder(),
+            }).responder(),
         _ => result(Err(super::errors::IkError::BadRequest(
             "missing parentId query parameter".to_string(),
         ))).responder(),

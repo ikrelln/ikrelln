@@ -54,8 +54,7 @@ impl super::DbExecutor {
                     .values(&ReportDb {
                         id: new_id.clone(),
                         ..(*report_db).clone()
-                    })
-                    .execute(self.0.as_ref().expect("fail to get DB"));
+                    }).execute(self.0.as_ref().expect("fail to get DB"));
                 if could_insert.is_err() {
                     self.find_report(report_db)
                         .map(|existing| {
@@ -64,8 +63,7 @@ impl super::DbExecutor {
                                 .execute(self.0.as_ref().expect("fail to get DB"))
                                 .ok();
                             existing.id
-                        })
-                        .expect("fail to find report")
+                        }).expect("fail to find report")
                 } else {
                     new_id
                 }
@@ -123,9 +121,8 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                     ).set((
                         trace_id.eq(msg.result.trace_id),
                         status.eq(msg.result.status.as_i32()),
-                    ))
-                        .execute(self.0.as_ref().expect("fail to get DB"))
-                        .ok();
+                    )).execute(self.0.as_ref().expect("fail to get DB"))
+                    .ok();
                 }
                 (Some(category_from_input), None) => {
                     diesel::update(
@@ -137,9 +134,8 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                     ).set((
                         trace_id.eq(msg.result.trace_id),
                         status.eq(msg.result.status.as_i32()),
-                    ))
-                        .execute(self.0.as_ref().expect("fail to get DB"))
-                        .ok();
+                    )).execute(self.0.as_ref().expect("fail to get DB"))
+                    .ok();
                 }
 
                 (None, Some(environment_from_input)) => {
@@ -152,9 +148,8 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                     ).set((
                         trace_id.eq(msg.result.trace_id),
                         status.eq(msg.result.status.as_i32()),
-                    ))
-                        .execute(self.0.as_ref().expect("fail to get DB"))
-                        .ok();
+                    )).execute(self.0.as_ref().expect("fail to get DB"))
+                    .ok();
                 }
                 (None, None) => {
                     diesel::update(
@@ -166,9 +161,8 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                     ).set((
                         trace_id.eq(msg.result.trace_id),
                         status.eq(msg.result.status.as_i32()),
-                    ))
-                        .execute(self.0.as_ref().expect("fail to get DB"))
-                        .ok();
+                    )).execute(self.0.as_ref().expect("fail to get DB"))
+                    .ok();
                 }
             };
         } else {
@@ -183,8 +177,7 @@ impl Handler<::engine::report::ResultForReport> for super::DbExecutor {
                         .unwrap_or_else(|| msg.report_name.clone()),
                     environment: msg.result.environment,
                     status: msg.result.status.into(),
-                })
-                .execute(self.0.as_ref().expect("fail to get DB"))
+                }).execute(self.0.as_ref().expect("fail to get DB"))
                 .ok();
         }
     }

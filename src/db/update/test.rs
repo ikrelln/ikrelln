@@ -88,8 +88,7 @@ impl super::DbExecutor {
                     .values(&TestItemDb {
                         id: new_id.clone(),
                         ..(*test_item_db).clone()
-                    })
-                    .execute(self.0.as_ref().expect("fail to get DB"));
+                    }).execute(self.0.as_ref().expect("fail to get DB"));
                 if could_insert.is_err() {
                     self.find_test_item(test_item_db)
                         .map(|existing| existing.id)
@@ -155,8 +154,7 @@ impl Handler<::engine::test_result::TestResult> for super::DbExecutor {
                     }
                     _ => ResultCleanupStatus::WithData.into(),
                 },
-            })
-            .execute(self.0.as_ref().expect("fail to get DB"))
+            }).execute(self.0.as_ref().expect("fail to get DB"))
             .map_err(|err| self.reconnect_if_needed(ctx, &err))
             .ok();
 
@@ -166,8 +164,8 @@ impl Handler<::engine::test_result::TestResult> for super::DbExecutor {
                 .filter(test_id.eq(parent_id.clone()))
                 .filter(date.lt(test_result_date)),
         ).set(cleanup_status.eq(super::test::ResultCleanupStatus::WithData.as_i32()))
-            .execute(self.0.as_ref().expect("fail to get DB"))
-            .ok();
+        .execute(self.0.as_ref().expect("fail to get DB"))
+        .ok();
 
         MessageResult(::engine::test_result::TestResult {
             test_id: parent_id,

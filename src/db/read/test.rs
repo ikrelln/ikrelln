@@ -104,8 +104,7 @@ impl Handler<GetTestItems> for super::DbReadExecutor {
                 .unwrap_or_else(|err| {
                     error!("error loading test items: {:?}", err);
                     vec![]
-                })
-                .iter()
+                }).iter()
                 .map(|ti| {
                     let mut test_item_to_get = match ti.parent_id.as_ref() {
                         "root" => None,
@@ -121,10 +120,8 @@ impl Handler<GetTestItems> for super::DbReadExecutor {
                                         .filter(id.eq(ti_id))
                                         .first::<TestItemDb>(
                                             self.0.as_ref().expect("fail to get DB"),
-                                        )
-                                        .ok()
-                                })
-                                .clone()
+                                        ).ok()
+                                }).clone()
                             {
                                 test_item_to_get = match test.parent_id.as_ref() {
                                     "root" => None,
@@ -154,8 +151,7 @@ impl Handler<GetTestItems> for super::DbReadExecutor {
                             .map(|ti| ::api::test::TestItem {
                                 name: ti.name.clone(),
                                 id: ti.id.clone(),
-                            })
-                            .collect()
+                            }).collect()
                     } else {
                         vec![]
                     };
@@ -184,8 +180,7 @@ impl Handler<GetTestItems> for super::DbReadExecutor {
                                     .unwrap(),
                                 nb_spans: tr.nb_spans,
                                 main_span: None,
-                            })
-                            .collect()
+                            }).collect()
                     } else {
                         vec![]
                     };
@@ -197,8 +192,7 @@ impl Handler<GetTestItems> for super::DbReadExecutor {
                         path,
                         test_id: ti.id.clone(),
                     }
-                })
-                .collect(),
+                }).collect(),
         )
     }
 }
@@ -251,8 +245,7 @@ impl From<::api::test::TestResultsQueryParams> for TestResultQuery {
                         v / 1000,
                         ((v % 1000) * 1000 * 1000) as u32,
                     )
-                })
-                .unwrap_or_else(|| chrono::Utc::now().naive_utc()),
+                }).unwrap_or_else(|| chrono::Utc::now().naive_utc()),
             lookback: params.lookback.map(chrono::Duration::milliseconds),
             limit: params
                 .limit
@@ -262,8 +255,7 @@ impl From<::api::test::TestResultsQueryParams> for TestResultQuery {
                     } else {
                         v
                     }
-                })
-                .unwrap_or(TEST_RESULT_QUERY_LIMIT),
+                }).unwrap_or(TEST_RESULT_QUERY_LIMIT),
         }
     }
 }
@@ -348,8 +340,7 @@ impl Handler<GetTestResults> for super::DbReadExecutor {
                                 .filter(id.eq(ti_id))
                                 .first::<TestItemDb>(self.0.as_ref().expect("fail to get DB"))
                                 .ok()
-                        })
-                        .clone();
+                        }).clone();
 
                     let mut test_item_to_get =
                         test.clone().and_then(|t| match t.parent_id.as_ref() {
@@ -365,8 +356,7 @@ impl Handler<GetTestResults> for super::DbReadExecutor {
                                     .filter(id.eq(ti_id))
                                     .first::<TestItemDb>(self.0.as_ref().expect("fail to get DB"))
                                     .ok()
-                            })
-                            .clone()
+                            }).clone()
                         {
                             test_item_to_get = match test.parent_id.as_ref() {
                                 "root" => None,
@@ -396,8 +386,7 @@ impl Handler<GetTestResults> for super::DbReadExecutor {
                         nb_spans: tr.nb_spans,
                         main_span: None,
                     }
-                })
-                .collect::<Vec<::engine::test_result::TestResult>>(),
+                }).collect::<Vec<::engine::test_result::TestResult>>(),
         )
     }
 }
@@ -421,8 +410,7 @@ impl Handler<GetEnvironments> for super::DbReadExecutor {
                 .unwrap_or_else(|err| {
                     error!("error loading environment from test results: {:?}", err);
                     vec![]
-                })
-                .iter()
+                }).iter()
                 .filter_map(|v| v.clone())
                 .collect(),
         )

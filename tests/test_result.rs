@@ -41,8 +41,7 @@ fn should_not_have_test_result_from_span_without_tags() {
             annotations: vec![],
             tags: HashMap::new(),
             binary_annotations: vec![],
-        }])
-        .unwrap();
+        }]).unwrap();
     let response = srv.execute(req.send()).unwrap();
     assert!(response.status().is_success());
     let data: Result<IngestResponse, _> =
@@ -54,12 +53,12 @@ fn should_not_have_test_result_from_span_without_tags() {
         helpers::DELAY_RESULT_SAVED_MILLISECONDS,
     ));
 
-    let req_tr =
-        srv.client(
+    let req_tr = srv
+        .client(
             http::Method::GET,
             &format!("/api/v1/testresults?traceId={}", &trace_id),
         ).finish()
-            .unwrap();
+        .unwrap();
     let response_tr = srv.execute(req_tr.send()).unwrap();
     assert!(response_tr.status().is_success());
     let data_tr: Result<Vec<TestResult>, _> =
@@ -116,8 +115,7 @@ fn should_create_test_result() {
             annotations: vec![],
             tags,
             binary_annotations: vec![],
-        }])
-        .unwrap();
+        }]).unwrap();
     let response = srv.execute(req.send()).unwrap();
     assert!(response.status().is_success());
     let data: Result<IngestResponse, _> =
@@ -129,12 +127,12 @@ fn should_create_test_result() {
         helpers::DELAY_RESULT_SAVED_MILLISECONDS,
     ));
 
-    let req_tr =
-        srv.client(
+    let req_tr = srv
+        .client(
             http::Method::GET,
             &format!("/api/v1/testresults?traceId={}", &trace_id),
         ).finish()
-            .unwrap();
+        .unwrap();
     let response_tr = srv.execute(req_tr.send()).unwrap();
     assert!(response_tr.status().is_success());
     let data_tr: Result<Vec<TestResult>, _> =

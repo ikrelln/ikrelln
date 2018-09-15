@@ -118,8 +118,7 @@ impl Handler<LoadScripts> for Streamer {
                 .send(::db::read::scripts::GetAll(Some(vec![
                     ScriptType::StreamTest,
                     ScriptType::ReportFilterTestResult,
-                ])))
-                .then(|scripts| {
+                ]))).then(|scripts| {
                     if let Ok(scripts) = scripts {
                         actix::System::current()
                             .registry()
@@ -165,8 +164,7 @@ impl Handler<RemoveScript> for Streamer {
             .position(|x| {
                 (*x.id.clone().expect("script should have an ID"))
                     == msg.0.id.clone().expect("script should have an ID")
-            })
-            .expect("script not found");
+            }).expect("script not found");
         self.scripts.remove(index);
     }
 }
@@ -183,8 +181,7 @@ impl Handler<UpdateScript> for Streamer {
             .position(|x| {
                 (*x.id.clone().expect("script should have an ID"))
                     == msg.0.id.clone().expect("script should have an ID")
-            })
-            .expect("script not found");
+            }).expect("script not found");
         self.scripts.remove(index);
         self.scripts.push(msg.0);
     }
@@ -233,8 +230,7 @@ impl Handler<Test> for Streamer {
                 .filter(|script| match script.script_type {
                     ScriptType::StreamTest => true,
                     _ => false,
-                })
-                .collect();
+                }).collect();
             for script in stream_test_script {
                 match py.run(script.source.as_ref(), None, Some(&locals)) {
                     Ok(_) => match py.eval("on_test(test)", None, Some(&locals)) {
@@ -255,8 +251,7 @@ impl Handler<Test> for Streamer {
                 .filter(|script| match script.script_type {
                     ScriptType::ReportFilterTestResult => true,
                     _ => false,
-                })
-                .collect();
+                }).collect();
             for script in report_filter_test_script {
                 match py.run(script.source.as_ref(), None, Some(&locals)) {
                     Ok(_) => match py.eval("reports_for_test(test)", None, Some(&locals)) {

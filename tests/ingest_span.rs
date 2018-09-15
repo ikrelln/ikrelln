@@ -39,8 +39,7 @@ fn can_receive_span() {
             annotations: vec![],
             tags: HashMap::new(),
             binary_annotations: vec![],
-        }])
-        .unwrap();
+        }]).unwrap();
     let response = srv.execute(req.send()).unwrap();
     assert!(response.status().is_success());
     let data: Result<IngestResponse, _> =
@@ -124,8 +123,7 @@ fn can_receive_spans() {
                 tags: HashMap::new(),
                 binary_annotations: vec![],
             },
-        ])
-        .unwrap();
+        ]).unwrap();
     let response = srv.execute(req.send()).unwrap();
     assert!(response.status().is_success());
     let data: Result<IngestResponse, _> =

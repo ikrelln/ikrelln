@@ -79,8 +79,7 @@ pub static BUILD_INFO: BuildInfo = BuildInfo {{
             let mut contents = String::new();
             f.read_to_string(&mut contents).unwrap();
             return contents;
-        })
-        .map(|content| content != new_content)
+        }).map(|content| content != new_content)
         .unwrap_or(true);
 
     if update {

@@ -66,7 +66,10 @@ impl HasId<ApplicationId> for Application {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Test {
     pub id: TestId,
-    #[serde(serialize_with = "serialize_with_id", rename = "application_id")]
+    #[serde(
+        serialize_with = "serialize_with_id",
+        rename = "application_id"
+    )]
     pub application: Application,
     pub name: String,
     pub duration: u64,
@@ -77,7 +80,10 @@ pub struct Test {
 pub struct Step {
     pub id: StepId,
     pub test: Test,
-    #[serde(serialize_with = "serialize_option_with_id", rename = "application_id")]
+    #[serde(
+        serialize_with = "serialize_option_with_id",
+        rename = "application_id"
+    )]
     pub application: Option<Application>,
     pub name: String,
     pub duration: u64,

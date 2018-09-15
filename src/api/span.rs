@@ -31,8 +31,7 @@ pub fn ingest(
                 ingest_id,
                 nb_events: nb_spans,
             }))
-        })
-        .responder()
+        }).responder()
 }
 
 pub fn get_services(
@@ -44,8 +43,7 @@ pub fn get_services(
         .and_then(|mut services| {
             services.dedup();
             Ok(HttpResponse::Ok().json(services))
-        })
-        .responder()
+        }).responder()
 }
 
 pub fn get_spans_by_service(
@@ -55,8 +53,7 @@ pub fn get_spans_by_service(
         Some(_) => ::DB_READ_EXECUTOR_POOL
             .send(::db::read::span::GetSpans(
                 ::db::read::span::SpanQuery::from_req(&req),
-            ))
-            .from_err()
+            )).from_err()
             .and_then(|res| {
                 let mut span_names = res
                     .iter()
@@ -65,8 +62,7 @@ pub fn get_spans_by_service(
                 span_names.sort_unstable();
                 span_names.dedup();
                 Ok(HttpResponse::Ok().json(span_names))
-            })
-            .responder(),
+            }).responder(),
 
         _ => result(Err(super::errors::IkError::BadRequest(
             "missing serviceName query parameter".to_string(),
@@ -81,8 +77,7 @@ pub fn get_spans_by_trace_id(
         Some(trace_id) => ::DB_READ_EXECUTOR_POOL
             .send(::db::read::span::GetSpans(
                 ::db::read::span::SpanQuery::from_req(&req).with_trace_id(trace_id.to_string()),
-            ))
-            .from_err()
+            )).from_err()
             .and_then(|res| Ok(HttpResponse::Ok().json(res)))
             .responder(),
 
@@ -98,8 +93,7 @@ pub fn get_traces(
     ::DB_READ_EXECUTOR_POOL
         .send(::db::read::span::GetSpans(
             ::db::read::span::SpanQuery::from_req(&req),
-        ))
-        .from_err()
+        )).from_err()
         .and_then(|res| {
             Ok(HttpResponse::Ok().json({
                 let mut by_trace_with_key = HashMap::new();
@@ -115,8 +109,7 @@ pub fn get_traces(
                 }
                 by_trace
             }))
-        })
-        .responder()
+        }).responder()
 }
 
 #[derive(Debug, Serialize)]
@@ -146,8 +139,7 @@ pub fn get_dependencies(
             ::db::read::span::SpanQuery::from_req(&req)
                 .with_limit(100_000)
                 .only_endpoint(),
-        ))
-        .from_err()
+        )).from_err()
         .and_then(|res| {
             Ok(HttpResponse::Ok().json({
                 let by_services = res.into_iter().fold(HashMap::new(), |mut map, elt| {
@@ -167,8 +159,7 @@ pub fn get_dependencies(
                                     child: remote_service.clone(),
                                     call_count: 0,
                                     error_count: 0,
-                                })
-                                .add_call()
+                                }).add_call()
                         };
                         map.insert(format!("{}-{}", local_service, remote_service), dep);
                     }
@@ -180,6 +171,5 @@ pub fn get_dependencies(
                 }
                 by_trace
             }))
-        })
-        .responder()
+        }).responder()
 }

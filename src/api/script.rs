@@ -37,8 +37,7 @@ pub fn save_script(
                 _ => (),
             }
             Ok(HttpResponse::Ok().json(new_script))
-        })
-        .responder()
+        }).responder()
 }
 
 pub fn get_script(
@@ -53,8 +52,7 @@ pub fn get_script(
                 None => Err(super::errors::IkError::NotFound(
                     "script not found".to_string(),
                 )),
-            })
-            .responder(),
+            }).responder(),
 
         _ => result(Err(super::errors::IkError::BadRequest(
             "missing scriptId path parameter".to_string(),
@@ -87,8 +85,7 @@ pub fn delete_script(
                 None => Err(super::errors::IkError::NotFound(
                     "script not found".to_string(),
                 )),
-            })
-            .responder(),
+            }).responder(),
 
         _ => result(Err(super::errors::IkError::BadRequest(
             "missing scriptId path parameter".to_string(),
@@ -136,8 +133,7 @@ pub fn update_script(
                     "missing scriptId path parameter".to_string(),
                 )),
             },
-        )
-        .responder()
+        ).responder()
 }
 
 pub fn reload_scripts(_req: &HttpRequest<AppState>) -> HttpResponse {

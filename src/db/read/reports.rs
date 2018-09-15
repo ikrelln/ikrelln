@@ -66,13 +66,11 @@ impl Handler<GetAll> for super::DbReadExecutor {
                             .unwrap_or_else(|err| {
                                 error!("error loading environment from reports: {:?}", err);
                                 vec![]
-                            })
-                            .iter()
+                            }).iter()
                             .map(|vo| match vo {
                                 Some(ref v) => v.clone(),
                                 None => "None".to_string(),
-                            })
-                            .collect()
+                            }).collect()
                     };
                     let statuses = [
                         TestStatus::Success,
@@ -110,8 +108,7 @@ impl Handler<GetAll> for super::DbReadExecutor {
                         environments,
                         summary: Some(summary),
                     }
-                })
-                .collect(),
+                }).collect(),
         )
     }
 }
@@ -188,8 +185,7 @@ impl Handler<GetReport> for super::DbReadExecutor {
                         .unwrap_or_else(|err| {
                             error!("error loading test results: {:?}", err);
                             vec![]
-                        })
-                        .iter()
+                        }).iter()
                         .map(|tr| {
                             let test = test_item_cache
                                 .get(&tr.test_id, |ti_id| {
@@ -199,10 +195,8 @@ impl Handler<GetReport> for super::DbReadExecutor {
                                         .filter(id.eq(ti_id))
                                         .first::<::db::test::TestItemDb>(
                                             self.0.as_ref().expect("fail to get DB"),
-                                        )
-                                        .ok()
-                                })
-                                .clone();
+                                        ).ok()
+                                }).clone();
 
                             let mut test_item_to_get =
                                 test.clone().and_then(|t| match t.parent_id.as_ref() {
@@ -218,10 +212,8 @@ impl Handler<GetReport> for super::DbReadExecutor {
                                             .filter(id.eq(ti_id))
                                             .first::<::db::test::TestItemDb>(
                                                 self.0.as_ref().expect("fail to get DB"),
-                                            )
-                                            .ok()
-                                    })
-                                    .clone()
+                                            ).ok()
+                                    }).clone()
                                 {
                                     test_item_to_get = match test.parent_id.as_ref() {
                                         "root" => None,
@@ -252,8 +244,7 @@ impl Handler<GetReport> for super::DbReadExecutor {
                                 nb_spans: tr.nb_spans,
                                 main_span: None,
                             }
-                        })
-                        .collect::<Vec<::engine::test_result::TestResult>>()
+                        }).collect::<Vec<::engine::test_result::TestResult>>()
                 };
                 test_results.insert(category_found.clone(), results);
             });
@@ -269,13 +260,11 @@ impl Handler<GetReport> for super::DbReadExecutor {
                     .unwrap_or_else(|err| {
                         error!("error loading environments from report: {:?}", err);
                         vec![]
-                    })
-                    .iter()
+                    }).iter()
                     .map(|vo| match vo {
                         Some(ref v) => v.clone(),
                         None => "None".to_string(),
-                    })
-                    .collect()
+                    }).collect()
             };
 
             ::api::report::Report {

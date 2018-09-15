@@ -34,8 +34,7 @@ impl Handler<SaveScript> for super::DbExecutor {
                     ::engine::streams::ScriptStatus::Enabled => 0,
                     ::engine::streams::ScriptStatus::Disabled => 1,
                 },
-            })
-            .execute(self.0.as_ref().expect("fail to get DB"))
+            }).execute(self.0.as_ref().expect("fail to get DB"))
             .unwrap();
     }
 }
@@ -93,8 +92,7 @@ impl Handler<UpdateScript> for super::DbExecutor {
                     ::engine::streams::ScriptStatus::Enabled => 0,
                     ::engine::streams::ScriptStatus::Disabled => 1,
                 }),
-            ))
-            .execute(self.0.as_ref().expect("fail to get DB"))
+            )).execute(self.0.as_ref().expect("fail to get DB"))
             .unwrap();
     }
 }

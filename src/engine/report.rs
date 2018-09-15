@@ -50,8 +50,7 @@ impl Handler<ComputeReportsForResult> for Reporter {
                     ::db::read::span::SpanQuery::default()
                         .with_trace_id(msg.0.trace_id.clone())
                         .with_limit(1000),
-                ))
-                .then(move |spans| {
+                )).then(move |spans| {
                     if let Ok(spans) = spans {
                         let reports_to_send: HashSet<Report> = spans
                             .iter()
@@ -64,8 +63,7 @@ impl Handler<ComputeReportsForResult> for Reporter {
                                     .unwrap_or_else(|| "service".to_string()),
                                 group: "endpoints".to_string(),
                                 category: span.name.clone(),
-                            })
-                            .collect();
+                            }).collect();
                         reports_to_send.iter().for_each(|report| {
                             actix::System::current()
                                 .registry()

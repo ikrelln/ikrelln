@@ -147,8 +147,7 @@ fn should_create_report() {
                 tags: HashMap::new(),
                 binary_annotations: vec![],
             },
-        ])
-        .unwrap();
+        ]).unwrap();
     let response = srv.execute(req.send()).unwrap();
     assert!(response.status().is_success());
     let data: Result<IngestResponse, _> =
@@ -161,12 +160,12 @@ fn should_create_report() {
     ));
 
     {
-        let req_report =
-            srv.client(
+        let req_report = srv
+            .client(
                 http::Method::GET,
                 &format!("/api/v1/reports/endpoints/{}", service_name1),
             ).finish()
-                .unwrap();
+            .unwrap();
         let response_report = srv.execute(req_report.send()).unwrap();
         assert!(response_report.status().is_success());
         let data_report_res: Result<Report, _> =
@@ -183,12 +182,12 @@ fn should_create_report() {
         );
     }
     {
-        let req_report =
-            srv.client(
+        let req_report = srv
+            .client(
                 http::Method::GET,
                 &format!("/api/v1/reports/endpoints/{}", service_name2),
             ).finish()
-                .unwrap();
+            .unwrap();
         let response_report = srv.execute(req_report.send()).unwrap();
         assert!(response_report.status().is_success());
         let data_report_res: Result<Report, _> =

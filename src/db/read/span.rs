@@ -143,8 +143,7 @@ impl SpanQuery {
                         v / 1000,
                         ((v % 1000) * 1000 * 1000) as u32,
                     )
-                })
-                .unwrap_or_else(|| chrono::Utc::now().naive_utc()),
+                }).unwrap_or_else(|| chrono::Utc::now().naive_utc()),
             lookback: req
                 .query()
                 .get("lookback")
@@ -160,8 +159,7 @@ impl SpanQuery {
                     } else {
                         v
                     }
-                })
-                .unwrap_or(SPAN_QUERY_LIMIT),
+                }).unwrap_or(SPAN_QUERY_LIMIT),
             only_endpoint: false,
         }
     }
@@ -279,8 +277,7 @@ impl Handler<GetSpans> for super::DbReadExecutor {
                                         ipv6: ep.ipv6,
                                         port: ep.port,
                                     })
-                            })
-                            .clone()
+                            }).clone()
                     });
                     let remote_endpoint = spandb.remote_endpoint_id.clone().and_then(|rep_id| {
                         endpoint_cache
@@ -297,8 +294,7 @@ impl Handler<GetSpans> for super::DbReadExecutor {
                                         ipv6: ep.ipv6,
                                         port: ep.port,
                                     })
-                            })
-                            .clone()
+                            }).clone()
                     });
 
                     let annotations = if !without_annotations {
@@ -316,8 +312,7 @@ impl Handler<GetSpans> for super::DbReadExecutor {
                                     + i64::from(an.ts.timestamp_subsec_millis()))
                                     * 1000,
                                 value: an.value.clone(),
-                            })
-                            .collect()
+                            }).collect()
                     } else {
                         vec![]
                     };
@@ -364,11 +359,9 @@ impl Handler<GetSpans> for super::DbReadExecutor {
                                 key: k.clone(),
                                 value: v.clone(),
                                 endpoint: binary_annotation_endpoint.clone(),
-                            })
-                            .collect(),
+                            }).collect(),
                     }
-                })
-                .collect(),
+                }).collect(),
         )
     }
 }

@@ -120,8 +120,7 @@ impl ToGrafana for ::api::report::Report {
                     summary
                         .get(&::engine::test_result::TestStatus::Success)
                         .cloned()
-                })
-                .unwrap_or(0) as i64,
+                }).unwrap_or(0) as i64,
         ));
         column.push(Value::Number(
             self.summary
@@ -130,8 +129,7 @@ impl ToGrafana for ::api::report::Report {
                     summary
                         .get(&::engine::test_result::TestStatus::Failure)
                         .cloned()
-                })
-                .unwrap_or(0) as i64,
+                }).unwrap_or(0) as i64,
         ));
         column.push(Value::Number(
             self.summary
@@ -140,8 +138,7 @@ impl ToGrafana for ::api::report::Report {
                     summary
                         .get(&::engine::test_result::TestStatus::Skipped)
                         .cloned()
-                })
-                .unwrap_or(0) as i64,
+                }).unwrap_or(0) as i64,
         ));
         column
     }

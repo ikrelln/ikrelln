@@ -41,15 +41,13 @@ pub fn get_report(
                 report_group: report_group.to_string().replace("%20", " "),
                 report_name: report_name.to_string().replace("%20", " "),
                 environment: req.query().get("environment").map(|v| v.to_string()),
-            })
-            .from_err()
+            }).from_err()
             .and_then(|res| match res {
                 Some(report) => Ok(HttpResponse::Ok().json(report)),
                 None => Err(super::errors::IkError::NotFound(
                     "report not found".to_string(),
                 )),
-            })
-            .responder(),
+            }).responder(),
 
         (_, _) => result(Err(super::errors::IkError::BadRequest(
             "missing path parameter".to_string(),

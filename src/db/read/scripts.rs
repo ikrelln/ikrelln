@@ -52,8 +52,7 @@ impl Handler<GetAll> for super::DbReadExecutor {
                         0 => ::engine::streams::ScriptStatus::Enabled,
                         _ => ::engine::streams::ScriptStatus::Disabled,
                     }),
-                })
-                .collect(),
+                }).collect(),
         )
     }
 }

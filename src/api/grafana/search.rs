@@ -27,6 +27,5 @@ pub fn search(
                 SearchResponse::Node("reports".to_string()),
             ];
             Ok(HttpResponse::Ok().json(resp))
-        })
-        .responder()
+        }).responder()
 }

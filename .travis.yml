@@ -1,35 +1,14 @@
 language: rust
+
+rust:
+  - stable
+  - beta
+  - nightly
+
 matrix:
   allow_failures:
     - rust: nightly
   include:
-    - name: stable
-      rust: stable
-      env: DATABASE_URL=postgresql://postgres@localhost:5432 NB_CONNECTION=1
-      services:
-        - postgresql
-      before_script:
-        - export PATH="$PATH:$HOME/.cargo/bin"
-        - which diesel || cargo install diesel_cli --no-default-features --features postgres
-        - diesel setup
-    - name: beta
-      rust: beta
-      env: DATABASE_URL=postgresql://postgres@localhost:5432 NB_CONNECTION=1 RUSTFLAGS="-Aproc-macro-derive-resolution-fallback"
-      services:
-        - postgresql
-      before_script:
-        - export PATH="$PATH:$HOME/.cargo/bin"
-        - which diesel || cargo install diesel_cli --no-default-features --features postgres
-        - diesel setup
-    - name: nightly
-      rust: nightly
-      env: DATABASE_URL=postgresql://postgres@localhost:5432 NB_CONNECTION=1 RUSTFLAGS="-Aproc-macro-derive-resolution-fallback"
-      services:
-        - postgresql
-      before_script:
-        - export PATH="$PATH:$HOME/.cargo/bin"
-        - which diesel || cargo install diesel_cli --no-default-features --features postgres
-        - diesel setup
     - rust: stable
       env: RUSTFMT
       install:
@@ -44,6 +23,16 @@ matrix:
       script:
         - cargo build
         - cargo clippy -- -D clippy
-cache:
-  timeout: 1000
+
+services:
+  - postgresql
+
+env:
+  - DATABASE_URL=postgresql://postgres@localhost:5432 NB_CONNECTION=1 RUSTFLAGS="-Aproc-macro-derive-resolution-fallback"
+
 cache: cargo
+
+before_script:
+  - export PATH="$PATH:$HOME/.cargo/bin"
+  - which diesel || cargo install diesel_cli --no-default-features --features postgres
+  - diesel setup

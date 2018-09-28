@@ -10,14 +10,12 @@ matrix:
     - rust: nightly
   include:
     - rust: stable
-      env: RUSTFMT
       install:
         - rustup component add rustfmt-preview
       script:
         - cargo build
         - cargo fmt -- --check
     - rust: nightly
-      env: CLIPPY RUSTFLAGS="-Aproc-macro-derive-resolution-fallback"
       install:
         - rustup component add clippy-preview
       script:

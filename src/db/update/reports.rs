@@ -49,7 +49,7 @@ impl super::DbExecutor {
                 existing.id
             }
             None => {
-                let new_id = uuid::Uuid::new_v4().hyphenated().to_string();
+                let new_id = uuid::Uuid::new_v4().to_hyphenated().to_string();
                 let could_insert = diesel::insert_into(report)
                     .values(&ReportDb {
                         id: new_id.clone(),

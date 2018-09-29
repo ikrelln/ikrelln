@@ -30,7 +30,7 @@ macro_rules! typed_id {
         impl $name {
             #[allow(dead_code)]
             pub fn new() -> $name {
-                $name(format!("{}", uuid::Uuid::new_v4().hyphenated()))
+                $name(format!("{}", uuid::Uuid::new_v4().to_hyphenated()))
             }
         }
     };

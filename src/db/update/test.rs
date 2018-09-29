@@ -83,7 +83,7 @@ impl super::DbExecutor {
         match self.find_test_item(test_item_db) {
             Some(existing) => existing.id,
             None => {
-                let new_id = uuid::Uuid::new_v4().hyphenated().to_string();
+                let new_id = uuid::Uuid::new_v4().to_hyphenated().to_string();
                 let could_insert = diesel::insert_into(test_item)
                     .values(&TestItemDb {
                         id: new_id.clone(),

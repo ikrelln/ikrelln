@@ -21,8 +21,10 @@ impl error::ResponseError for IkError {
                 let error_uid = uuid::Uuid::new_v4();
                 error!("{:?} with id {}", self, error_uid);
                 HttpResponse::InternalServerError()
-                    .header("X-Request-Id", error_uid.hyphenated().to_string().as_str())
-                    .finish()
+                    .header(
+                        "X-Request-Id",
+                        error_uid.to_hyphenated().to_string().as_str(),
+                    ).finish()
             }
             IkError::BadRequest(_) => HttpResponse::BadRequest().json(self),
             IkError::NotFound(_) => HttpResponse::NotFound().json(self),

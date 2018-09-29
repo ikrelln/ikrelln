@@ -116,7 +116,7 @@ fn get_all_from_span(span: &::opentracing::Span) -> FromSpan {
             AnnotationDb {
                 trace_id: trace_id.clone(),
                 span_id: span_id.clone(),
-                annotation_id: uuid::Uuid::new_v4().hyphenated().to_string(),
+                annotation_id: uuid::Uuid::new_v4().to_hyphenated().to_string(),
                 ts: chrono::NaiveDateTime::from_timestamp(
                     // timestamp is in microseconds
                     annotation.timestamp / 1000 / 1000,
@@ -178,7 +178,7 @@ impl super::DbExecutor {
             match self.find_endpoint(&le) {
                 Some(existing) => Some(existing.endpoint_id),
                 None => {
-                    let new_id = uuid::Uuid::new_v4().hyphenated().to_string();
+                    let new_id = uuid::Uuid::new_v4().to_hyphenated().to_string();
                     let could_insert = diesel::insert_into(endpoint)
                         .values(&EndpointDb {
                             endpoint_id: new_id.clone(),

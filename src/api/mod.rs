@@ -29,7 +29,7 @@ pub fn http_application() -> App<AppState> {
         start_time: chrono::Utc::now(),
     }).middleware(middleware::DefaultHeaders::new().header(
         "X-Request-Id",
-        uuid::Uuid::new_v4().hyphenated().to_string().as_str(),
+        uuid::Uuid::new_v4().to_hyphenated().to_string().as_str(),
     )).middleware(middleware::Logger::new(
         "%a %t \"%r\" %s %b \"%{Referer}i\" \"%{User-Agent}i\" %{X-Request-Id}o - %T",
     )).middleware(cors::Cors::build().send_wildcard().finish())

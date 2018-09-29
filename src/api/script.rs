@@ -21,7 +21,7 @@ pub fn save_script(
                     ::engine::streams::ScriptType::UITestResult => {
                         Some(::engine::streams::ScriptType::UITestResult.into())
                     }
-                    _ => Some(uuid::Uuid::new_v4().hyphenated().to_string()),
+                    _ => Some(uuid::Uuid::new_v4().to_hyphenated().to_string()),
                 },
                 status: Some(::engine::streams::ScriptStatus::Enabled),
                 date_added: Some(chrono::Utc::now().naive_utc()),

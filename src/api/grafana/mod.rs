@@ -9,5 +9,5 @@ pub use self::query::query;
 pub mod data_queries;
 
 pub fn setup(_req: &HttpRequest<AppState>) -> String {
-    String::from(::engine::hello())
+    String::from(crate::engine::hello())
 }

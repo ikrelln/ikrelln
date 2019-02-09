@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 static SPAN_QUERY_LIMIT: i64 = 500;
-use db::schema::span;
+use crate::db::schema::span;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "span"]
 pub struct SpanDb {
@@ -25,7 +25,7 @@ pub struct SpanDb {
 }
 
 static ENDPOINT_QUERY_LIMIT: i64 = 1000;
-use db::schema::endpoint;
+use crate::db::schema::endpoint;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "endpoint"]
 pub struct EndpointDb {
@@ -37,7 +37,7 @@ pub struct EndpointDb {
 }
 
 static TAG_QUERY_LIMIT: i64 = 100;
-use db::schema::tag;
+use crate::db::schema::tag;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "tag"]
 pub struct TagDb {
@@ -47,7 +47,7 @@ pub struct TagDb {
 }
 
 static ANNOTATION_QUERY_LIMIT: i64 = 100;
-use db::schema::annotation;
+use crate::db::schema::annotation;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "annotation"]
 pub struct AnnotationDb {
@@ -115,7 +115,7 @@ impl Default for SpanQuery {
 }
 
 impl SpanQuery {
-    pub fn from_req(req: &actix_web::HttpRequest<::api::AppState>) -> Self {
+    pub fn from_req(req: &actix_web::HttpRequest<crate::api::AppState>) -> Self {
         SpanQuery {
             filter_finish: req
                 .query()
@@ -143,7 +143,8 @@ impl SpanQuery {
                         v / 1000,
                         ((v % 1000) * 1000 * 1000) as u32,
                     )
-                }).unwrap_or_else(|| chrono::Utc::now().naive_utc()),
+                })
+                .unwrap_or_else(|| chrono::Utc::now().naive_utc()),
             lookback: req
                 .query()
                 .get("lookback")
@@ -159,7 +160,8 @@ impl SpanQuery {
                     } else {
                         v
                     }
-                }).unwrap_or(SPAN_QUERY_LIMIT),
+                })
+                .unwrap_or(SPAN_QUERY_LIMIT),
             only_endpoint: false,
         }
     }
@@ -183,7 +185,7 @@ impl SpanQuery {
 
 pub struct GetSpans(pub SpanQuery);
 impl Message for GetSpans {
-    type Result = Vec<::opentracing::Span>;
+    type Result = Vec<crate::opentracing::Span>;
 }
 
 impl Handler<GetSpans> for super::DbReadExecutor {
@@ -271,13 +273,14 @@ impl Handler<GetSpans> for super::DbReadExecutor {
                                     .filter(endpoint_id.eq(id))
                                     .first::<EndpointDb>(self.0.as_ref().expect("fail to get DB"))
                                     .ok()
-                                    .map(|ep| ::opentracing::span::Endpoint {
+                                    .map(|ep| crate::opentracing::span::Endpoint {
                                         service_name: ep.service_name,
                                         ipv4: ep.ipv4,
                                         ipv6: ep.ipv6,
                                         port: ep.port,
                                     })
-                            }).clone()
+                            })
+                            .clone()
                     });
                     let remote_endpoint = spandb.remote_endpoint_id.clone().and_then(|rep_id| {
                         endpoint_cache
@@ -288,13 +291,14 @@ impl Handler<GetSpans> for super::DbReadExecutor {
                                     .filter(endpoint_id.eq(id))
                                     .first::<EndpointDb>(self.0.as_ref().expect("fail to get DB"))
                                     .ok()
-                                    .map(|ep| ::opentracing::span::Endpoint {
+                                    .map(|ep| crate::opentracing::span::Endpoint {
                                         service_name: ep.service_name,
                                         ipv4: ep.ipv4,
                                         ipv6: ep.ipv6,
                                         port: ep.port,
                                     })
-                            }).clone()
+                            })
+                            .clone()
                     });
 
                     let annotations = if !without_annotations {
@@ -307,12 +311,13 @@ impl Handler<GetSpans> for super::DbReadExecutor {
                             .ok()
                             .unwrap_or_else(|| vec![])
                             .iter()
-                            .map(|an| ::opentracing::span::Annotation {
+                            .map(|an| crate::opentracing::span::Annotation {
                                 timestamp: ((an.ts.timestamp() * 1000)
                                     + i64::from(an.ts.timestamp_subsec_millis()))
                                     * 1000,
                                 value: an.value.clone(),
-                            }).collect()
+                            })
+                            .collect()
                     } else {
                         vec![]
                     };
@@ -336,7 +341,7 @@ impl Handler<GetSpans> for super::DbReadExecutor {
                     let binary_annotation_endpoint =
                         remote_endpoint.clone().or_else(|| local_endpoint.clone());
 
-                    ::opentracing::Span {
+                    crate::opentracing::Span {
                         trace_id: spandb.trace_id.clone(),
                         id: spandb.id.clone(),
                         parent_id: spandb.parent_id.clone(),
@@ -355,13 +360,15 @@ impl Handler<GetSpans> for super::DbReadExecutor {
                         tags: tags.clone(),
                         binary_annotations: tags
                             .iter()
-                            .map(|(k, v)| ::opentracing::span::BinaryTag {
+                            .map(|(k, v)| crate::opentracing::span::BinaryTag {
                                 key: k.clone(),
                                 value: v.clone(),
                                 endpoint: binary_annotation_endpoint.clone(),
-                            }).collect(),
+                            })
+                            .collect(),
                     }
-                }).collect(),
+                })
+                .collect(),
         )
     }
 }

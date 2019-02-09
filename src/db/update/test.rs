@@ -5,7 +5,7 @@ use diesel::prelude::*;
 use serde_json;
 use uuid;
 
-use db::schema::test_item;
+use crate::db::schema::test_item;
 #[derive(Debug, Insertable, Queryable, Clone, Identifiable)]
 #[table_name = "test_item"]
 pub struct TestItemDb {
@@ -15,7 +15,7 @@ pub struct TestItemDb {
     source: i32,
 }
 
-use db::schema::test_result;
+use crate::db::schema::test_result;
 #[derive(Debug, Insertable, Queryable, Associations, Identifiable)]
 #[belongs_to(TestItemDb, foreign_key = "test_id")]
 #[primary_key(test_id, trace_id)]
@@ -88,7 +88,8 @@ impl super::DbExecutor {
                     .values(&TestItemDb {
                         id: new_id.clone(),
                         ..(*test_item_db).clone()
-                    }).execute(self.0.as_ref().expect("fail to get DB"));
+                    })
+                    .execute(self.0.as_ref().expect("fail to get DB"));
                 if could_insert.is_err() {
                     self.find_test_item(test_item_db)
                         .map(|existing| existing.id)
@@ -101,16 +102,16 @@ impl super::DbExecutor {
     }
 }
 
-impl Message for ::engine::test_result::TestResult {
-    type Result = ::engine::test_result::TestResult;
+impl Message for crate::engine::test_result::TestResult {
+    type Result = crate::engine::test_result::TestResult;
 }
 
-impl Handler<::engine::test_result::TestResult> for super::DbExecutor {
-    type Result = MessageResult<::engine::test_result::TestResult>;
+impl Handler<crate::engine::test_result::TestResult> for super::DbExecutor {
+    type Result = MessageResult<crate::engine::test_result::TestResult>;
 
     fn handle(
         &mut self,
-        msg: ::engine::test_result::TestResult,
+        msg: crate::engine::test_result::TestResult,
         ctx: &mut Self::Context,
     ) -> Self::Result {
         self.check_db_connection(ctx);
@@ -149,12 +150,13 @@ impl Handler<::engine::test_result::TestResult> for super::DbExecutor {
                 components_called: serde_json::to_string(&msg.components_called).unwrap(),
                 nb_spans: msg.nb_spans,
                 cleanup_status: match msg.status {
-                    ::engine::test_result::TestStatus::Success => {
+                    crate::engine::test_result::TestStatus::Success => {
                         ResultCleanupStatus::ToKeep.into()
                     }
                     _ => ResultCleanupStatus::WithData.into(),
                 },
-            }).execute(self.0.as_ref().expect("fail to get DB"))
+            })
+            .execute(self.0.as_ref().expect("fail to get DB"))
             .map_err(|err| self.reconnect_if_needed(ctx, &err))
             .ok();
 
@@ -163,11 +165,12 @@ impl Handler<::engine::test_result::TestResult> for super::DbExecutor {
                 .filter(cleanup_status.eq(super::test::ResultCleanupStatus::ToKeep.as_i32()))
                 .filter(test_id.eq(parent_id.clone()))
                 .filter(date.lt(test_result_date)),
-        ).set(cleanup_status.eq(super::test::ResultCleanupStatus::WithData.as_i32()))
+        )
+        .set(cleanup_status.eq(super::test::ResultCleanupStatus::WithData.as_i32()))
         .execute(self.0.as_ref().expect("fail to get DB"))
         .ok();
 
-        MessageResult(::engine::test_result::TestResult {
+        MessageResult(crate::engine::test_result::TestResult {
             test_id: parent_id,
             ..msg
         })

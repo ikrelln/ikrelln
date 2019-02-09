@@ -1,7 +1,7 @@
 use actix::prelude::*;
 use futures::future::*;
 
-use opentracing::Span;
+use crate::opentracing::Span;
 
 impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor {
     type Result = ();
@@ -13,7 +13,7 @@ impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor 
     ) -> Self::Result {
         for event in &msg.events {
             let event = event.clone();
-            Arbiter::spawn(::DB_EXECUTOR_POOL.send(event.clone()).then(|span| {
+            Arbiter::spawn(crate::DB_EXECUTOR_POOL.send(event.clone()).then(|span| {
                 if let Ok(span) = span {
                     if let (Some(_), None) = (span.duration, span.parent_id.clone()) {
                         actix::System::current()

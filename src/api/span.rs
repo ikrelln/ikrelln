@@ -4,12 +4,12 @@ use futures::Future;
 use std::collections::HashMap;
 
 use super::{errors, AppState};
-use engine::ingestor::IngestEvents;
-use opentracing::Span;
+use crate::engine::ingestor::IngestEvents;
+use crate::opentracing::Span;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IngestResponse {
-    ingest_id: ::engine::IngestId,
+    ingest_id: crate::engine::IngestId,
     pub nb_events: usize,
 }
 
@@ -18,7 +18,7 @@ pub fn ingest(
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     let ingestor = actix::System::current()
         .registry()
-        .get::<::engine::ingestor::Ingestor>();
+        .get::<crate::engine::ingestor::Ingestor>();
     req.json()
         .from_err()
         .and_then(move |val: Vec<Span>| {
@@ -31,29 +31,32 @@ pub fn ingest(
                 ingest_id,
                 nb_events: nb_spans,
             }))
-        }).responder()
+        })
+        .responder()
 }
 
 pub fn get_services(
     _req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    ::DB_READ_EXECUTOR_POOL
-        .send(::db::read::span::GetServices)
+    crate::DB_READ_EXECUTOR_POOL
+        .send(crate::db::read::span::GetServices)
         .from_err()
         .and_then(|mut services| {
             services.dedup();
             Ok(HttpResponse::Ok().json(services))
-        }).responder()
+        })
+        .responder()
 }
 
 pub fn get_spans_by_service(
     req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.query().get("serviceName") {
-        Some(_) => ::DB_READ_EXECUTOR_POOL
-            .send(::db::read::span::GetSpans(
-                ::db::read::span::SpanQuery::from_req(&req),
-            )).from_err()
+        Some(_) => crate::DB_READ_EXECUTOR_POOL
+            .send(crate::db::read::span::GetSpans(
+                crate::db::read::span::SpanQuery::from_req(&req),
+            ))
+            .from_err()
             .and_then(|res| {
                 let mut span_names = res
                     .iter()
@@ -62,11 +65,13 @@ pub fn get_spans_by_service(
                 span_names.sort_unstable();
                 span_names.dedup();
                 Ok(HttpResponse::Ok().json(span_names))
-            }).responder(),
+            })
+            .responder(),
 
         _ => result(Err(super::errors::IkError::BadRequest(
             "missing serviceName query parameter".to_string(),
-        ))).responder(),
+        )))
+        .responder(),
     }
 }
 
@@ -74,26 +79,30 @@ pub fn get_spans_by_trace_id(
     req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("traceId") {
-        Some(trace_id) => ::DB_READ_EXECUTOR_POOL
-            .send(::db::read::span::GetSpans(
-                ::db::read::span::SpanQuery::from_req(&req).with_trace_id(trace_id.to_string()),
-            )).from_err()
+        Some(trace_id) => crate::DB_READ_EXECUTOR_POOL
+            .send(crate::db::read::span::GetSpans(
+                crate::db::read::span::SpanQuery::from_req(&req)
+                    .with_trace_id(trace_id.to_string()),
+            ))
+            .from_err()
             .and_then(|res| Ok(HttpResponse::Ok().json(res)))
             .responder(),
 
         _ => result(Err(super::errors::IkError::BadRequest(
             "missing traceId path parameter".to_string(),
-        ))).responder(),
+        )))
+        .responder(),
     }
 }
 
 pub fn get_traces(
     req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    ::DB_READ_EXECUTOR_POOL
-        .send(::db::read::span::GetSpans(
-            ::db::read::span::SpanQuery::from_req(&req),
-        )).from_err()
+    crate::DB_READ_EXECUTOR_POOL
+        .send(crate::db::read::span::GetSpans(
+            crate::db::read::span::SpanQuery::from_req(&req),
+        ))
+        .from_err()
         .and_then(|res| {
             Ok(HttpResponse::Ok().json({
                 let mut by_trace_with_key = HashMap::new();
@@ -109,7 +118,8 @@ pub fn get_traces(
                 }
                 by_trace
             }))
-        }).responder()
+        })
+        .responder()
 }
 
 #[derive(Debug, Serialize)]
@@ -134,12 +144,13 @@ impl Dependency {
 pub fn get_dependencies(
     req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    ::DB_READ_EXECUTOR_POOL
-        .send(::db::read::span::GetSpans(
-            ::db::read::span::SpanQuery::from_req(&req)
+    crate::DB_READ_EXECUTOR_POOL
+        .send(crate::db::read::span::GetSpans(
+            crate::db::read::span::SpanQuery::from_req(&req)
                 .with_limit(100_000)
                 .only_endpoint(),
-        )).from_err()
+        ))
+        .from_err()
         .and_then(|res| {
             Ok(HttpResponse::Ok().json({
                 let by_services = res.into_iter().fold(HashMap::new(), |mut map, elt| {
@@ -159,7 +170,8 @@ pub fn get_dependencies(
                                     child: remote_service.clone(),
                                     call_count: 0,
                                     error_count: 0,
-                                }).add_call()
+                                })
+                                .add_call()
                         };
                         map.insert(format!("{}-{}", local_service, remote_service), dep);
                     }
@@ -171,5 +183,6 @@ pub fn get_dependencies(
                 }
                 by_trace
             }))
-        }).responder()
+        })
+        .responder()
 }

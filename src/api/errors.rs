@@ -24,7 +24,8 @@ impl error::ResponseError for IkError {
                     .header(
                         "X-Request-Id",
                         error_uid.to_hyphenated().to_string().as_str(),
-                    ).finish()
+                    )
+                    .finish()
             }
             IkError::BadRequest(_) => HttpResponse::BadRequest().json(self),
             IkError::NotFound(_) => HttpResponse::NotFound().json(self),

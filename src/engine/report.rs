@@ -19,14 +19,14 @@ pub struct ResultForReport {
     pub report_group: String,
     pub report_name: String,
     pub category: Option<String>,
-    pub result: ::engine::test_result::TestResult,
+    pub result: crate::engine::test_result::TestResult,
 }
 
 impl Handler<ResultForReport> for Reporter {
     type Result = ();
 
     fn handle(&mut self, msg: ResultForReport, _ctx: &mut Context<Self>) -> Self::Result {
-        ::DB_EXECUTOR_POOL.do_send(msg);
+        crate::DB_EXECUTOR_POOL.do_send(msg);
     }
 }
 
@@ -38,19 +38,20 @@ pub struct Report {
 }
 
 #[derive(Message)]
-pub struct ComputeReportsForResult(pub ::engine::test_result::TestResult);
+pub struct ComputeReportsForResult(pub crate::engine::test_result::TestResult);
 
 impl Handler<ComputeReportsForResult> for Reporter {
     type Result = ();
 
     fn handle(&mut self, msg: ComputeReportsForResult, _ctx: &mut Context<Self>) -> Self::Result {
         Arbiter::spawn(
-            ::DB_READ_EXECUTOR_POOL
-                .send(::db::read::span::GetSpans(
-                    ::db::read::span::SpanQuery::default()
+            crate::DB_READ_EXECUTOR_POOL
+                .send(crate::db::read::span::GetSpans(
+                    crate::db::read::span::SpanQuery::default()
                         .with_trace_id(msg.0.trace_id.clone())
                         .with_limit(1000),
-                )).then(move |spans| {
+                ))
+                .then(move |spans| {
                     if let Ok(spans) = spans {
                         let reports_to_send: HashSet<Report> = spans
                             .iter()
@@ -63,7 +64,8 @@ impl Handler<ComputeReportsForResult> for Reporter {
                                     .unwrap_or_else(|| "service".to_string()),
                                 group: "endpoints".to_string(),
                                 category: span.name.clone(),
-                            }).collect();
+                            })
+                            .collect();
                         reports_to_send.iter().for_each(|report| {
                             actix::System::current()
                                 .registry()

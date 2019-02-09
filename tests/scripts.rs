@@ -6,18 +6,11 @@ extern crate ikrelln;
 
 mod helpers;
 
-use std::collections::HashMap;
 use std::{thread, time};
 
 use actix_web::*;
 
-use ikrelln::api::report::Report;
-use ikrelln::api::span::IngestResponse;
 use ikrelln::engine::streams::{Script, ScriptType};
-use ikrelln::opentracing::span::Endpoint;
-use ikrelln::opentracing::span::Kind;
-use ikrelln::opentracing::tags::IkrellnTags;
-use ikrelln::opentracing::Span;
 
 #[test]
 fn can_save_report_script() {
@@ -50,7 +43,8 @@ fn can_save_report_script() {
         .client(
             http::Method::GET,
             &format!("/api/v1/scripts/{}", &script_sent.id.unwrap()),
-        ).finish()
+        )
+        .finish()
         .unwrap();
     let response_script = srv.execute(req_script.send()).unwrap();
     assert!(response_script.status().is_success());
@@ -176,7 +170,8 @@ fn can_create_report_from_script() {
         .client(
             http::Method::GET,
             &format!("/api/v1/reports/from_script/{}", report_name.clone()),
-        ).finish()
+        )
+        .finish()
         .unwrap();
     let response_report = srv.execute(req_report.send()).unwrap();
     assert!(response_report.status().is_success());
@@ -188,14 +183,12 @@ fn can_create_report_from_script() {
     assert_eq!(data_report.name, report_name.clone());
     let categories = data_report.categories.unwrap();
     assert!(categories.contains_key("test_class"));
-    assert!(
-        categories
-            .get("test_class")
-            .unwrap()
-            .iter()
-            .map(|tr| tr.name.clone())
-            .collect::<Vec<String>>()
-            .contains(&test_name)
-    );
+    assert!(categories
+        .get("test_class")
+        .unwrap()
+        .iter()
+        .map(|tr| tr.name.clone())
+        .collect::<Vec<String>>()
+        .contains(&test_name));
     thread::sleep(time::Duration::from_millis(helpers::DELAY_FINISH));
 }

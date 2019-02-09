@@ -37,7 +37,8 @@ pub fn setup_logger() {
                     record.level(),
                     message
                 ))
-            }).level(log::LevelFilter::Debug)
+            })
+            .level(log::LevelFilter::Debug)
             .level_for("tokio_core", log::LevelFilter::Error)
             .level_for("tokio_reactor", log::LevelFilter::Error)
             .chain(TheStd::io::stdout())

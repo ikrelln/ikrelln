@@ -1,9 +1,3 @@
-extern crate chrono;
-extern crate fern;
-extern crate log;
-
-extern crate ikrelln;
-
 fn main() {
     fern::Dispatch::new()
         .level(log::LevelFilter::Info)
@@ -19,7 +13,8 @@ fn main() {
                 record.level(),
                 message
             ))
-        }).apply()
+        })
+        .apply()
         .unwrap();
 
     ikrelln::start_server();

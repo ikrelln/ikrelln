@@ -5,7 +5,7 @@ use chrono;
 #[derive(Serialize)]
 pub struct HealthcheckResponse {
     app_name: &'static str,
-    build_info: ::build_info::BuildInfo,
+    build_info: crate::build_info::BuildInfo,
     time: Times,
 }
 
@@ -18,7 +18,7 @@ pub struct Times {
 pub fn healthcheck(req: &HttpRequest<AppState>) -> HttpResponse {
     HttpResponse::Ok().json(HealthcheckResponse {
         app_name: "i'Krelln",
-        build_info: ::build_info::BUILD_INFO.clone(),
+        build_info: crate::build_info::BUILD_INFO.clone(),
         time: Times {
             start_time: req.state().start_time,
             now: chrono::Utc::now(),
@@ -70,7 +70,7 @@ mod tests {
     use actix_web::test::TestRequest;
     use futures;
 
-    use api::AppState;
+    use crate::api::AppState;
 
     #[test]
     fn can_get_config() {

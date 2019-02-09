@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use serde_json;
 
 static TEST_ITEM_QUERY_LIMIT: i64 = 200;
-use db::schema::test_item;
+use crate::db::schema::test_item;
 #[derive(Debug, Insertable, Queryable, Clone, Identifiable)]
 #[table_name = "test_item"]
 pub struct TestItemDb {
@@ -15,7 +15,7 @@ pub struct TestItemDb {
 }
 
 static TEST_RESULT_QUERY_LIMIT: i64 = 100;
-use db::schema::test_result;
+use crate::db::schema::test_result;
 #[derive(Debug, Insertable, Queryable, Associations, Identifiable)]
 #[belongs_to(TestItemDb, foreign_key = "test_id")]
 #[primary_key(test_id, trace_id)]
@@ -76,7 +76,7 @@ pub struct TestItemQuery {
 
 pub struct GetTestItems(pub TestItemQuery);
 impl Message for GetTestItems {
-    type Result = Vec<::api::test::TestDetails>;
+    type Result = Vec<crate::api::test::TestDetails>;
 }
 
 impl Handler<GetTestItems> for super::DbReadExecutor {
@@ -104,7 +104,8 @@ impl Handler<GetTestItems> for super::DbReadExecutor {
                 .unwrap_or_else(|err| {
                     error!("error loading test items: {:?}", err);
                     vec![]
-                }).iter()
+                })
+                .iter()
                 .map(|ti| {
                     let mut test_item_to_get = match ti.parent_id.as_ref() {
                         "root" => None,
@@ -120,14 +121,16 @@ impl Handler<GetTestItems> for super::DbReadExecutor {
                                         .filter(id.eq(ti_id))
                                         .first::<TestItemDb>(
                                             self.0.as_ref().expect("fail to get DB"),
-                                        ).ok()
-                                }).clone()
+                                        )
+                                        .ok()
+                                })
+                                .clone()
                             {
                                 test_item_to_get = match test.parent_id.as_ref() {
                                     "root" => None,
                                     item_id => Some(item_id.to_string()),
                                 };
-                                path.push(::api::test::TestItem {
+                                path.push(crate::api::test::TestItem {
                                     id: test.id.clone(),
                                     name: test.name.clone(),
                                 });
@@ -148,10 +151,11 @@ impl Handler<GetTestItems> for super::DbReadExecutor {
                             .ok()
                             .unwrap_or_else(|| vec![])
                             .iter()
-                            .map(|ti| ::api::test::TestItem {
+                            .map(|ti| crate::api::test::TestItem {
                                 name: ti.name.clone(),
                                 id: ti.id.clone(),
-                            }).collect()
+                            })
+                            .collect()
                     } else {
                         vec![]
                     };
@@ -165,7 +169,7 @@ impl Handler<GetTestItems> for super::DbReadExecutor {
                             .ok()
                             .unwrap_or_else(|| vec![])
                             .iter()
-                            .map(|tr| ::engine::test_result::TestResult {
+                            .map(|tr| crate::engine::test_result::TestResult {
                                 test_id: tr.test_id.clone(),
                                 path: path.iter().map(|ti| ti.name.clone()).collect(),
                                 name: ti.name.clone(),
@@ -180,19 +184,21 @@ impl Handler<GetTestItems> for super::DbReadExecutor {
                                     .unwrap(),
                                 nb_spans: tr.nb_spans,
                                 main_span: None,
-                            }).collect()
+                            })
+                            .collect()
                     } else {
                         vec![]
                     };
 
-                    ::api::test::TestDetails {
+                    crate::api::test::TestDetails {
                         children,
                         last_results: traces,
                         name: ti.name.clone(),
                         path,
                         test_id: ti.id.clone(),
                     }
-                }).collect(),
+                })
+                .collect(),
         )
     }
 }
@@ -225,12 +231,12 @@ impl Default for TestResultQuery {
     }
 }
 
-impl From<::api::test::TestResultsQueryParams> for TestResultQuery {
-    fn from(params: ::api::test::TestResultsQueryParams) -> Self {
+impl From<crate::api::test::TestResultsQueryParams> for TestResultQuery {
+    fn from(params: crate::api::test::TestResultsQueryParams) -> Self {
         TestResultQuery {
             trace_id: params.trace_id,
             status: params.status.and_then(|v| match v {
-                ::engine::test_result::TestStatus::Any => None,
+                crate::engine::test_result::TestStatus::Any => None,
                 v => Some(v.into()),
             }),
             test_id: params.test_id,
@@ -245,7 +251,8 @@ impl From<::api::test::TestResultsQueryParams> for TestResultQuery {
                         v / 1000,
                         ((v % 1000) * 1000 * 1000) as u32,
                     )
-                }).unwrap_or_else(|| chrono::Utc::now().naive_utc()),
+                })
+                .unwrap_or_else(|| chrono::Utc::now().naive_utc()),
             lookback: params.lookback.map(chrono::Duration::milliseconds),
             limit: params
                 .limit
@@ -255,14 +262,15 @@ impl From<::api::test::TestResultsQueryParams> for TestResultQuery {
                     } else {
                         v
                     }
-                }).unwrap_or(TEST_RESULT_QUERY_LIMIT),
+                })
+                .unwrap_or(TEST_RESULT_QUERY_LIMIT),
         }
     }
 }
 
 pub struct GetTestResults(pub TestResultQuery);
 impl Message for GetTestResults {
-    type Result = Vec<::engine::test_result::TestResult>;
+    type Result = Vec<crate::engine::test_result::TestResult>;
 }
 impl Handler<GetTestResults> for super::DbReadExecutor {
     type Result = MessageResult<GetTestResults>;
@@ -340,7 +348,8 @@ impl Handler<GetTestResults> for super::DbReadExecutor {
                                 .filter(id.eq(ti_id))
                                 .first::<TestItemDb>(self.0.as_ref().expect("fail to get DB"))
                                 .ok()
-                        }).clone();
+                        })
+                        .clone();
 
                     let mut test_item_to_get =
                         test.clone().and_then(|t| match t.parent_id.as_ref() {
@@ -356,7 +365,8 @@ impl Handler<GetTestResults> for super::DbReadExecutor {
                                     .filter(id.eq(ti_id))
                                     .first::<TestItemDb>(self.0.as_ref().expect("fail to get DB"))
                                     .ok()
-                            }).clone()
+                            })
+                            .clone()
                         {
                             test_item_to_get = match test.parent_id.as_ref() {
                                 "root" => None,
@@ -369,7 +379,7 @@ impl Handler<GetTestResults> for super::DbReadExecutor {
                     }
                     path.reverse();
 
-                    ::engine::test_result::TestResult {
+                    crate::engine::test_result::TestResult {
                         test_id: tr.test_id.clone(),
                         path,
                         name: test
@@ -386,7 +396,8 @@ impl Handler<GetTestResults> for super::DbReadExecutor {
                         nb_spans: tr.nb_spans,
                         main_span: None,
                     }
-                }).collect::<Vec<::engine::test_result::TestResult>>(),
+                })
+                .collect::<Vec<crate::engine::test_result::TestResult>>(),
         )
     }
 }
@@ -410,7 +421,8 @@ impl Handler<GetEnvironments> for super::DbReadExecutor {
                 .unwrap_or_else(|err| {
                     error!("error loading environment from test results: {:?}", err);
                     vec![]
-                }).iter()
+                })
+                .iter()
                 .filter_map(|v| v.clone())
                 .collect(),
         )

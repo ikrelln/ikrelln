@@ -5,7 +5,7 @@ use diesel;
 use diesel::prelude::*;
 use uuid;
 
-use db::schema::span;
+use crate::db::schema::span;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "span"]
 pub struct SpanDb {
@@ -22,7 +22,7 @@ pub struct SpanDb {
     remote_endpoint_id: Option<String>,
 }
 
-use db::schema::endpoint;
+use crate::db::schema::endpoint;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "endpoint"]
 pub struct EndpointDb {
@@ -33,7 +33,7 @@ pub struct EndpointDb {
     port: Option<i32>,
 }
 
-use db::schema::tag;
+use crate::db::schema::tag;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "tag"]
 pub struct TagDb {
@@ -42,7 +42,7 @@ pub struct TagDb {
     value: String,
 }
 
-use db::schema::annotation;
+use crate::db::schema::annotation;
 #[derive(Debug, Insertable, Queryable)]
 #[table_name = "annotation"]
 pub struct AnnotationDb {
@@ -61,7 +61,7 @@ struct FromSpan {
     annotations: Vec<AnnotationDb>,
 }
 
-fn get_all_from_span(span: &::opentracing::Span) -> FromSpan {
+fn get_all_from_span(span: &crate::opentracing::Span) -> FromSpan {
     let trace_id = span.trace_id.clone();
     let span_id = span.id.clone();
 
@@ -124,7 +124,8 @@ fn get_all_from_span(span: &::opentracing::Span) -> FromSpan {
                 ),
                 value: annotation.value.clone(),
             }
-        }).collect();
+        })
+        .collect();
 
     let tags = span
         .tags
@@ -133,7 +134,8 @@ fn get_all_from_span(span: &::opentracing::Span) -> FromSpan {
             span_id: span_id.clone(),
             name: key.clone().to_lowercase(),
             value: value.clone(),
-        }).collect();
+        })
+        .collect();
 
     FromSpan {
         span_db,
@@ -144,8 +146,8 @@ fn get_all_from_span(span: &::opentracing::Span) -> FromSpan {
     }
 }
 
-impl Message for ::opentracing::Span {
-    type Result = ::opentracing::Span;
+impl Message for crate::opentracing::Span {
+    type Result = crate::opentracing::Span;
 }
 
 impl super::DbExecutor {
@@ -186,7 +188,8 @@ impl super::DbExecutor {
                             ipv4: le.ipv4.clone(),
                             ipv6: le.ipv6.clone(),
                             port: le.port,
-                        }).execute(self.0.as_ref().expect("fail to get DB"));
+                        })
+                        .execute(self.0.as_ref().expect("fail to get DB"));
                     if could_insert.is_err() {
                         self.find_endpoint(&le).map(|existing| existing.endpoint_id)
                     } else {
@@ -200,10 +203,10 @@ impl super::DbExecutor {
     }
 }
 
-impl Handler<::opentracing::Span> for super::DbExecutor {
-    type Result = MessageResult<::opentracing::Span>;
+impl Handler<crate::opentracing::Span> for super::DbExecutor {
+    type Result = MessageResult<crate::opentracing::Span>;
 
-    fn handle(&mut self, msg: ::opentracing::Span, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: crate::opentracing::Span, ctx: &mut Self::Context) -> Self::Result {
         self.check_db_connection(ctx);
 
         let mut to_upsert = get_all_from_span(&msg);
@@ -217,7 +220,8 @@ impl Handler<::opentracing::Span> for super::DbExecutor {
                 .filter(
                     id.eq(&to_upsert.span_db.id)
                         .and(trace_id.eq(&to_upsert.span_db.trace_id)),
-                ).first::<SpanDb>(self.0.as_ref().expect("fail to get DB"))
+                )
+                .first::<SpanDb>(self.0.as_ref().expect("fail to get DB"))
             {
                 Ok(_) => {
                     //TODO: manage more update cases than duration
@@ -226,7 +230,8 @@ impl Handler<::opentracing::Span> for super::DbExecutor {
                             id.eq(&to_upsert.span_db.id)
                                 .and(trace_id.eq(&to_upsert.span_db.trace_id)),
                         ),
-                    ).set(duration.eq(to_upsert.span_db.duration))
+                    )
+                    .set(duration.eq(to_upsert.span_db.duration))
                     .execute(self.0.as_ref().expect("fail to get DB"))
                     .map_err(|err| self.reconnect_if_needed(ctx, &err))
                 }
@@ -255,7 +260,8 @@ impl Handler<::opentracing::Span> for super::DbExecutor {
                     span_id
                         .eq(to_upsert.span_db.id)
                         .and(name.eq_any(to_upsert.tags.iter().map(|item| item.name.clone()))),
-                ).load::<String>(self.0.as_ref().expect("fail to get DB"))
+                )
+                .load::<String>(self.0.as_ref().expect("fail to get DB"))
                 .ok()
                 .unwrap_or_else(|| vec![]);
             to_upsert.tags.iter().for_each(|item| {

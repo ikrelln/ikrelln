@@ -3,7 +3,7 @@ use futures;
 
 use super::query::{Column, ToGrafana, Value};
 
-impl ToGrafana for ::opentracing::Span {
+impl ToGrafana for crate::opentracing::Span {
     fn as_column_types() -> Vec<Column> {
         vec![
             Column {
@@ -37,7 +37,7 @@ impl ToGrafana for ::opentracing::Span {
         column
     }
 }
-impl ToGrafana for ::engine::test_result::TestResult {
+impl ToGrafana for crate::engine::test_result::TestResult {
     fn as_column_types() -> Vec<Column> {
         vec![
             Column {
@@ -84,7 +84,7 @@ impl ToGrafana for ::engine::test_result::TestResult {
         column
     }
 }
-impl ToGrafana for ::api::report::Report {
+impl ToGrafana for crate::api::report::Report {
     fn as_column_types() -> Vec<Column> {
         vec![
             Column {
@@ -118,38 +118,48 @@ impl ToGrafana for ::api::report::Report {
                 .clone()
                 .and_then(|summary| {
                     summary
-                        .get(&::engine::test_result::TestStatus::Success)
+                        .get(&crate::engine::test_result::TestStatus::Success)
                         .cloned()
-                }).unwrap_or(0) as i64,
+                })
+                .unwrap_or(0) as i64,
         ));
         column.push(Value::Number(
             self.summary
                 .clone()
                 .and_then(|summary| {
                     summary
-                        .get(&::engine::test_result::TestStatus::Failure)
+                        .get(&crate::engine::test_result::TestStatus::Failure)
                         .cloned()
-                }).unwrap_or(0) as i64,
+                })
+                .unwrap_or(0) as i64,
         ));
         column.push(Value::Number(
             self.summary
                 .clone()
                 .and_then(|summary| {
                     summary
-                        .get(&::engine::test_result::TestStatus::Skipped)
+                        .get(&crate::engine::test_result::TestStatus::Skipped)
                         .cloned()
-                }).unwrap_or(0) as i64,
+                })
+                .unwrap_or(0) as i64,
         ));
         column
     }
 }
 
 pub enum DataQuery {
-    FutureSpans(Box<futures::Future<Item = Vec<::opentracing::Span>, Error = MailboxError>>),
+    FutureSpans(Box<futures::Future<Item = Vec<crate::opentracing::Span>, Error = MailboxError>>),
     FutureTestResults(
-        Box<futures::Future<Item = Vec<::engine::test_result::TestResult>, Error = MailboxError>>,
+        Box<
+            futures::Future<
+                Item = Vec<crate::engine::test_result::TestResult>,
+                Error = MailboxError,
+            >,
+        >,
     ),
-    FutureReports(Box<futures::Future<Item = Vec<::api::report::Report>, Error = MailboxError>>),
+    FutureReports(
+        Box<futures::Future<Item = Vec<crate::api::report::Report>, Error = MailboxError>>,
+    ),
 }
 impl futures::Future for DataQuery {
     type Item = FutureData;
@@ -174,22 +184,22 @@ impl futures::Future for DataQuery {
 }
 
 pub enum FutureData {
-    FutureSpans(Vec<::opentracing::Span>),
-    FutureTestResults(Vec<::engine::test_result::TestResult>),
-    FutureReports(Vec<::api::report::Report>),
+    FutureSpans(Vec<crate::opentracing::Span>),
+    FutureTestResults(Vec<crate::engine::test_result::TestResult>),
+    FutureReports(Vec<crate::api::report::Report>),
 }
-impl From<Vec<::opentracing::Span>> for FutureData {
-    fn from(value: Vec<::opentracing::Span>) -> FutureData {
+impl From<Vec<crate::opentracing::Span>> for FutureData {
+    fn from(value: Vec<crate::opentracing::Span>) -> FutureData {
         FutureData::FutureSpans(value)
     }
 }
-impl From<Vec<::engine::test_result::TestResult>> for FutureData {
-    fn from(value: Vec<::engine::test_result::TestResult>) -> FutureData {
+impl From<Vec<crate::engine::test_result::TestResult>> for FutureData {
+    fn from(value: Vec<crate::engine::test_result::TestResult>) -> FutureData {
         FutureData::FutureTestResults(value)
     }
 }
-impl From<Vec<::api::report::Report>> for FutureData {
-    fn from(value: Vec<::api::report::Report>) -> FutureData {
+impl From<Vec<crate::api::report::Report>> for FutureData {
+    fn from(value: Vec<crate::api::report::Report>) -> FutureData {
         FutureData::FutureReports(value)
     }
 }

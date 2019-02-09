@@ -2,7 +2,7 @@ use actix::prelude::*;
 use chrono;
 use diesel::prelude::*;
 
-use db::schema::script;
+use crate::db::schema::script;
 #[derive(Debug, Insertable, Queryable, Clone)]
 #[table_name = "script"]
 struct ScriptDb {
@@ -14,10 +14,10 @@ struct ScriptDb {
     status: i32,
 }
 
-pub struct GetAll(pub Option<Vec<::engine::streams::ScriptType>>);
+pub struct GetAll(pub Option<Vec<crate::engine::streams::ScriptType>>);
 
 impl Message for GetAll {
-    type Result = Vec<::engine::streams::Script>;
+    type Result = Vec<crate::engine::streams::Script>;
 }
 
 impl Handler<GetAll> for super::DbReadExecutor {
@@ -42,17 +42,18 @@ impl Handler<GetAll> for super::DbReadExecutor {
         MessageResult(
             scripts
                 .iter()
-                .map(|script_from_db| ::engine::streams::Script {
+                .map(|script_from_db| crate::engine::streams::Script {
                     id: Some(script_from_db.id.clone()),
                     date_added: Some(script_from_db.date_added),
                     script_type: script_from_db.script_type.into(),
                     name: script_from_db.name.clone(),
                     source: script_from_db.source.clone(),
                     status: Some(match script_from_db.status {
-                        0 => ::engine::streams::ScriptStatus::Enabled,
-                        _ => ::engine::streams::ScriptStatus::Disabled,
+                        0 => crate::engine::streams::ScriptStatus::Enabled,
+                        _ => crate::engine::streams::ScriptStatus::Disabled,
                     }),
-                }).collect(),
+                })
+                .collect(),
         )
     }
 }
@@ -60,7 +61,7 @@ impl Handler<GetAll> for super::DbReadExecutor {
 pub struct GetScript(pub String);
 
 impl Message for GetScript {
-    type Result = Option<::engine::streams::Script>;
+    type Result = Option<crate::engine::streams::Script>;
 }
 
 impl Handler<GetScript> for super::DbReadExecutor {
@@ -74,15 +75,15 @@ impl Handler<GetScript> for super::DbReadExecutor {
             .ok();
 
         MessageResult(
-            script_found.map(|script_from_db| ::engine::streams::Script {
+            script_found.map(|script_from_db| crate::engine::streams::Script {
                 id: Some(script_from_db.id.clone()),
                 date_added: Some(script_from_db.date_added),
                 script_type: script_from_db.script_type.into(),
                 name: script_from_db.name.clone(),
                 source: script_from_db.source.clone(),
                 status: Some(match script_from_db.status {
-                    0 => ::engine::streams::ScriptStatus::Enabled,
-                    _ => ::engine::streams::ScriptStatus::Disabled,
+                    0 => crate::engine::streams::ScriptStatus::Enabled,
+                    _ => crate::engine::streams::ScriptStatus::Disabled,
                 }),
             }),
         )

@@ -15,29 +15,30 @@ where
 }
 
 fn commit_hash() -> Result<String, Ignore> {
-    Ok(try!(String::from_utf8(
-        try!(Command::new("git").args(&["rev-parse", "HEAD"]).output()).stdout
-    )))
+    Ok(String::from_utf8(
+        Command::new("git")
+            .args(&["rev-parse", "HEAD"])
+            .output()?
+            .stdout,
+    )?)
 }
 
 fn commit_describe() -> Result<String, Ignore> {
-    Ok(try!(String::from_utf8(
-        try!(
-            Command::new("git")
-                .args(&["describe", "--all", "--dirty", "--long"])
-                .output()
-        ).stdout
-    )))
+    Ok(String::from_utf8(
+        Command::new("git")
+            .args(&["describe", "--all", "--dirty", "--long"])
+            .output()?
+            .stdout,
+    )?)
 }
 
 fn commit_date() -> Result<String, Ignore> {
-    Ok(try!(String::from_utf8(
-        try!(
-            Command::new("git")
-                .args(&["log", "-1", "--pretty=format:%cI"])
-                .output()
-        ).stdout
-    )))
+    Ok(String::from_utf8(
+        Command::new("git")
+            .args(&["log", "-1", "--pretty=format:%cI"])
+            .output()?
+            .stdout,
+    )?)
 }
 
 fn main() {
@@ -79,7 +80,8 @@ pub static BUILD_INFO: BuildInfo = BuildInfo {{
             let mut contents = String::new();
             f.read_to_string(&mut contents).unwrap();
             return contents;
-        }).map(|content| content != new_content)
+        })
+        .map(|content| content != new_content)
         .unwrap_or(true);
 
     if update {

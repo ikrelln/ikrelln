@@ -3,7 +3,7 @@ use chrono;
 use diesel;
 use diesel::prelude::*;
 
-use db::schema::script;
+use crate::db::schema::script;
 #[derive(Debug, Insertable, Queryable, Clone)]
 #[table_name = "script"]
 struct ScriptDb {
@@ -16,7 +16,7 @@ struct ScriptDb {
 }
 
 #[derive(Message)]
-pub struct SaveScript(pub ::engine::streams::Script);
+pub struct SaveScript(pub crate::engine::streams::Script);
 
 impl Handler<SaveScript> for super::DbExecutor {
     type Result = ();
@@ -31,10 +31,11 @@ impl Handler<SaveScript> for super::DbExecutor {
                 script_type: msg.0.script_type.into(),
                 date_added: msg.0.date_added.expect("script should have a date_added"),
                 status: match msg.0.status.expect("script should have a status") {
-                    ::engine::streams::ScriptStatus::Enabled => 0,
-                    ::engine::streams::ScriptStatus::Disabled => 1,
+                    crate::engine::streams::ScriptStatus::Enabled => 0,
+                    crate::engine::streams::ScriptStatus::Disabled => 1,
                 },
-            }).execute(self.0.as_ref().expect("fail to get DB"))
+            })
+            .execute(self.0.as_ref().expect("fail to get DB"))
             .unwrap();
     }
 }
@@ -43,7 +44,7 @@ impl Handler<SaveScript> for super::DbExecutor {
 pub struct DeleteScript(pub String);
 
 impl Message for DeleteScript {
-    type Result = Option<::engine::streams::Script>;
+    type Result = Option<crate::engine::streams::Script>;
 }
 
 impl Handler<DeleteScript> for super::DbExecutor {
@@ -61,15 +62,15 @@ impl Handler<DeleteScript> for super::DbExecutor {
             .ok();
 
         MessageResult(
-            script_found.map(|script_from_db| ::engine::streams::Script {
+            script_found.map(|script_from_db| crate::engine::streams::Script {
                 id: Some(script_from_db.id.clone()),
                 date_added: Some(script_from_db.date_added),
                 script_type: script_from_db.script_type.into(),
                 name: script_from_db.name.clone(),
                 source: script_from_db.source.clone(),
                 status: Some(match script_from_db.status {
-                    0 => ::engine::streams::ScriptStatus::Enabled,
-                    _ => ::engine::streams::ScriptStatus::Disabled,
+                    0 => crate::engine::streams::ScriptStatus::Enabled,
+                    _ => crate::engine::streams::ScriptStatus::Disabled,
                 }),
             }),
         )
@@ -77,7 +78,7 @@ impl Handler<DeleteScript> for super::DbExecutor {
 }
 
 #[derive(Message)]
-pub struct UpdateScript(pub ::engine::streams::Script);
+pub struct UpdateScript(pub crate::engine::streams::Script);
 
 impl Handler<UpdateScript> for super::DbExecutor {
     type Result = ();
@@ -89,10 +90,11 @@ impl Handler<UpdateScript> for super::DbExecutor {
                 name.eq(&msg.0.name),
                 source.eq(&msg.0.source),
                 status.eq(match msg.0.status.expect("script should have a status") {
-                    ::engine::streams::ScriptStatus::Enabled => 0,
-                    ::engine::streams::ScriptStatus::Disabled => 1,
+                    crate::engine::streams::ScriptStatus::Enabled => 0,
+                    crate::engine::streams::ScriptStatus::Disabled => 1,
                 }),
-            )).execute(self.0.as_ref().expect("fail to get DB"))
+            ))
+            .execute(self.0.as_ref().expect("fail to get DB"))
             .unwrap();
     }
 }

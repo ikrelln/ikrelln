@@ -74,20 +74,23 @@ pub fn query(
             for target in &val.targets {
                 match target.target.as_ref() {
                     "spans" => {
-                        let data_req = ::DB_READ_EXECUTOR_POOL.send(::db::read::span::GetSpans(
-                            ::db::read::span::SpanQuery::default().with_limit(50),
-                        ));
+                        let data_req =
+                            crate::DB_READ_EXECUTOR_POOL.send(crate::db::read::span::GetSpans(
+                                crate::db::read::span::SpanQuery::default().with_limit(50),
+                            ));
                         data_reqs.push(DataQuery::FutureSpans(Box::new(data_req)));
                     }
                     "test_results" => {
-                        let data_req =
-                            ::DB_READ_EXECUTOR_POOL.send(::db::read::test::GetTestResults(
-                                ::db::read::test::TestResultQuery::default(),
-                            ));
+                        let data_req = crate::DB_READ_EXECUTOR_POOL.send(
+                            crate::db::read::test::GetTestResults(
+                                crate::db::read::test::TestResultQuery::default(),
+                            ),
+                        );
                         data_reqs.push(DataQuery::FutureTestResults(Box::new(data_req)));
                     }
                     "reports" => {
-                        let data_req = ::DB_READ_EXECUTOR_POOL.send(::db::read::reports::GetAll);
+                        let data_req =
+                            crate::DB_READ_EXECUTOR_POOL.send(crate::db::read::reports::GetAll);
                         data_reqs.push(DataQuery::FutureReports(Box::new(data_req)));
                     }
                     _ => (),
@@ -106,7 +109,7 @@ pub fn query(
                                     columns.push(span.as_columns());
                                 }
                                 let response = QueryResponse::Table {
-                                    columns: ::opentracing::Span::as_column_types(),
+                                    columns: crate::opentracing::Span::as_column_types(),
                                     rows: columns,
                                 };
                                 responses.push(response);
@@ -117,7 +120,8 @@ pub fn query(
                                     columns.push(test_result.as_columns());
                                 }
                                 let response = QueryResponse::Table {
-                                    columns: ::engine::test_result::TestResult::as_column_types(),
+                                    columns:
+                                        crate::engine::test_result::TestResult::as_column_types(),
                                     rows: columns,
                                 };
                                 responses.push(response);
@@ -128,7 +132,7 @@ pub fn query(
                                     columns.push(report.as_columns());
                                 }
                                 let response = QueryResponse::Table {
-                                    columns: ::api::report::Report::as_column_types(),
+                                    columns: crate::api::report::Report::as_column_types(),
                                     rows: columns,
                                 };
                                 responses.push(response);
@@ -137,5 +141,6 @@ pub fn query(
                     }
                     Ok(HttpResponse::Ok().json(responses))
                 })
-        }).responder()
+        })
+        .responder()
 }

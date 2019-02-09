@@ -5,10 +5,10 @@ use chrono;
 use diesel::prelude::*;
 use serde_json;
 
-use engine::test_result::TestStatus;
+use crate::engine::test_result::TestStatus;
 
 static REPORT_QUERY_LIMIT: i64 = 200;
-use db::schema::report;
+use crate::db::schema::report;
 #[derive(Debug, Insertable, Queryable, Clone)]
 #[table_name = "report"]
 pub struct ReportDb {
@@ -19,7 +19,7 @@ pub struct ReportDb {
     last_update: chrono::NaiveDateTime,
 }
 
-use db::schema::test_result_in_report;
+use crate::db::schema::test_result_in_report;
 #[derive(Debug, Insertable, Queryable, Clone)]
 #[table_name = "test_result_in_report"]
 struct TestResultInReportDb {
@@ -33,7 +33,7 @@ struct TestResultInReportDb {
 
 pub struct GetAll;
 impl Message for GetAll {
-    type Result = Vec<::api::report::Report>;
+    type Result = Vec<crate::api::report::Report>;
 }
 
 impl Handler<GetAll> for super::DbReadExecutor {
@@ -66,11 +66,13 @@ impl Handler<GetAll> for super::DbReadExecutor {
                             .unwrap_or_else(|err| {
                                 error!("error loading environment from reports: {:?}", err);
                                 vec![]
-                            }).iter()
+                            })
+                            .iter()
                             .map(|vo| match vo {
                                 Some(ref v) => v.clone(),
                                 None => "None".to_string(),
-                            }).collect()
+                            })
+                            .collect()
                     };
                     let statuses = [
                         TestStatus::Success,
@@ -99,7 +101,7 @@ impl Handler<GetAll> for super::DbReadExecutor {
                         summary
                     };
 
-                    ::api::report::Report {
+                    crate::api::report::Report {
                         name: report_from_db.name.clone(),
                         group: report_from_db.folder.clone(),
                         created_on: report_from_db.created_on,
@@ -108,7 +110,8 @@ impl Handler<GetAll> for super::DbReadExecutor {
                         environments,
                         summary: Some(summary),
                     }
-                }).collect(),
+                })
+                .collect(),
         )
     }
 }
@@ -119,7 +122,7 @@ pub struct GetReport {
     pub environment: Option<String>,
 }
 impl Message for GetReport {
-    type Result = Option<::api::report::Report>;
+    type Result = Option<crate::api::report::Report>;
 }
 
 impl Handler<GetReport> for super::DbReadExecutor {
@@ -147,10 +150,8 @@ impl Handler<GetReport> for super::DbReadExecutor {
                     vec![]
                 });
 
-            let mut test_results: HashMap<
-                String,
-                Vec<::engine::test_result::TestResult>,
-            > = HashMap::new();
+            let mut test_results: HashMap<String, Vec<crate::engine::test_result::TestResult>> =
+                HashMap::new();
             categories.iter().for_each(|category_found| {
                 let mut traces_query = test_result_in_report
                     .select(trace_id)
@@ -181,11 +182,14 @@ impl Handler<GetReport> for super::DbReadExecutor {
 
                     tr_query
                         .order(date.desc())
-                        .load::<::db::test::TestResultDb>(self.0.as_ref().expect("fail to get DB"))
+                        .load::<crate::db::test::TestResultDb>(
+                            self.0.as_ref().expect("fail to get DB"),
+                        )
                         .unwrap_or_else(|err| {
                             error!("error loading test results: {:?}", err);
                             vec![]
-                        }).iter()
+                        })
+                        .iter()
                         .map(|tr| {
                             let test = test_item_cache
                                 .get(&tr.test_id, |ti_id| {
@@ -193,10 +197,12 @@ impl Handler<GetReport> for super::DbReadExecutor {
 
                                     test_item
                                         .filter(id.eq(ti_id))
-                                        .first::<::db::test::TestItemDb>(
+                                        .first::<crate::db::test::TestItemDb>(
                                             self.0.as_ref().expect("fail to get DB"),
-                                        ).ok()
-                                }).clone();
+                                        )
+                                        .ok()
+                                })
+                                .clone();
 
                             let mut test_item_to_get =
                                 test.clone().and_then(|t| match t.parent_id.as_ref() {
@@ -210,10 +216,12 @@ impl Handler<GetReport> for super::DbReadExecutor {
                                         use super::super::schema::test_item::dsl::*;
                                         test_item
                                             .filter(id.eq(ti_id))
-                                            .first::<::db::test::TestItemDb>(
+                                            .first::<crate::db::test::TestItemDb>(
                                                 self.0.as_ref().expect("fail to get DB"),
-                                            ).ok()
-                                    }).clone()
+                                            )
+                                            .ok()
+                                    })
+                                    .clone()
                                 {
                                     test_item_to_get = match test.parent_id.as_ref() {
                                         "root" => None,
@@ -226,7 +234,7 @@ impl Handler<GetReport> for super::DbReadExecutor {
                             }
                             path.reverse();
 
-                            ::engine::test_result::TestResult {
+                            crate::engine::test_result::TestResult {
                                 test_id: tr.test_id.clone(),
                                 path,
                                 name: test
@@ -244,7 +252,8 @@ impl Handler<GetReport> for super::DbReadExecutor {
                                 nb_spans: tr.nb_spans,
                                 main_span: None,
                             }
-                        }).collect::<Vec<::engine::test_result::TestResult>>()
+                        })
+                        .collect::<Vec<crate::engine::test_result::TestResult>>()
                 };
                 test_results.insert(category_found.clone(), results);
             });
@@ -260,14 +269,16 @@ impl Handler<GetReport> for super::DbReadExecutor {
                     .unwrap_or_else(|err| {
                         error!("error loading environments from report: {:?}", err);
                         vec![]
-                    }).iter()
+                    })
+                    .iter()
                     .map(|vo| match vo {
                         Some(ref v) => v.clone(),
                         None => "None".to_string(),
-                    }).collect()
+                    })
+                    .collect()
             };
 
-            ::api::report::Report {
+            crate::api::report::Report {
                 name: report_from_db.name.clone(),
                 group: report_from_db.folder.clone(),
                 created_on: report_from_db.created_on,

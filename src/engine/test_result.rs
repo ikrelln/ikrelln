@@ -6,7 +6,7 @@ use futures::{future, Future};
 #[cfg(feature = "python")]
 use cpython::{PyDict, Python, ToPyObject};
 
-use opentracing::tags::{IkrellnTags, KnownTag, OpenTracingTag};
+use crate::opentracing::tags::{IkrellnTags, KnownTag, OpenTracingTag};
 
 #[derive(Default)]
 pub struct TraceParser;
@@ -26,12 +26,13 @@ impl Handler<TraceDone> for TraceParser {
 
     fn handle(&mut self, msg: TraceDone, _ctx: &mut Context<Self>) -> Self::Result {
         Arbiter::spawn(
-            ::DB_READ_EXECUTOR_POOL
-                .send(::db::read::span::GetSpans(
-                    ::db::read::span::SpanQuery::default()
+            crate::DB_READ_EXECUTOR_POOL
+                .send(crate::db::read::span::GetSpans(
+                    crate::db::read::span::SpanQuery::default()
                         .with_trace_id(msg.0)
                         .with_limit(1000),
-                )).map(|spans| {
+                ))
+                .map(|spans| {
                     let te = TestResult::try_from(&spans);
                     match te {
                         Ok(te) => Some(te),
@@ -43,7 +44,8 @@ impl Handler<TraceDone> for TraceParser {
                             None
                         }
                     }
-                }).then(|test_exec| {
+                })
+                .then(|test_exec| {
                     if let Ok(Some(test_exec)) = test_exec {
                         actix::System::current()
                             .registry()
@@ -63,19 +65,23 @@ impl Handler<TestExecutionToSave> for TraceParser {
     type Result = ();
 
     fn handle(&mut self, msg: TestExecutionToSave, _ctx: &mut Context<Self>) -> Self::Result {
-        Arbiter::spawn(::DB_EXECUTOR_POOL.send(msg.0.clone()).then(|test_result| {
-            if let Ok(test_result) = test_result {
-                actix::System::current()
-                    .registry()
-                    .get::<::engine::streams::Streamer>()
-                    .do_send(::engine::streams::Test(test_result.clone()));
-                actix::System::current()
-                    .registry()
-                    .get::<::engine::report::Reporter>()
-                    .do_send(::engine::report::ComputeReportsForResult(test_result));
-            }
-            future::result(Ok(()))
-        }))
+        Arbiter::spawn(
+            crate::DB_EXECUTOR_POOL
+                .send(msg.0.clone())
+                .then(|test_result| {
+                    if let Ok(test_result) = test_result {
+                        actix::System::current()
+                            .registry()
+                            .get::<crate::engine::streams::Streamer>()
+                            .do_send(crate::engine::streams::Test(test_result.clone()));
+                        actix::System::current()
+                            .registry()
+                            .get::<crate::engine::report::Reporter>()
+                            .do_send(crate::engine::report::ComputeReportsForResult(test_result));
+                    }
+                    future::result(Ok(()))
+                }),
+        )
     }
 }
 
@@ -100,28 +106,28 @@ impl TestStatus {
 impl From<i32> for TestStatus {
     fn from(v: i32) -> Self {
         match v {
-            0 => ::engine::test_result::TestStatus::Success,
-            1 => ::engine::test_result::TestStatus::Failure,
-            2 => ::engine::test_result::TestStatus::Skipped,
-            _ => ::engine::test_result::TestStatus::Failure,
+            0 => crate::engine::test_result::TestStatus::Success,
+            1 => crate::engine::test_result::TestStatus::Failure,
+            2 => crate::engine::test_result::TestStatus::Skipped,
+            _ => crate::engine::test_result::TestStatus::Failure,
         }
     }
 }
 impl TestStatus {
     pub fn as_i32(&self) -> i32 {
         match self {
-            ::engine::test_result::TestStatus::Success => 0,
-            ::engine::test_result::TestStatus::Failure => 1,
-            ::engine::test_result::TestStatus::Skipped => 2,
-            ::engine::test_result::TestStatus::Any => 3,
+            crate::engine::test_result::TestStatus::Success => 0,
+            crate::engine::test_result::TestStatus::Failure => 1,
+            crate::engine::test_result::TestStatus::Skipped => 2,
+            crate::engine::test_result::TestStatus::Any => 3,
         }
     }
     pub fn as_str(&self) -> &'static str {
         match self {
-            ::engine::test_result::TestStatus::Success => "Success",
-            ::engine::test_result::TestStatus::Failure => "Failure",
-            ::engine::test_result::TestStatus::Skipped => "Skipped",
-            ::engine::test_result::TestStatus::Any => "Any",
+            crate::engine::test_result::TestStatus::Success => "Success",
+            crate::engine::test_result::TestStatus::Failure => "Failure",
+            crate::engine::test_result::TestStatus::Skipped => "Skipped",
+            crate::engine::test_result::TestStatus::Any => "Any",
         }
     }
 }
@@ -149,7 +155,7 @@ pub struct TestResult {
     pub components_called: HashMap<String, i32>,
     pub nb_spans: i32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub main_span: Option<::opentracing::Span>,
+    pub main_span: Option<crate::opentracing::Span>,
 }
 
 #[cfg(feature = "python")]
@@ -190,9 +196,9 @@ impl TestResult {
             .map(|v| v.to_string())
     }
     fn value_from_tag_or(
-        span: &::opentracing::Span,
+        span: &crate::opentracing::Span,
         tag: IkrellnTags,
-        f: fn(&::opentracing::Span) -> Option<String>,
+        f: fn(&crate::opentracing::Span) -> Option<String>,
     ) -> Result<String, KnownTag> {
         match span
             .tags
@@ -205,7 +211,7 @@ impl TestResult {
         }
     }
 
-    fn try_from(spans: &[::opentracing::Span]) -> Result<Self, KnownTag> {
+    fn try_from(spans: &[crate::opentracing::Span]) -> Result<Self, KnownTag> {
         let main_span = match spans.iter().find(|span| span.parent_id.is_none()) {
             Some(span) => span,
             None => return Err(IkrellnTags::StepType.into()),
@@ -268,9 +274,9 @@ mod tests {
     use std::collections::HashMap;
     use uuid;
 
-    use opentracing::span::Kind;
-    use opentracing::tags::IkrellnTags;
-    use opentracing::Span;
+    use crate::opentracing::span::Kind;
+    use crate::opentracing::tags::IkrellnTags;
+    use crate::opentracing::Span;
 
     use super::*;
 

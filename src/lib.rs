@@ -3,26 +3,14 @@
 #[macro_use]
 extern crate lazy_static;
 
-extern crate chrono;
 #[macro_use]
 extern crate log;
-extern crate mime;
-
-extern crate clap;
-extern crate structopt;
-extern crate toml;
 
 #[macro_use]
 extern crate serde;
-extern crate serde_json;
-extern crate serde_urlencoded;
-extern crate uuid;
 
-extern crate actix;
-extern crate actix_web;
 #[macro_use]
 extern crate failure;
-extern crate futures;
 
 #[macro_use]
 extern crate diesel;
@@ -41,7 +29,7 @@ pub mod opentracing;
 
 lazy_static! {
     static ref DB_EXECUTOR_POOL: actix::Addr<db::update::DbExecutor> = {
-        let config = ::config::Config::load();
+        let config = crate::config::Config::load();
         actix::SyncArbiter::start(1, move || {
             if let Ok(connection) = db::update::establish_connection(&config.db_url) {
                 return db::update::DbExecutor(Some(connection));
@@ -55,7 +43,7 @@ lazy_static! {
 
 lazy_static! {
     static ref DB_READ_EXECUTOR_POOL: actix::Addr<db::read::DbReadExecutor> = {
-        let config = ::config::Config::load();
+        let config = crate::config::Config::load();
         actix::SyncArbiter::start(3, move || {
             if let Ok(connection) = db::read::establish_connection(&config.db_url) {
                 return db::read::DbReadExecutor(Some(connection));
@@ -85,8 +73,8 @@ pub fn start_server() {
     //actix::System::current().registry()
     actix::System::current()
         .registry()
-        .get::<::engine::streams::Streamer>()
-        .do_send(::engine::streams::LoadScripts);
+        .get::<crate::engine::streams::Streamer>()
+        .do_send(crate::engine::streams::LoadScripts);
 
     let _: Addr<_> = db::cleanup::CleanUpTimer.start();
 

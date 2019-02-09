@@ -13,11 +13,13 @@ matrix:
       install:
         - rustup component add rustfmt
       script:
+        - cargo build
         - cargo fmt -- --check
     - rust: stable
       install:
         - rustup component add clippy
       script:
+        - cargo build
         - cargo clippy -- -D clippy
 
 services:

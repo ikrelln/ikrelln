@@ -1,5 +1,4 @@
 #![deny(warnings)]
-#![cfg_attr(feature = "cargo-clippy", deny(option_unwrap_used))]
 
 #[macro_use]
 extern crate lazy_static;
@@ -10,13 +9,11 @@ extern crate log;
 extern crate mime;
 
 extern crate clap;
-#[macro_use]
 extern crate structopt;
 extern crate toml;
 
-extern crate serde;
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
 extern crate serde_json;
 extern crate serde_urlencoded;
 extern crate uuid;

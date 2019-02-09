@@ -11,15 +11,13 @@ matrix:
   include:
     - rust: stable
       install:
-        - rustup component add rustfmt-preview
+        - rustup component add rustfmt
       script:
-        - cargo build
         - cargo fmt -- --check
-    - rust: nightly
+    - rust: stable
       install:
-        - rustup component add clippy-preview
+        - rustup component add clippy
       script:
-        - cargo build
         - cargo clippy -- -D clippy
 
 services:

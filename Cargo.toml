@@ -21,8 +21,8 @@ mime = "0.3"
 lazy_static = "1.2"
 
 clap = "2.32"
-toml = "0.4"
 structopt = "0.2"
+hocon = "0.1"
 
 uuid = { version = "0.7", features = ["serde", "v4"] }
 

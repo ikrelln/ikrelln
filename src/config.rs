@@ -1,8 +1,4 @@
-use std::fs::File;
-use std::io::prelude::*;
-
 use structopt::StructOpt;
-use toml;
 
 #[derive(Debug, Clone)]
 pub struct CleanUpConfig {
@@ -92,45 +88,49 @@ pub struct ConfigLoaderCmd {
     pub db_url: Option<String>,
 }
 
-fn load_config_from_toml() -> ConfigLoader {
-    let contents = File::open("config.toml").and_then(|mut file| {
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).map(|_| contents)
-    });
-    let config: Option<ConfigLoader> = contents
-        .ok()
-        .and_then(|contents| toml::from_str(&contents).ok());
+// fn load_config_from_toml() -> ConfigLoader {
+//     let contents = File::open("config.toml").and_then(|mut file| {
+//         let mut contents = String::new();
+//         file.read_to_string(&mut contents).map(|_| contents)
+//     });
+//     let config: Option<ConfigLoader> = contents
+//         .ok()
+//         .and_then(|contents| toml::from_str(&contents).ok());
 
-    config.unwrap_or_else(ConfigLoader::default)
+//     config.unwrap_or_else(ConfigLoader::default)
+// }
+
+fn load_config_from_hocon() -> ConfigLoader {
+    hocon::serde::from_file_path("ikrelln.conf").unwrap_or_else(|_| ConfigLoader::default())
 }
 
 fn merge_configs() -> Result<Config, String> {
     let from_args = ConfigLoaderCmd::from_args();
-    let from_toml = load_config_from_toml();
-    let cleanup_from_toml = from_toml.cleanup;
+    let from_hocon = load_config_from_hocon();
+    let cleanup_from_hocon = from_hocon.cleanup;
     let default = Config::default();
 
     Ok(Config {
-        port: from_args.port.or(from_toml.port).unwrap_or(default.port),
-        host: from_args.host.or(from_toml.host).unwrap_or(default.host),
+        port: from_args.port.or(from_hocon.port).unwrap_or(default.port),
+        host: from_args.host.or(from_hocon.host).unwrap_or(default.host),
         db_url: from_args
             .db_url
-            .or(from_toml.db_url)
+            .or(from_hocon.db_url)
             .ok_or("missing DATABASE_URL parameter")?,
         cleanup: CleanUpConfig {
-            delay_test_results: cleanup_from_toml
+            delay_test_results: cleanup_from_hocon
                 .clone()
                 .and_then(|cleanup| cleanup.delay_test_results)
                 .unwrap_or(default.cleanup.delay_test_results),
-            delay_spans: cleanup_from_toml
+            delay_spans: cleanup_from_hocon
                 .clone()
                 .and_then(|cleanup| cleanup.delay_spans)
                 .unwrap_or(default.cleanup.delay_spans),
-            delay_reports: cleanup_from_toml
+            delay_reports: cleanup_from_hocon
                 .clone()
                 .and_then(|cleanup| cleanup.delay_reports)
                 .unwrap_or(default.cleanup.delay_reports),
-            schedule: cleanup_from_toml
+            schedule: cleanup_from_hocon
                 .clone()
                 .and_then(|cleanup| cleanup.schedule)
                 .unwrap_or(default.cleanup.schedule),

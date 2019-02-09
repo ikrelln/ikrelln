@@ -26,7 +26,7 @@ services:
   - postgresql
 
 env:
-  - DATABASE_URL=postgresql://postgres@localhost:5432 NB_CONNECTION=1
+  - DATABASE_URL=postgresql://postgres@localhost:5432 NB_CONNECTION=1 RUST_TEST_THREADS=1
 
 cache: cargo
 

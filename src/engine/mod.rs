@@ -33,6 +33,11 @@ macro_rules! typed_id {
                 $name(format!("{}", uuid::Uuid::new_v4().to_hyphenated()))
             }
         }
+        impl Default for $name {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
     };
 }
 

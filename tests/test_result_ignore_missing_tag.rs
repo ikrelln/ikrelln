@@ -12,11 +12,12 @@ use std::{thread, time};
 use actix_web::*;
 
 use ikrelln::api::span::IngestResponse;
+use ikrelln::engine::test_result::TestResult;
 use ikrelln::opentracing::span::Kind;
 use ikrelln::opentracing::Span;
 
 #[test]
-fn can_receive_span() {
+fn should_not_have_test_result_from_span_without_tags() {
     helpers::setup_logger();
     let mut srv = helpers::setup_server();
 
@@ -49,19 +50,21 @@ fn can_receive_span() {
     assert_eq!(data.unwrap().nb_events, 1);
 
     thread::sleep(time::Duration::from_millis(
-        helpers::DELAY_SPAN_SAVED_MILLISECONDS,
+        helpers::DELAY_RESULT_SAVED_MILLISECONDS,
     ));
 
-    let req_trace = srv
-        .client(http::Method::GET, &format!("/api/v1/trace/{}", &trace_id))
+    let req_tr = srv
+        .client(
+            http::Method::GET,
+            &format!("/api/v1/testresults?traceId={}", &trace_id),
+        )
         .finish()
         .unwrap();
-    let response_trace = srv.execute(req_trace.send()).unwrap();
-    assert!(response_trace.status().is_success());
-    let data_trace: Result<Vec<Span>, _> =
-        serde_json::from_slice(&*srv.execute(response_trace.body()).unwrap());
-    assert!(data_trace.is_ok());
-    println!("{:#?}", data_trace);
-    assert_eq!(data_trace.unwrap().len(), 1);
+    let response_tr = srv.execute(req_tr.send()).unwrap();
+    assert!(response_tr.status().is_success());
+    let data_tr: Result<Vec<TestResult>, _> =
+        serde_json::from_slice(&*srv.execute(response_tr.body()).unwrap());
+    assert!(data_tr.is_ok());
+    assert_eq!(data_tr.unwrap().len(), 0);
     thread::sleep(time::Duration::from_millis(helpers::DELAY_FINISH));
 }

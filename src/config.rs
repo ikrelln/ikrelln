@@ -103,7 +103,7 @@ pub struct ConfigLoaderCmd {
 fn load_config_from_hocon() -> ConfigLoader {
     hocon::HoconLoader::new()
         .load_file("ikrelln.conf")
-        .and_then(|cfg| cfg.resolve())
+        .and_then(hocon::HoconLoader::resolve)
         .unwrap_or_else(|_| ConfigLoader::default())
 }
 

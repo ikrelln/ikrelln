@@ -193,7 +193,7 @@ impl TestResult {
     {
         tags.get(tag.clone().into())
             .ok_or_else(|| tag.into())
-            .map(|v| v.to_string())
+            .map(std::string::ToString::to_string)
     }
     fn value_from_tag_or(
         span: &crate::opentracing::Span,
@@ -204,7 +204,7 @@ impl TestResult {
             .tags
             .get(tag.clone().into())
             .ok_or_else(|| tag.into())
-            .map(|v| v.to_string())
+            .map(std::string::ToString::to_string)
         {
             Ok(value) => Ok(value),
             Err(err) => f(span).ok_or(err),

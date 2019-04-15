@@ -122,9 +122,18 @@ impl SpanQuery {
                 .get("finished")
                 .and_then(|s| FromStr::from_str(s).ok())
                 .unwrap_or(true),
-            service_name: req.query().get("serviceName").map(|s| s.to_string()),
-            span_name: req.query().get("spanName").map(|s| s.to_string()),
-            trace_id: req.query().get("traceId").map(|s| s.to_string()),
+            service_name: req
+                .query()
+                .get("serviceName")
+                .map(std::string::ToString::to_string),
+            span_name: req
+                .query()
+                .get("spanName")
+                .map(std::string::ToString::to_string),
+            trace_id: req
+                .query()
+                .get("traceId")
+                .map(std::string::ToString::to_string),
             min_duration: req
                 .query()
                 .get("minDuration")
@@ -346,7 +355,7 @@ impl Handler<GetSpans> for super::DbReadExecutor {
                         id: spandb.id.clone(),
                         parent_id: spandb.parent_id.clone(),
                         name: spandb.name.clone().map(|s| s.chars().take(250).collect()),
-                        kind: spandb.kind.clone().map(|k| k.into()),
+                        kind: spandb.kind.clone().map(std::convert::Into::into),
                         timestamp: spandb.ts.map(|ts| {
                             ((ts.timestamp() * 1000) + i64::from(ts.timestamp_subsec_millis()))
                                 * 1000

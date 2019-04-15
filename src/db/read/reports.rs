@@ -158,7 +158,7 @@ impl Handler<GetReport> for super::DbReadExecutor {
                     .filter(report_id.eq(&report_from_db.id))
                     .filter(category.eq(category_found))
                     .into_boxed();
-                traces_query = match msg.environment.as_ref().map(|s| s.as_str()) {
+                traces_query = match msg.environment.as_ref().map(std::string::String::as_str) {
                     Some("None") => traces_query.filter(environment.is_null()),
                     Some(v) => traces_query.filter(environment.eq(v)),
                     None => traces_query.filter(environment.is_null()),
@@ -174,7 +174,7 @@ impl Handler<GetReport> for super::DbReadExecutor {
                     let mut test_item_cache = super::super::helper::Cacher::new();
 
                     let mut tr_query = test_result.filter(trace_id.eq_any(traces)).into_boxed();
-                    tr_query = match msg.environment.as_ref().map(|s| s.as_str()) {
+                    tr_query = match msg.environment.as_ref().map(std::string::String::as_str) {
                         Some("None") => tr_query.filter(environment.is_null()),
                         Some(v) => tr_query.filter(environment.eq(v)),
                         None => tr_query.filter(environment.is_null()),

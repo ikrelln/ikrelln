@@ -423,7 +423,7 @@ impl Handler<GetEnvironments> for super::DbReadExecutor {
                     vec![]
                 })
                 .iter()
-                .filter_map(|v| v.clone())
+                .filter_map(std::clone::Clone::clone)
                 .collect(),
         )
     }

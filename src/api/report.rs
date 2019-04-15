@@ -40,7 +40,10 @@ pub fn get_report(
             .send(crate::db::read::reports::GetReport {
                 report_group: report_group.to_string().replace("%20", " "),
                 report_name: report_name.to_string().replace("%20", " "),
-                environment: req.query().get("environment").map(std::string::ToString::to_string),
+                environment: req
+                    .query()
+                    .get("environment")
+                    .map(std::string::ToString::to_string),
             })
             .from_err()
             .and_then(|res| match res {

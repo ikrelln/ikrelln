@@ -47,9 +47,7 @@ impl Handler<TraceDone> for TraceParser {
                 })
                 .then(|test_exec| {
                     if let Ok(Some(test_exec)) = test_exec {
-                        actix::System::current()
-                            .registry()
-                            .get::<super::test_result::TraceParser>()
+                        super::test_result::TraceParser::from_registry()
                             .do_send(TestExecutionToSave(test_exec));
                     }
                     future::result(Ok(()))
@@ -70,13 +68,9 @@ impl Handler<TestExecutionToSave> for TraceParser {
                 .send(msg.0.clone())
                 .then(|test_result| {
                     if let Ok(test_result) = test_result {
-                        actix::System::current()
-                            .registry()
-                            .get::<crate::engine::streams::Streamer>()
+                        crate::engine::streams::Streamer::from_registry()
                             .do_send(crate::engine::streams::Test(test_result.clone()));
-                        actix::System::current()
-                            .registry()
-                            .get::<crate::engine::report::Reporter>()
+                        crate::engine::report::Reporter::from_registry()
                             .do_send(crate::engine::report::ComputeReportsForResult(test_result));
                     }
                     future::result(Ok(()))

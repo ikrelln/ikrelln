@@ -1,4 +1,4 @@
-use actix;
+use actix::SystemService;
 use actix_web::{AsyncResponder, HttpMessage, HttpRequest, HttpResponse};
 use chrono;
 use futures::future::result;
@@ -31,9 +31,7 @@ pub fn save_script(
             match new_script.script_type {
                 crate::engine::streams::ScriptType::StreamTest
                 | crate::engine::streams::ScriptType::ReportFilterTestResult => {
-                    actix::System::current()
-                        .registry()
-                        .get::<crate::engine::streams::Streamer>()
+                    crate::engine::streams::Streamer::from_registry()
                         .do_send(crate::engine::streams::AddScript(new_script.clone()))
                 }
                 _ => (),
@@ -77,9 +75,7 @@ pub fn delete_script(
                     match script.script_type {
                         crate::engine::streams::ScriptType::StreamTest
                         | crate::engine::streams::ScriptType::ReportFilterTestResult => {
-                            actix::System::current()
-                                .registry()
-                                .get::<crate::engine::streams::Streamer>()
+                            crate::engine::streams::Streamer::from_registry()
                                 .do_send(crate::engine::streams::RemoveScript(script.clone()))
                         }
                         _ => (),
@@ -128,9 +124,7 @@ pub fn update_script(
                     match new_script.script_type {
                         crate::engine::streams::ScriptType::StreamTest
                         | crate::engine::streams::ScriptType::ReportFilterTestResult => {
-                            actix::System::current()
-                                .registry()
-                                .get::<crate::engine::streams::Streamer>()
+                            crate::engine::streams::Streamer::from_registry()
                                 .do_send(crate::engine::streams::UpdateScript(new_script.clone()))
                         }
                         _ => (),
@@ -146,9 +140,6 @@ pub fn update_script(
 }
 
 pub fn reload_scripts(_req: &HttpRequest<AppState>) -> HttpResponse {
-    actix::System::current()
-        .registry()
-        .get::<crate::engine::streams::Streamer>()
-        .do_send(crate::engine::streams::LoadScripts);
+    crate::engine::streams::Streamer::from_registry().do_send(crate::engine::streams::LoadScripts);
     HttpResponse::Ok().finish()
 }

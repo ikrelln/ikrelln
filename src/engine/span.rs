@@ -16,9 +16,7 @@ impl Handler<super::ingestor::IngestEvents<Span>> for super::ingestor::Ingestor 
             Arbiter::spawn(crate::DB_EXECUTOR_POOL.send(event.clone()).then(|span| {
                 if let Ok(span) = span {
                     if let (Some(_), None) = (span.duration, span.parent_id.clone()) {
-                        actix::System::current()
-                            .registry()
-                            .get::<super::test_result::TraceParser>()
+                        super::test_result::TraceParser::from_registry()
                             .do_send(super::test_result::TraceDone(span.trace_id.clone()));
                     }
                 }

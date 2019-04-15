@@ -19,6 +19,7 @@ extern crate diesel;
 extern crate cpython;
 
 use actix::prelude::*;
+use actix::SystemService;
 
 pub mod api;
 mod build_info;
@@ -70,13 +71,9 @@ pub fn start_server() {
         _ => api::serve(&CONFIG.host, CONFIG.port),
     }
 
-    //actix::System::current().registry()
-    actix::System::current()
-        .registry()
-        .get::<crate::engine::streams::Streamer>()
-        .do_send(crate::engine::streams::LoadScripts);
+    crate::engine::streams::Streamer::from_registry().do_send(crate::engine::streams::LoadScripts);
 
     let _: Addr<_> = db::cleanup::CleanUpTimer.start();
 
-    system.run();
+    system.run().expect("error starting");
 }

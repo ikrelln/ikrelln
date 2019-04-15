@@ -103,6 +103,6 @@ mod tests {
             actix::System::current().stop();
             futures::future::ok(())
         });
-        system.run();
+        system.run().expect("error starting");
     }
 }

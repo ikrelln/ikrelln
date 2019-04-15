@@ -1,3 +1,4 @@
+use ::actix::SystemService;
 use actix_web::*;
 use futures::future::result;
 use futures::Future;
@@ -16,9 +17,7 @@ pub struct IngestResponse {
 pub fn ingest(
     req: &HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
-    let ingestor = actix::System::current()
-        .registry()
-        .get::<crate::engine::ingestor::Ingestor>();
+    let ingestor = crate::engine::ingestor::Ingestor::from_registry();
     req.json()
         .from_err()
         .and_then(move |val: Vec<Span>| {

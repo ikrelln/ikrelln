@@ -67,15 +67,12 @@ impl Handler<ComputeReportsForResult> for Reporter {
                             })
                             .collect();
                         reports_to_send.iter().for_each(|report| {
-                            actix::System::current()
-                                .registry()
-                                .get::<Reporter>()
-                                .do_send(ResultForReport {
-                                    report_group: report.group.clone(),
-                                    report_name: report.name.clone(),
-                                    category: report.category.clone(),
-                                    result: msg.0.clone(),
-                                })
+                            Reporter::from_registry().do_send(ResultForReport {
+                                report_group: report.group.clone(),
+                                report_name: report.name.clone(),
+                                category: report.category.clone(),
+                                result: msg.0.clone(),
+                            })
                         });
                     }
                     future::result(Ok(()))

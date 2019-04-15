@@ -121,9 +121,7 @@ impl Handler<LoadScripts> for Streamer {
                 ])))
                 .then(|scripts| {
                     if let Ok(scripts) = scripts {
-                        actix::System::current()
-                            .registry()
-                            .get::<crate::engine::streams::Streamer>()
+                        crate::engine::streams::Streamer::from_registry()
                             .do_send(UpdateScripts(scripts));
                     }
                     result(Ok(()))

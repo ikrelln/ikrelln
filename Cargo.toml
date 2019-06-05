@@ -33,7 +33,7 @@ serde_urlencoded = "0.5"
 futures = "0.1"
 env_logger = "0.6"
 actix = "0.7"
-actix-web = "0.7"
+actix-web = "1.0"
 
 failure = "0.1"
 

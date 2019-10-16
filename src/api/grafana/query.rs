@@ -66,7 +66,7 @@ pub trait ToGrafana {
 
 pub fn query(
     req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     req.json()
         .from_err()
         .and_then(move |val: Query| {

@@ -45,10 +45,6 @@ http = "0.1"
 
 cpython = { version = "0.2", optional = true }
 
-[patch.crates-io]
-# Needed for Postgres. Patches the build script to support cross-compilation.
-pq-sys = { git = 'https://github.com/golddranks/pq-sys' }
-
 [features]
 default = [ "postgres" ]
 postgres = [ "diesel/postgres", "openssl-sys" ]

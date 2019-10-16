@@ -148,17 +148,17 @@ impl ToGrafana for crate::api::report::Report {
 }
 
 pub enum DataQuery {
-    FutureSpans(Box<futures::Future<Item = Vec<crate::opentracing::Span>, Error = MailboxError>>),
+    FutureSpans(Box<dyn futures::Future<Item = Vec<crate::opentracing::Span>, Error = MailboxError>>),
     FutureTestResults(
         Box<
-            futures::Future<
+            dyn futures::Future<
                 Item = Vec<crate::engine::test_result::TestResult>,
                 Error = MailboxError,
             >,
         >,
     ),
     FutureReports(
-        Box<futures::Future<Item = Vec<crate::api::report::Report>, Error = MailboxError>>,
+        Box<dyn futures::Future<Item = Vec<crate::api::report::Report>, Error = MailboxError>>,
     ),
 }
 impl futures::Future for DataQuery {

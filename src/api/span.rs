@@ -15,7 +15,7 @@ pub struct IngestResponse {
 
 pub fn ingest(
     req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     let ingestor = actix::System::current()
         .registry()
         .get::<crate::engine::ingestor::Ingestor>();
@@ -37,7 +37,7 @@ pub fn ingest(
 
 pub fn get_services(
     _req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     crate::DB_READ_EXECUTOR_POOL
         .send(crate::db::read::span::GetServices)
         .from_err()
@@ -50,7 +50,7 @@ pub fn get_services(
 
 pub fn get_spans_by_service(
     req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.query().get("serviceName") {
         Some(_) => crate::DB_READ_EXECUTOR_POOL
             .send(crate::db::read::span::GetSpans(
@@ -77,7 +77,7 @@ pub fn get_spans_by_service(
 
 pub fn get_spans_by_trace_id(
     req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("traceId") {
         Some(trace_id) => crate::DB_READ_EXECUTOR_POOL
             .send(crate::db::read::span::GetSpans(
@@ -97,7 +97,7 @@ pub fn get_spans_by_trace_id(
 
 pub fn get_traces(
     req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     crate::DB_READ_EXECUTOR_POOL
         .send(crate::db::read::span::GetSpans(
             crate::db::read::span::SpanQuery::from_req(&req),
@@ -143,7 +143,7 @@ impl Dependency {
 
 pub fn get_dependencies(
     req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     crate::DB_READ_EXECUTOR_POOL
         .send(crate::db::read::span::GetSpans(
             crate::db::read::span::SpanQuery::from_req(&req)

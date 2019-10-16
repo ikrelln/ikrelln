@@ -21,7 +21,7 @@ pub struct Report {
 
 pub fn get_reports(
     _req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     crate::DB_READ_EXECUTOR_POOL
         .send(crate::db::read::reports::GetAll)
         .from_err()
@@ -31,7 +31,7 @@ pub fn get_reports(
 
 pub fn get_report(
     req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     match (
         req.match_info().get("reportGroup"),
         req.match_info().get("reportName"),

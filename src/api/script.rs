@@ -9,7 +9,7 @@ use super::{errors, AppState};
 
 pub fn save_script(
     req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     req.json()
         .from_err()
         .and_then(move |script: crate::engine::streams::Script| {
@@ -45,7 +45,7 @@ pub fn save_script(
 
 pub fn get_script(
     req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("scriptId") {
         Some(script_id) => crate::DB_READ_EXECUTOR_POOL
             .send(crate::db::read::scripts::GetScript(script_id.to_string()))
@@ -67,7 +67,7 @@ pub fn get_script(
 
 pub fn delete_script(
     req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("scriptId") {
         Some(script_id) => crate::DB_EXECUTOR_POOL
             .send(crate::db::scripts::DeleteScript(script_id.to_string()))
@@ -102,7 +102,7 @@ pub fn delete_script(
 
 pub fn list_scripts(
     _req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     crate::DB_READ_EXECUTOR_POOL
         .send(crate::db::read::scripts::GetAll(None))
         .from_err()
@@ -112,7 +112,7 @@ pub fn list_scripts(
 
 pub fn update_script(
     req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     let match_info = req.match_info().clone();
     req.json()
         .from_err()

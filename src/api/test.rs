@@ -27,7 +27,7 @@ pub struct TestResultsQueryParams {
 
 pub fn get_test_results(
     req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     match serde_urlencoded::from_str::<TestResultsQueryParams>(req.query_string()) {
         Ok(query_params) => crate::DB_READ_EXECUTOR_POOL
             .send(crate::db::read::test::GetTestResults(query_params.into()))
@@ -52,7 +52,7 @@ pub struct TestDetails {
 }
 pub fn get_test(
     req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     match req.match_info().get("testId") {
         Some(test_id) => crate::DB_READ_EXECUTOR_POOL
             .send(match test_id {
@@ -109,7 +109,7 @@ struct GetTestQueryParams {
 
 pub fn get_tests_by_parent(
     req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     match serde_urlencoded::from_str::<GetTestQueryParams>(req.query_string()) {
         Ok(params) => crate::DB_READ_EXECUTOR_POOL
             .send(crate::db::read::test::GetTestItems(
@@ -138,7 +138,7 @@ pub fn get_tests_by_parent(
 
 pub fn get_environments(
     _req: &HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = errors::IkError>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = errors::IkError>> {
     crate::DB_READ_EXECUTOR_POOL
         .send(crate::db::read::test::GetEnvironments)
         .from_err()

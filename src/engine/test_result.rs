@@ -327,5 +327,4 @@ mod tests {
         let tr = TestResult::try_from(&spans);
         assert!(tr.is_ok());
     }
-
 }

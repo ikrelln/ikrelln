@@ -32,10 +32,10 @@ lazy_static! {
         let config = crate::config::Config::load();
         actix::SyncArbiter::start(1, move || {
             if let Ok(connection) = db::update::establish_connection(&config.db_url) {
-                return db::update::DbExecutor(Some(connection));
+                db::update::DbExecutor(Some(connection))
             } else {
                 error!("error opening connection to DB");
-                return db::update::DbExecutor(None);
+                db::update::DbExecutor(None)
             }
         })
     };
@@ -46,10 +46,10 @@ lazy_static! {
         let config = crate::config::Config::load();
         actix::SyncArbiter::start(3, move || {
             if let Ok(connection) = db::read::establish_connection(&config.db_url) {
-                return db::read::DbReadExecutor(Some(connection));
+                db::read::DbReadExecutor(Some(connection))
             } else {
                 error!("error opening read connection to DB");
-                return db::read::DbReadExecutor(None);
+                db::read::DbReadExecutor(None)
             }
         })
     };

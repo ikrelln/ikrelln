@@ -43,15 +43,15 @@ fn commit_date() -> Result<String, Ignore> {
 
 fn main() {
     let gitref = match commit_hash() {
-        Ok(v) => v.trim_right().to_string(),
+        Ok(v) => v.trim_end().to_string(),
         Err(_) => "N/A".to_string(),
     };
     let gitdate = match commit_date() {
-        Ok(v) => v.trim_right().to_string(),
+        Ok(v) => v.trim_end().to_string(),
         Err(_) => "N/A".to_string(),
     };
     let gitdescribe = match commit_describe() {
-        Ok(v) => v.trim_right().to_string(),
+        Ok(v) => v.trim_end().to_string(),
         Err(_) => "N/A".to_string(),
     };
     let version = env!("CARGO_PKG_VERSION");
